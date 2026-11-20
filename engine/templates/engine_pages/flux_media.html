@@ -1,0 +1,190 @@
+{% extends "engine/page_simple.html" %}
+{% load i18n_extras %}{% load static %}
+{% block classe_page %}page-flux_media{% endblock %}
+{% block titre %}{% t "engine/templates/engine_pages/flux_media.html:12:5" %}{% endblock %}
+{% block contenu %}
+<nav class="flux-nav"><a href="{% url 'engine:page_flux_mosaique' %}">{% t "engine/templates/engine_pages/flux_media.html:16:71" %}</a></nav>
+<div class="carte"><h2>{% t "engine/templates/engine_pages/flux_media.html:13:23" %}</h2>
+<input id="nom" placeholder="{% t 'engine/templates/engine_pages/flux_media.html:14:30' %}">
+<select id="type"><option value="camera">{% t "engine/templates/engine_pages/flux_media.html:15:42" %}</option><option value="micro">{% t "engine/templates/engine_pages/flux_media.html:15:88" %}</option>
+<option value="diffusion_camera">{% t "engine/templates/engine_pages/flux_media.html:16:34" %}</option><option value="diffusion_micro">{% t "engine/templates/engine_pages/flux_media.html:16:91" %}</option></select>
+<select id="tbl" aria-label="{% t "engine/templates/engine_pages/flux_media.html:aide_table" %}"></select>
+<button class="principal" onclick="creer()">{% t "engine/templates/engine_pages/flux_media.html:17:27" %}</button> <span class="msg" id="msg"></span>
+<small>{% t "engine/templates/engine_pages/flux_media.html:aide_table" %}</small></div>
+<div id="liste"></div>
+{% endblock %}
+{% block script %}
+<script src="{% static 'engine/js/champ_tenseur.js' %}"></script>
+<script>
+const J=(u,o)=>fetch(u,o).then(r=>r.json().then(d=>({ok:r.ok,d})));
+const P=(u,c)=>J(u,{method:'POST',headers:{'Content-Type':'application/json','X-CSRFToken':document.cookie.match(/gy_csrftoken=([^;]+)/)?.[1]||''},body:JSON.stringify(c||{})});
+const VID=t=>t.endsWith('camera'),SRC={},EMIT={},csrf=()=>document.cookie.match(/gy_csrftoken=([^;]+)/)?.[1]||'';
+const K='engine/templates/engine_pages/flux_media.html:js:',TJ=(k,v)=>tj(K+k,v),FORM={},PEND={},IDEM={},ARCH={};let TABLES=[],LECT=false;
+const uid=()=>(window.crypto&&crypto.randomUUID)?crypto.randomUUID():Date.now()+'-'+Math.random().toString(36).slice(2);
+function tablesSelect(){const s=document.getElementById('tbl'),v=s.value;
+ s.innerHTML=`<option value="" disabled>${TJ('choisir_table')}</option><option value="nouvelle">${TJ('nouvelle_table')}</option>`+TABLES.map(x=>`<option value="${x.id}">${esc(x.nom)}</option>`).join('');
+ s.value=v&&[...s.options].some(o=>o.value===v)?v:''}
+const lienHtml=f=>`<span>${TJ('table_liee')}</span> ${f.table_liee?`<b>${esc(f.table_liee.nom)}</b>`:`<span class="flux-alerte">${TJ('non_lie')}</span>`}
+<select id="lt${f.id}">${f.table_liee?'':`<option value="" disabled selected>${TJ('choisir_table')}</option>`}${TABLES.map(x=>`<option value="${x.id}"${f.table_liee&&f.table_liee.id===x.id?' selected':''}>${esc(x.nom)}</option>`).join('')}</select>
+<button class="sec" onclick="lier(${f.id})">${f.table_liee?TJ('changer_table'):TJ('lier_table')}</button>`;
+async function charger(){const [fl,tb]=await Promise.all([J('/api/flux/'),J('/api/flux/tables/')]);const d=fl.d;TABLES=tb.ok?tb.d.tables:[];LECT=!tb.ok;tablesSelect();   // un client (lecteur) ne voit que les diffusions : ni table liée, ni formulaire, ni archives
+ document.getElementById('liste').innerHTML=d.flux.map(f=>(`
+<div class="carte" id="f${f.id}"><h2>${esc(f.nom)} <small>${f.type.replace('_',' ')}</small></h2>
+${LECT?'':`<div class="flux-lien" id="l${f.id}">${lienHtml(f)}</div>`}
+<details class="flux-section" open><summary>${TJ('section_flux')}</summary>
+<div class="ecran" id="e${f.id}">${tj("engine/templates/engine_pages/flux_media.html:js:26:35")}</div>
+<div><input id="s${f.id}" size="34" value="${f.source}" placeholder="${VID(f.type)?tj("engine/templates/engine_pages/flux_media.html:js:27:85"):tj("engine/templates/engine_pages/flux_media.html:js:27:113")}">
+${VID(f.type)?`<input id="a${f.id}" size="26" value="${f.audio||''}" placeholder="${tj("engine/templates/engine_pages/flux_media.html:js:son_placeholder")}">`:''}
+<button class="sec" onclick="reglage(${f.id})">${tj("engine/templates/engine_pages/flux_media.html:js:29:49")}</button>
+<select id="p${f.id}" onchange="preset(${f.id})"><option value="">${tj("engine/templates/engine_pages/flux_media.html:js:30:68")}</option>${(SRC[f.id]=f.sources||[]).map((x,i)=>`<option value="${i}">${x.source}${x.audio?' + '+x.audio:''}</option>`).join('')}</select>
+<button class="sec" onclick="navigateur(${f.id},'${f.type}')">${tj("engine/templates/engine_pages/flux_media.html:js:31:64")}</button></div>
+<div><button class="principal" onclick="emettre(${f.id},'${f.type}')">${tj("engine/templates/engine_pages/flux_media.html:js:32:54")}</button><button class="sec" onclick="finir(${f.id})">${tj("engine/templates/engine_pages/flux_media.html:js:32:135")}</button>
+<button class="sec" onclick="archives(${f.id})">${tj("engine/templates/engine_pages/flux_media.html:js:archives")}</button></div>
+<div><button class="principal" onclick="direct(${f.id},'${f.type}')">${tj("engine/templates/engine_pages/flux_media.html:js:34:53")}</button><button class="sec" onclick="arret(${f.id})">${tj("engine/templates/engine_pages/flux_media.html:js:34:121")}</button>
+${VID(f.type)?`<button class="sec" onclick="photo(${f.id})">${tj("engine/templates/engine_pages/flux_media.html:js:photo")}</button>`:''}
+<select id="m${f.id}">${VID(f.type)?tj("engine/templates/engine_pages/flux_media.html:js:36:38"):'<option value="audio">'+tj("engine/templates/engine_pages/flux_media.html:js:son")+'</option>'}</select>
+<button class="sec" onclick="rec(${f.id},'start')">${tj("engine/templates/engine_pages/flux_media.html:js:37:53")}</button><button class="sec" onclick="rec(${f.id},'stop')">${tj("engine/templates/engine_pages/flux_media.html:js:37:123")}</button></div>
+${VID(f.type)?`<div class="fpv-barre"><button class="sec" id="fb${f.id}" onclick="fpv(${f.id})" aria-pressed="false">${tj("engine/templates/engine_pages/flux_media.html:js:fpv")}</button>
+<label><input type="checkbox" onchange="fpvOpt(${f.id},'fpv-grille',this.checked)">${tj("engine/templates/engine_pages/flux_media.html:js:fpv_grille")}</label>
+<label><input type="checkbox" onchange="fpvOpt(${f.id},'fpv-horizon',this.checked)">${tj("engine/templates/engine_pages/flux_media.html:js:fpv_horizon")}</label>
+<button class="sec" onclick="fpvPlein(${f.id})">${tj("engine/templates/engine_pages/flux_media.html:js:fpv_plein")}</button></div>`:''}
+<div><button class="sec" onclick="vision(${f.id},'${f.type}')">${tj("engine/templates/engine_pages/flux_media.html:js:vision")}${f.vision?' ●':''}</button></div>
+<div id="v${f.id}"></div></details>
+${LECT?'':`<div class="flux-section" id="g${f.id}"></div>`}
+<div class="msg" id="r${f.id}"></div><div id="x${f.id}"></div></div>`)).join('');
+ if(!LECT)d.flux.forEach(f=>{formulaire(f.id);archives(f.id)})}
+let CAT=null;
+async function vision(id,type){const v=document.getElementById('v'+id);if(v.innerHTML){v.innerHTML='';return}
+ if(!CAT){const r=await J('/api/flux/vision/catalogue/');if(!r.ok)return dire(id,r.d.erreur);CAT=r.d}
+ const {ok,d}=await J(`/api/flux/${id}/vision/`);if(!ok)return dire(id,d.erreur);
+ const c=d.config,vid=VID(type),sel=c.detecteurs||[],N=x=>x==null?'':x;
+ const niv=(cur)=>CAT.niveaux.map(n=>`<option value="${n}"${cur===n?' selected':''}>${tj('engine/templates/engine_pages/flux_media.html:js:niveau_'+n)}</option>`).join('');
+ v.innerHTML=`<h2>${tj("engine/templates/engine_pages/flux_media.html:js:vision_titre")}</h2>
+ <div class="vis-liste">${CAT.detecteurs.filter(e=>e.video===vid).map(e=>{const m=(c.modeles||{})[e.id]||{};return `<div class="vis-item"><label><input type="checkbox" value="${e.id}"${sel.includes(e.id)?' checked':''}> ${esc(e.famille_nom)} — ${esc(e.nom)}</label>${e.moteur==='modele_ia'?`<div class="vis-modele" data-id="${e.id}"><label>${tj("engine/templates/engine_pages/flux_media.html:js:vision_modele_seuil")} <input data-k="seuil" type="number" min="0" max="1" step="0.05" value="${m.seuil??0.7}"></label> <label>${tj("engine/templates/engine_pages/flux_media.html:js:vision_modele_classes")} <input data-k="classes" type="text" placeholder="${esc((e.classes||[]).join(', '))}" value="${esc((m.classes||[]).join(', '))}"></label></div>`:''}</div>`}).join('')}</div>
+ <div>${vid?`<select id="vp${id}"><option value="fixe"${c.profil!=='mobile'?' selected':''}>${tj("engine/templates/engine_pages/flux_media.html:js:vision_profil")}</option><option value="mobile"${c.profil==='mobile'?' selected':''}>${tj("engine/templates/engine_pages/flux_media.html:js:vision_profil_mobile")}</option></select>
+ <label>${tj("engine/templates/engine_pages/flux_media.html:js:vision_mouvement")} <input id="vm${id}" type="number" step="0.1" min="0.05" max="80" value="${N(c.mouvement_pct)||1.5}"></label>
+ <label>${tj("engine/templates/engine_pages/flux_media.html:js:vision_intervalle")} <input id="vi${id}" type="number" step="0.1" min="0.2" max="60" value="${N(c.intervalle_s)||1}"></label>`
+ :`<label>${tj("engine/templates/engine_pages/flux_media.html:js:vision_bruit")} <input id="vb${id}" type="number" step="100" min="100" max="30000" value="${N(c.bruit_rms)||2500}"></label>`}
+ <label>${tj("engine/templates/engine_pages/flux_media.html:js:vision_delai")} <input id="vd${id}" type="number" min="1" max="86400" value="${N(c.delai_alerte_s)||60}"></label>
+ <label>${tj("engine/templates/engine_pages/flux_media.html:js:vision_niveau_min")} <select id="vn${id}">${niv(c.niveau_min||'info')}</select></label></div>
+ <div><button class="principal" onclick="visionEnvoyer(${id},'${type}',true)">${tj("engine/templates/engine_pages/flux_media.html:js:vision_activer")}</button><button class="sec" onclick="visionEnvoyer(${id},'${type}',false)">${tj("engine/templates/engine_pages/flux_media.html:js:vision_arreter")}</button>
+ <button class="sec" onclick="visionPreset(${id})">${tj("engine/templates/engine_pages/flux_media.html:js:vision_preset")}</button> <span id="vs${id}"></span></div><div id="ve${id}"></div>`;
+ visionEtat(id,d,type)}
+function visionEtat(id,d,type){const s=document.getElementById('vs'+id);if(s)s.textContent=(d.etat.en_marche?tj("engine/templates/engine_pages/flux_media.html:js:vision_marche"):tj("engine/templates/engine_pages/flux_media.html:js:vision_arretee"))+(d.etat.erreur?' — '+d.etat.erreur:'');
+ const e=document.getElementById('ve'+id);if(e)e.innerHTML=d.evenements.length?d.evenements.map(x=>`<div class="vis-evt ${x.niveau}"><small>${x.date}</small> <b>${esc(x.resume)}</b>${x.fichier?` <a href="${d.base+x.fichier}" target="_blank">${x.fichier}</a>`:''}</div>`).join(''):tj("engine/templates/engine_pages/flux_media.html:js:vision_aucun_evt")}
+async function visionEnvoyer(id,type,actif){const v=document.getElementById('v'+id),vid=VID(type),g=k=>{const e=document.getElementById(k+id);return e?e.value:undefined};
+ const c={actif,detecteurs:[...v.querySelectorAll('.vis-liste input[type=checkbox]:checked')].map(i=>i.value),delai_alerte_s:g('vd'),niveau_min:g('vn')};
+ const mod={};v.querySelectorAll('.vis-modele').forEach(b=>{const q=k=>b.querySelector(`[data-k=${k}]`).value;mod[b.dataset.id]={seuil:parseFloat(q('seuil')),classes:q('classes').split(',').map(x=>x.trim()).filter(Boolean)}});c.modeles=mod;
+ if(vid){c.profil=g('vp');c.mouvement_pct=g('vm');c.intervalle_s=g('vi')}else c.bruit_rms=g('vb');
+ const {ok,d}=await P(`/api/flux/${id}/vision/`,c);if(!ok)return dire(id,d.erreur);dire(id,tj("engine/templates/engine_pages/flux_media.html:js:vision_enregistre"));visionEtat(id,d,type)}
+function visionPreset(id){const v=document.getElementById('v'+id);v.querySelectorAll('.vis-liste input[type=checkbox]').forEach(i=>i.checked=['mouvement','pietons_hog','frontalface_default','fullbody'].some(k=>i.value.includes(k)&&!i.value.includes('lbp')))}
+// ── mode FPV : simple décor d'affichage posé sur la vidéo (réticule central, grille, horizon) — aucune commande, aucune logique ──
+function fpv(id){const e=document.getElementById('e'+id),on=e.classList.toggle('fpv');document.getElementById('fb'+id).setAttribute('aria-pressed',on)}
+function fpvOpt(id,c,on){document.getElementById('e'+id).classList.toggle(c,on)}
+function fpvPlein(id){const e=document.getElementById('e'+id);if(document.fullscreenElement)document.exitFullscreen();else if(e.requestFullscreen)e.requestFullscreen()}
+const dire=(id,t)=>document.getElementById('r'+id).textContent=t;
+function direct(id,type){const e=document.getElementById('e'+id),a=document.getElementById('a'+id);
+ e.innerHTML=VID(type)?`<img src="/api/flux/${id}/video.mjpg?t=${Date.now()}" onerror="this.parentNode.textContent=tj('engine/templates/engine_pages/flux_media.html:js:indisponible')">`
+ :`<audio controls autoplay src="/api/flux/${id}/audio.wav?t=${Date.now()}"></audio>`;
+ if(VID(type)&&a&&a.value)e.insertAdjacentHTML('beforeend',`<audio controls autoplay src="/api/flux/${id}/audio.wav?t=${Date.now()}"></audio>`)}
+const arret=id=>document.getElementById('e'+id).textContent=tj("engine/templates/engine_pages/flux_media.html:js:44:62");
+async function reglage(id){const a=document.getElementById('a'+id);const {ok,d}=await P(`/api/flux/${id}/config/`,{source:document.getElementById('s'+id).value,audio:a?a.value:''});dire(id,ok?tj("engine/templates/engine_pages/flux_media.html:js:45:194"):d.erreur)}
+async function photo(id){const {ok,d}=await P(`/api/flux/${id}/capture/`);dire(id,ok?tj("engine/templates/engine_pages/flux_media.html:js:46:87")+d.fichiers[0]:d.erreur);if(ok){joindre(id,d.captures);archives(id)}}
+async function rec(id,action){const {ok,d}=await P(`/api/flux/${id}/enregistrer/`,{action,mode:document.getElementById('m'+id).value});dire(id,!ok?d.erreur:d.fichiers?tj("engine/templates/engine_pages/flux_media.html:js:47:169")+d.fichiers.join(', '):tj("engine/templates/engine_pages/flux_media.html:js:47:207"));
+ if(d.captures){joindre(id,d.captures);archives(id)}}
+async function creer(){const nom=document.getElementById('nom'),tb=document.getElementById('tbl'),msg=document.getElementById('msg');if(!nom.value.trim())return nom.focus();
+ if(!tb.value){msg.textContent=TJ('table_requise');return tb.focus()}      // un flux est toujours lié à une table de données
+ const {ok,d}=await P('/api/flux/',{nom:nom.value.trim(),type:document.getElementById('type').value,table_liee_id:tb.value});
+ msg.textContent=ok?'':d.erreur;if(ok){nom.value='';tb.value='';charger()}}
+async function lier(id){const v=document.getElementById('lt'+id).value;if(!v)return dire(id,TJ('table_requise'));
+ const {ok,d}=await P(`/api/flux/${id}/table/`,{table_id:v});dire(id,ok?TJ('lie_ok'):d.erreur);if(ok)charger()}
+
+function preset(id){const x=SRC[id][document.getElementById('p'+id).value];if(!x)return;document.getElementById('s'+id).value=x.source;const a=document.getElementById('a'+id);if(a)a.value=x.audio||'';reglage(id)}
+function navigateur(id,type){document.getElementById('s'+id).value='navigateur';const a=document.getElementById('a'+id);if(a)a.value='navigateur';reglage(id)}
+async function archives(id){const {ok,d}=await J(`/api/flux/${id}/fichiers/`);const x=document.getElementById('x'+id);if(!x)return;
+ if(ok)ARCH[id]=d.fichiers;const libres=ok?d.fichiers.length:0;
+ x.innerHTML=!ok?esc(d.erreur||''):d.fichiers.length?(libres?`<p class="flux-alerte">${TJ('captures_libres',{v1:libres})}</p>`:'')+d.fichiers.map(f=>`<div class="flux-archive"><a href="${f.url}" target="_blank">${esc(f.nom)}</a> <small>${f.date} · ${TJ('unite_ko',{v1:Math.round(f.taille/1024)})}</small>
+ <span class="flux-badge orphelin">${TJ('sans_ligne')}</span> <button class="sec" onclick="joindreArchive(${id},'${f.nom}')">${TJ('joindre')}</button> <button class="sec" onclick="supprimer(${id},'${f.nom}')">${tj("engine/templates/engine_pages/flux_media.html:js:54:235")}</button></div>`).join(''):tj("engine/templates/engine_pages/flux_media.html:js:54:271")}
+
+// ── formulaire de la ligne : les colonnes de la table liée, ajoutées à celles du flux ──
+function champHtml(c){const k=`data-slug="${esc(c.slug)}" data-type="${c.type}"`,T=c.type,opts=(c.options||'').split(',').map(o=>o.trim()).filter(Boolean);let w;
+ if(T==='vecteur'||T==='matrice')w=GYTenseur.html('t'+Math.random().toString(36).slice(2),T,c.options,k);
+ else if(['texte_long','json'].includes(T))w=`<textarea ${k} rows="2"></textarea>`;
+ else if(['nombre','note'].includes(T))w=`<input ${k} type="number" step="1">`;
+ else if(['decimal','monnaie','pourcentage'].includes(T))w=`<input ${k} type="number" step="any">`;
+ else if(T==='barre_progression')w=`<input ${k} type="range" min="0" max="100" step="1" value="0">`;
+ else if(T==='booleen'||T==='switch')w=`<input ${k} type="checkbox">`;
+ else if(T==='date'||T==='heure'||T==='datetime')w=`<input ${k} type="${T==='date'?'date':T==='heure'?'time':'datetime-local'}">`;
+ else if(T==='email'||T==='url')w=`<input ${k} type="${T}">`;
+ else if(T==='telephone')w=`<input ${k} type="tel">`;
+ else if(T==='couleur')w=`<input ${k} type="color">`;
+ else if(T==='choix_unique')w=`<select ${k}><option value="">—</option>${opts.map(o=>`<option value="${esc(o)}">${esc(o)}</option>`).join('')}</select>`;
+ else if(T==='choix_multiple')w=`<select ${k} multiple size="${Math.min(4,opts.length||1)}">${opts.map(o=>`<option value="${esc(o)}">${esc(o)}</option>`).join('')}</select>`;
+ else if(T==='relation'||T==='colonne')w=`<select ${k}><option value="">—</option></select>`;
+ else if(T==='fichier'||T==='image'||T==='son'||T==='video')w=`<input ${k} type="file"${T==='image'?' accept="image/*"':T==='son'?' accept="audio/*"':T==='video'?' accept="video/*"':''}>`;
+ else if(T==='geolocalisation')w=`<input ${k} type="text" placeholder="${esc(tj('engine/static/engine/js/index_1.js:geo:placeholder'))}">`;
+ else if(T==='duree')w=`<input ${k} type="text" placeholder="01:30:00">`;
+ else w=`<input ${k} type="text">`;
+ return `<label class="flux-champ" data-champ="${esc(c.slug)}"><span>${esc(c.nom)}${c.obligatoire?' *':''}</span>${w}</label>`}
+async function remplirListe(id,c){const s=document.querySelector(`#g${id} [data-slug="${CSS.escape(c.slug)}"]`);if(!s||!c.relation_vers_id)return;
+ if(c.type==='relation'){const {ok,d}=await J(`/api/tables/${c.relation_vers_id}/lignes-relation/`);if(!ok)return;const aff=c.relation_champ_affichage||(d.champs[0]&&d.champs[0].slug);
+  s.insertAdjacentHTML('beforeend',d.lignes.map(l=>`<option value="${l._id}">${esc(l[aff]??l._id)}</option>`).join(''))}
+ else{const {ok,d}=await J(`/api/tables/${c.relation_vers_id}/valeurs-colonne/?colonne=${encodeURIComponent(c.relation_colonne_source)}&nominale=${encodeURIComponent(c.relation_champ_affichage)}`);if(!ok)return;
+  s.insertAdjacentHTML('beforeend',d.valeurs.map(v=>`<option value="${esc(v)}">${esc(v)}</option>`).join(''))}}
+function rendreFormulaire(id){const g=document.getElementById('g'+id),f=FORM[id];if(!g||!f)return;
+ if(!f.table_liee){g.innerHTML=`<p class="flux-alerte">${TJ('non_lie')}</p>`;return}
+ if(!(PEND[id]||[]).length){g.innerHTML=`<small>${TJ('apres_capture',{v1:esc(f.table_liee.nom)})}</small>`;return}   // les autres colonnes ne sont demandées qu'une fois la capture terminée
+ g.innerHTML=`<h3>${TJ('ligne_titre',{v1:esc(f.table_liee.nom)})}</h3><div class="flux-jointes" id="c${id}"></div>
+ ${f.champs.length?`<div class="flux-champs">${f.champs.map(champHtml).join('')}</div>`:`<small>${TJ('aucun_champ')}</small>`}
+ <div><label><input type="checkbox" id="k${id}">${TJ('garder')}</label></div>
+ <button class="principal" onclick="enregistrerLigne(${id})">${TJ('enregistrer_ligne')}</button>`;
+ f.champs.filter(c=>c.type==='relation'||c.type==='colonne').forEach(c=>remplirListe(id,c));majJointes(id)}
+async function formulaire(id){const {ok,d}=await J(`/api/flux/${id}/table/`);if(!ok){const g=document.getElementById('g'+id);if(g)g.textContent=d.erreur;return}FORM[id]=d;rendreFormulaire(id)}
+function majJointes(id){const c=document.getElementById('c'+id);if(!c)return;const l=PEND[id]||[];
+ c.innerHTML=l.length?l.map(x=>`<div class="flux-jointe">${x.genre==='image'?`<img src="${x.url}" alt="">`:x.genre==='video'?`<video controls src="${x.url}"></video>`:`<audio controls src="${x.url}"></audio>`}${esc(x.nom)}
+ <button class="sec" onclick="retirerJointe(${id},'${x.nom}')">${TJ('retirer')}</button></div>`).join(''):`<small>${TJ('aucune_jointe')}</small>`}
+function joindre(id,liste){PEND[id]=(PEND[id]||[]).filter(c=>!liste.some(n=>n.genre===c.genre)).concat(liste);rendreFormulaire(id)}      // une seule capture par type et par ligne
+function joindreArchive(id,nom){const f=(ARCH[id]||[]).find(x=>x.nom===nom);if(!f)return;joindre(id,[f]);const g=document.getElementById('g'+id);if(g)g.scrollIntoView({behavior:'smooth',block:'nearest'})}
+function retirerJointe(id,nom){PEND[id]=(PEND[id]||[]).filter(c=>c.nom!==nom);rendreFormulaire(id)}
+function collecter(id){const fd=new FormData();document.querySelectorAll(`#g${id} [data-slug]`).forEach(el=>{const s=el.dataset.slug,T=el.dataset.type;
+ if(T==='booleen'||T==='switch')fd.append(s,el.checked?'1':'0');
+ else if(T==='choix_multiple')[...el.selectedOptions].forEach(o=>fd.append(s,o.value));
+ else if(el.type==='file'){if(el.files[0])fd.append(s,el.files[0])}
+ else if(el.value!=='')fd.append(s,el.value)});return fd}
+async function enregistrerLigne(id){const f=FORM[id];if(!f||!f.table_liee)return;
+ const fd=collecter(id),garder=document.getElementById('k'+id).checked;
+ (PEND[id]||[]).forEach(c=>fd.append('_flux_fichier',c.nom));fd.append('_flux_champ',id);if(garder)fd.append('_flux_garder','1');fd.append('_idem_key',IDEM[id]||(IDEM[id]=uid()));   // même clé tant que la ligne n'est pas enregistrée : jamais de doublon
+ document.querySelectorAll(`#g${id} .invalide`).forEach(e=>e.classList.remove('invalide'));
+ try{await api(`/api/tables/${f.table_liee.id}/lignes/`,fd)}catch(e){
+  if(e&&e.champs)Object.keys(e.champs).forEach(s=>{const el=document.querySelector(`#g${id} [data-champ="${CSS.escape(s)}"]`);if(el)el.classList.add('invalide')});return}
+ IDEM[id]=null;if(!garder)PEND[id]=[];rendreFormulaire(id);document.getElementById('k'+id).checked=garder;dire(id,TJ('ligne_ok'));archives(id)}
+async function supprimer(id,nom){if(!await GY.confirmer(tj("engine/templates/engine_pages/flux_media.html:js:55:47")+nom+' ?'))return;const {ok,d}=await P(`/api/flux/${id}/fichiers/`,{supprimer:nom});dire(id,ok?tj("engine/templates/engine_pages/flux_media.html:js:supprime"):d.erreur);archives(id)}
+const post=(u,b)=>fetch(u,{method:'POST',headers:{'X-CSRFToken':csrf()},body:b}).then(r=>r.ok?null:r.json().then(d=>d.erreur)).catch(()=>tj("engine/templates/engine_pages/flux_media.html:js:56:139"));
+async function emettre(id,type){
+ if(EMIT[id])return;
+ if(!navigator.mediaDevices||!navigator.mediaDevices.getUserMedia)return dire(id,tj("engine/templates/engine_pages/flux_media.html:js:59:83"));
+ const v=VID(type),vc={facingMode:'environment',width:{ideal:640}};
+ let s;for(const c of v?[{video:vc,audio:true},{video:vc},{audio:true}]:[{audio:true}]){try{s=await navigator.mediaDevices.getUserMedia(c);break}catch(e){}}
+ if(!s)return dire(id,tj("engine/templates/engine_pages/flux_media.html:js:62:24"));
+ const E=EMIT[id]={s,timers:[]},ecran=document.getElementById('e'+id);ecran.textContent='';
+ const erreur=e=>{if(e)dire(id,e)};
+ if(s.getVideoTracks().length){
+  const el=document.createElement('video');el.muted=el.playsInline=el.autoplay=true;el.srcObject=s;el.style.maxWidth='100%';ecran.appendChild(el);
+  const cv=document.createElement('canvas');let occupe=false;
+  E.timers.push(setInterval(()=>{if(occupe||!el.videoWidth)return;const w=Math.min(640,el.videoWidth);cv.width=w;cv.height=Math.round(w*el.videoHeight/el.videoWidth);
+   cv.getContext('2d').drawImage(el,0,0,cv.width,cv.height);occupe=true;
+   cv.toBlob(b=>b?post(`/api/flux/${id}/envoi/video/`,b).then(e=>{occupe=false;erreur(e)}):(occupe=false),'image/jpeg',0.6)},125))}
+ if(s.getAudioTracks().length){
+  let ctx;try{ctx=new AudioContext({sampleRate:16000})}catch(e){ctx=new AudioContext()}
+  const pr=ctx.createScriptProcessor(4096,1,1);let attente=0;
+  pr.onaudioprocess=ev=>{const f=ev.inputBuffer.getChannelData(0),i=new Int16Array(f.length);
+   for(let k=0;k<f.length;k++)i[k]=Math.max(-1,Math.min(1,f[k]))*32767;
+   if(attente>8)return;attente++;E.chaine=(E.chaine||Promise.resolve()).then(()=>post(`/api/flux/${id}/envoi/audio/?rate=${ctx.sampleRate}`,i.buffer)).then(e=>{attente--;erreur(e)})};
+  ctx.createMediaStreamSource(s).connect(pr);pr.connect(ctx.destination);E.ctx=ctx}
+ if(navigator.wakeLock)navigator.wakeLock.request('screen').then(w=>E.wl=w).catch(()=>{});
+ dire(id,tj("engine/templates/engine_pages/flux_media.html:js:79:11")+(s.getVideoTracks().length?'':tj("engine/templates/engine_pages/flux_media.html:js:79:61"))+'.')}
+function finir(id){const E=EMIT[id];if(!E)return;E.timers.forEach(clearInterval);E.s.getTracks().forEach(t=>t.stop());if(E.ctx)E.ctx.close();if(E.wl)E.wl.release();
+ delete EMIT[id];document.getElementById('e'+id).textContent=tj("engine/templates/engine_pages/flux_media.html:js:81:63");dire(id,tj("engine/templates/engine_pages/flux_media.html:js:81:80"))}
+charger();
+</script>
+{% endblock %}

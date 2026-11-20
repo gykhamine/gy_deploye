@@ -1,0 +1,38 @@
+{% load i18n_extras %}
+<!DOCTYPE html>
+{% load static %}
+<html lang="{{ langue_html|default:'fr' }}">
+<head>
+<link rel="stylesheet" href="{% static 'engine/css/app.css' %}"><link rel="stylesheet" href="{% url 'engine:marque_css' %}"><script src="{% static 'engine/js/marque.js' %}" defer></script><script src="{% static 'engine/js/gestes_tactiles.js' %}" defer></script>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>{% tf "engine/templates/engine/acces_client.html:9:8" v1=entreprise.nom %}</title>
+{% i18n_js %}
+<script src="{% static 'engine/js/dialogues.js' %}"></script>
+</head>
+<body class="page-acces_client">
+<div class="carte">
+  {% if logo_url %}
+    <img class="logo" src="{{ logo_url }}" alt="{{ entreprise.nom }}">
+  {% else %}
+    <h1>{{ entreprise.nom }}</h1>
+  {% endif %}
+  <p class="sous-titre">{% t "engine/templates/engine/acces_client.html:17:25" %}</p>
+
+  <form method="post">
+    {% csrf_token %}
+    <label for="code">{% t "engine/templates/engine/acces_client.html:21:23" %}</label>
+    <input type="text" id="code" name="code_acces" maxlength="6" minlength="6"
+           placeholder="{% t 'engine/templates/engine/acces_client.html:23:25' %}" autocomplete="off" autofocus required>
+    <button type="submit">{% t "engine/templates/engine/acces_client.html:24:27" %}</button>
+  </form>
+
+  {% if erreur %}
+    <p class="erreur">{{ erreur }}</p>
+  {% endif %}
+
+  <p class="aide">{% t "engine/templates/engine/acces_client.html:31:19" %}</p>
+</div>
+<script src="{% static 'engine/js/icones.js' %}"></script>
+</body>
+</html>

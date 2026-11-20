@@ -1,0 +1,91 @@
+{% load static %}<!DOCTYPE html>
+{% load i18n_extras %}
+<html lang="{{ langue_html|default:'fr' }}">
+<head>
+<link rel="stylesheet" href="{% static 'engine/css/app.css' %}"><link rel="stylesheet" href="{% url 'engine:marque_css' %}"><script src="{% static 'engine/js/marque.js' %}" defer></script><script src="{% static 'engine/js/gestes_tactiles.js' %}" defer></script>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>{% tf "engine/templates/engine/series_temporelles.html:8:8" v1=table.nom %}</title>
+<script src="{% static 'engine/js/dialogues.js' %}"></script>
+</head>
+<body class="page-series_temporelles page-dashboard_bi{% if lecture_seule %} lecture-seule-partage{% endif %}">
+{# Même châssis que le dashboard BI et la carte (sidebar + en-tête) ; les classes geo-* de la sidebar sont partagées avec la page Géolocalisation. #}
+<div id="sidebar-overlay"></div>
+<div id="app">
+
+<div id="sidebar">
+  <div id="marque"><img class="logo-gy" src="{% static 'engine/img/logo_agent_gy.png' %}" alt="{% t 'engine/templates/engine/series_temporelles.html:17:96' %}"> {% t "engine/templates/engine/series_temporelles.html:17:107" %}</div>
+
+  <div class="geo-section">{% t "engine/templates/engine/series_temporelles.html:17:28" %}</div>
+  <div class="geo-bloc">
+    <div class="geo-note">{% t "engine/templates/engine/series_temporelles.html:19:27" %}</div>
+    <div id="st-tables"></div>
+  </div>
+
+  <div class="geo-section">{% t "engine/templates/engine/series_temporelles.html:23:28" %}</div>
+  <div class="geo-bloc">
+    <label class="geo-champ">{% t "engine/templates/engine/series_temporelles.html:26:30" %}
+      <input type="number" id="p-horizon" min="1" max="120" step="1" placeholder="{% t 'engine/templates/engine/series_temporelles.html:27:automatique' %}"></label>
+    <label class="geo-champ">{% t "engine/templates/engine/series_temporelles.html:28:30" %}
+      <select id="p-confiance"><option value="0.9">90 %</option><option value="0.95" selected>95 %</option><option value="0.99">99 %</option></select></label>
+    <label class="geo-champ">{% t "engine/templates/engine/series_temporelles.html:30:30" %}
+      <input type="number" id="p-periode" min="1" max="366" step="1" placeholder="{% t 'engine/templates/engine/series_temporelles.html:31:automatique' %}"></label>
+    <label class="geo-champ">{% t "engine/templates/engine/series_temporelles.html:32:30" %}
+      <select id="p-methode"><option value="">{% t "engine/templates/engine/series_temporelles.html:32:47" %}</option><option value="mco">{% t "engine/templates/engine/series_temporelles.html:32:103" %}</option><option value="mm">{% t "engine/templates/engine/series_temporelles.html:32:146" %}</option><option value="hw">{% t "engine/templates/engine/series_temporelles.html:32:190" %}</option><option value="arima">{% t "engine/templates/engine/series_temporelles.html:32:255" %}</option></select></label>
+    <label class="geo-champ">{% t "engine/templates/engine/series_temporelles.html:34:30" %}
+      <select id="p-modele"><option value="">{% t "engine/templates/engine/series_temporelles.html:34:46" %}</option><option value="additif">{% t "engine/templates/engine/series_temporelles.html:34:117" %}</option><option value="multiplicatif">{% t "engine/templates/engine/series_temporelles.html:34:163" %}</option></select></label>
+    <label class="geo-champ" title="{% t 'engine/templates/engine/series_temporelles.html:35:37' %}">{% t "engine/templates/engine/series_temporelles.html:36:102" %}
+      <select id="p-agregat"><option value="moyenne">{% t "engine/templates/engine/series_temporelles.html:36:54" %}</option><option value="somme">{% t "engine/templates/engine/series_temporelles.html:36:92" %}</option><option value="dernier">{% t "engine/templates/engine/series_temporelles.html:36:130" %}</option></select></label>
+    <label class="geo-case" title="{% t 'engine/templates/engine/series_temporelles.html:37:36' %}"><input type="checkbox" id="p-feries" checked> {% t "engine/templates/engine/series_temporelles.html:37:187" %}</label>
+    <label class="geo-champ" title="{% t 'engine/templates/engine/series_temporelles.html:38:37' %}">{% t "engine/templates/engine/series_temporelles.html:39:102" %}
+      <select id="p-pays"><option value="FR">{% t "engine/templates/engine/series_temporelles.html:39:46" %}</option><option value="FR-AM">{% t "engine/templates/engine/series_temporelles.html:39:83" %}</option><option value="BE">{% t "engine/templates/engine/series_temporelles.html:39:134" %}</option><option value="LU">{% t "engine/templates/engine/series_temporelles.html:39:170" %}</option><option value="DE">{% t "engine/templates/engine/series_temporelles.html:39:208" %}</option><option value="DE-BW">{% t "engine/templates/engine/series_temporelles.html:39:248" %}</option><option value="DE-BY">{% t "engine/templates/engine/series_temporelles.html:39:306" %}</option><option value="DE-NW">{% t "engine/templates/engine/series_temporelles.html:39:356" %}</option><option value="DE-HE">{% t "engine/templates/engine/series_temporelles.html:39:426" %}</option><option value="DE-BE">{% t "engine/templates/engine/series_temporelles.html:39:474" %}</option><option value="DE-ST">{% t "engine/templates/engine/series_temporelles.html:39:523" %}</option><option value="AT">{% t "engine/templates/engine/series_temporelles.html:39:574" %}</option><option value="CH">{% t "engine/templates/engine/series_temporelles.html:39:610" %}</option><option value="ES">{% t "engine/templates/engine/series_temporelles.html:39:644" %}</option><option value="ES-CT">{% t "engine/templates/engine/series_temporelles.html:39:682" %}</option><option value="ES-MD">{% t "engine/templates/engine/series_temporelles.html:39:732" %}</option><option value="PT">{% t "engine/templates/engine/series_temporelles.html:39:776" %}</option><option value="IT">{% t "engine/templates/engine/series_temporelles.html:39:812" %}</option><option value="IT-RM">{% t "engine/templates/engine/series_temporelles.html:39:849" %}</option><option value="IT-MI">{% t "engine/templates/engine/series_temporelles.html:39:893" %}</option><option value="GB">{% t "engine/templates/engine/series_temporelles.html:39:935" %}</option><option value="US">{% t "engine/templates/engine/series_temporelles.html:39:974" %}</option></select></label>
+    <div class="geo-champ" id="st-lune" title="{% t 'engine/templates/engine/series_temporelles.html:40:48' %}">{% t "engine/templates/engine/series_temporelles.html:40:185" %} <label class="geo-case"><input type="checkbox" value="islam"> {% t "engine/templates/engine/series_temporelles.html:40:268" %}</label><label class="geo-case"><input type="checkbox" value="juif"> {% t "engine/templates/engine/series_temporelles.html:40:347" %}</label><label class="geo-case"><input type="checkbox" value="chine"> {% t "engine/templates/engine/series_temporelles.html:40:423" %}</label><label class="geo-case"><input type="checkbox" value="orthodoxe"> {% t "engine/templates/engine/series_temporelles.html:40:514" %}</label></div>
+    <label class="geo-case" title="{% t 'engine/templates/engine/series_temporelles.html:41:36' %}"><input type="checkbox" id="p-ruptures" checked> {% t "engine/templates/engine/series_temporelles.html:41:191" %}</label>
+    <label class="geo-champ" title="{% t 'engine/templates/engine/series_temporelles.html:42:37' %}">{% t "engine/templates/engine/series_temporelles.html:44:102" %}
+      <select id="p-glissante"><option value="">{% t "engine/templates/engine/series_temporelles.html:43:49" %}</option><option value="3">{% t "engine/templates/engine/series_temporelles.html:43:79" %}</option><option value="5">{% t "engine/templates/engine/series_temporelles.html:43:116" %}</option></select></label>
+    <button class="geo-btn principal" id="btn-analyser">{% t "engine/templates/engine/series_temporelles.html:44:57" %}</button>
+    <button class="geo-btn" id="btn-demo" title="{% t 'engine/templates/engine/series_temporelles.html:45:50' %}">{% t "engine/templates/engine/series_temporelles.html:45:123" %}</button>
+  </div>
+
+  <div class="geo-section">{% t "engine/templates/engine/series_temporelles.html:48:28" %}</div>
+  <div class="geo-bloc">
+    <div class="geo-note"><b>{% t "engine/templates/engine/series_temporelles.html:50:30" %}</b> {% t "engine/templates/engine/series_temporelles.html:50:46" %}</div>
+    <div class="geo-note"><b>{% t "engine/templates/engine/series_temporelles.html:51:30" %}</b> {% t "engine/templates/engine/series_temporelles.html:51:57" %}</div>
+  </div>
+
+  <div style="border-top:1px solid var(--border);padding:8px 10px 4px;font-size:11px;color:var(--muted)">
+    <a class="retour" href="/tables/{{ table.slug }}/?retour=1" style="font-size:12px">{% tf "engine/templates/engine/series_temporelles.html:56:79" v1=table.nom %}</a>
+  </div>
+</div>
+
+<div id="principal">
+  <div id="entete">
+    <div class="entete-rangee-titre">
+      <div class="entete-gauche">
+        <button id="btn-toggle-sidebar" aria-label="{% t 'engine/templates/engine/series_temporelles.html:63:53' %}">☰</button>
+      </div>
+    </div>
+  </div>
+
+  <div id="zone-series">
+    <div id="st-vide" style="display:none"></div>
+    <div id="st-resultats"></div>
+  </div>
+</div>
+</div>
+
+<div id="toast"></div>
+{{ tables_compatibles|json_script:"st-donnees-tables" }}
+{% i18n_js %}
+<script>
+window.SERIES = {tableId: {{ table.id }}, lectureSeule: {{ lecture_seule|yesno:"true,false" }}, tableCompatible: {{ table_compatible|yesno:"true,false" }},
+  messageStructure: "{{ message_structure|escapejs }}"};
+</script>
+<script src="{% static 'engine/js/contexte_page.js' %}"></script>
+<script src="{% static 'engine/js/gy_couleur.js' %}"></script>
+<script src="{% static 'engine/js/filtre_table_liste.js' %}"></script>
+<script src="{% static 'engine/js/series_temporelles.js' %}"></script>
+<script src="{% static 'engine/js/sidebar_toggle.js' %}"></script>
+<script src="{% static 'engine/js/selecteur_table_page.js' %}" defer></script>
+</body>
+</html>

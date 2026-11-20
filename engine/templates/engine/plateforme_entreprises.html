@@ -1,0 +1,104 @@
+<!doctype html>
+<html lang="{{ request.LANGUAGE_CODE|default:'fr' }}">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>{{ textes.titre }}</title>
+<style>
+  body{font-family:system-ui,sans-serif;max-width:900px;margin:2rem auto;padding:0 1rem;color:#1f2937}
+  table{width:100%;border-collapse:collapse;margin:1rem 0}
+  th,td{padding:.5rem .6rem;border-bottom:1px solid #e5e7eb;text-align:left;vertical-align:middle}
+  .etat{display:inline-block;padding:.1rem .6rem;border-radius:999px;font-size:.85rem}
+  .etat-essai{background:#dbeafe}.etat-actif,.etat-illimite{background:#dcfce7}.etat-echu{background:#fef3c7}.etat-bloquee{background:#fee2e2}
+  button,input,textarea{font:inherit;padding:.4rem .6rem;box-sizing:border-box}
+  button{cursor:pointer}
+  fieldset{border:1px solid #d1d5db;border-radius:8px;margin:1.5rem 0;padding:1rem}
+  label{display:block;margin:.6rem 0 .2rem;font-weight:600}
+  input,textarea{width:100%}
+  .jours{width:5rem;display:inline-block}
+  #retour{margin-top:1rem;font-weight:600}
+</style>
+</head>
+<body>
+<h1>{{ textes.titre }}</h1>
+<p>{{ textes.intro }}</p>
+<div style="overflow-x:auto">
+<table>
+  <thead><tr><th>{{ textes.col_nom }}</th><th>{{ textes.col_etat }}</th><th>{{ textes.col_fin }}</th><th>{{ textes.col_actions }}</th></tr></thead>
+  <tbody id="lignes"></tbody>
+</table>
+</div>
+<p id="vide" hidden>{{ textes.aucune }}</p>
+
+<fieldset>
+  <legend>{{ textes.reglages_titre }}</legend>
+  <label for="numero">{{ textes.numero }}</label>
+  <input id="numero" inputmode="tel" autocomplete="off">
+  <label for="message">{{ textes.message }}</label>
+  <textarea id="message" rows="4" maxlength="1000"></textarea>
+  <label for="essai">{{ textes.essai_jours }}</label>
+  <input id="essai" type="number" min="0" max="3650">
+  <label for="prolongation">{{ textes.prolongation_jours }}</label>
+  <input id="prolongation" type="number" min="1" max="3650">
+  <button id="enregistrer" type="button">{{ textes.enregistrer }}</button>
+</fieldset>
+<div id="retour" role="status"></div>
+{{ textes|json_script:"textes" }}
+<script>
+const T = JSON.parse(document.getElementById("textes").textContent);
+const retour = document.getElementById("retour");
+const csrf = () => (document.cookie.match(/(?:^|; )csrftoken=([^;]+)/) || [])[1] || "";
+async function appel(url, corps) {
+  const rep = await fetch(url, corps === undefined ? {credentials: "same-origin"} :
+    {method: "POST", credentials: "same-origin", headers: {"Content-Type": "application/json", "X-CSRFToken": csrf()}, body: JSON.stringify(corps)});
+  const donnees = await rep.json().catch(() => ({}));
+  if (!rep.ok) throw new Error(donnees.erreur || rep.status);
+  return donnees;
+}
+let prolongation = 30;
+function bouton(texte, action, e, lireJours) {
+  const b = document.createElement("button");
+  b.type = "button"; b.textContent = texte;
+  b.addEventListener("click", async () => {
+    if (action === "bloquer" && !confirm(T.confirmer_bloquer)) return;
+    try { await appel(`/api/plateforme/entreprises/${e.id}/action`, {action, jours: lireJours ? lireJours() : undefined}); charger(); }
+    catch (err) { retour.textContent = err.message; }
+  });
+  return b;
+}
+function ligne(e) {
+  const tr = document.createElement("tr");
+  const nom = document.createElement("td"); nom.textContent = e.nom + (e.exemptee ? " — " + T.exemptee : "");
+  const etat = document.createElement("td"), pastille = document.createElement("span");
+  pastille.className = "etat etat-" + e.etat; pastille.textContent = T["etat_" + e.etat]; etat.append(pastille);
+  const fin = document.createElement("td"); fin.textContent = e.fin;
+  const actions = document.createElement("td");
+  const jours = document.createElement("input"); jours.type = "number"; jours.min = 1; jours.max = 3650; jours.className = "jours"; jours.value = prolongation;
+  jours.setAttribute("aria-label", T.jours);
+  actions.append(bouton(T.debloquer.replace("{jours}", prolongation), "debloquer", e, () => prolongation), " ", jours, " ",
+                 bouton(T.prolonger, "prolonger", e, () => Number(jours.value)));
+  if (e.etat !== "bloquee") actions.append(" ", bouton(T.bloquer, "bloquer", e));
+  tr.append(nom, etat, fin, actions);
+  return tr;
+}
+async function charger() {
+  const d = await appel("/api/plateforme/entreprises/");
+  prolongation = d.reglage.prolongation_jours;
+  const corps = document.getElementById("lignes"); corps.replaceChildren(...d.entreprises.map(ligne));
+  document.getElementById("vide").hidden = d.entreprises.length > 0;
+  numero.value = d.reglage.whatsapp_numero; message.value = d.reglage.whatsapp_message;
+  essai.value = d.reglage.essai_jours; prol_.value = d.reglage.prolongation_jours;
+}
+const numero = document.getElementById("numero"), message = document.getElementById("message"),
+      essai = document.getElementById("essai"), prol_ = document.getElementById("prolongation");
+document.getElementById("enregistrer").addEventListener("click", async () => {
+  try {
+    const d = await appel("/api/plateforme/reglages/", {whatsapp_numero: numero.value, whatsapp_message: message.value,
+                                                      essai_jours: Number(essai.value), prolongation_jours: Number(prol_.value)});
+    retour.textContent = d.message; charger();
+  } catch (err) { retour.textContent = err.message; }
+});
+charger().catch((err) => { retour.textContent = err.message; });
+</script>
+</body>
+</html>

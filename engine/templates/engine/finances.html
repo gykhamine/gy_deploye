@@ -1,0 +1,106 @@
+{% extends "engine/page_simple.html" %}
+{% load i18n_extras %}
+{% block classe_page %}page-reco page-wallets{% endblock %}
+{% block titre %}{% t "engine/templates/engine/finances.html:titre" %}{% endblock %}
+{% block contenu %}
+{% if voit_journal %}<header class="reco-pouls">
+  <div class="pouls-tete">
+    <div class="pouls-risque"><b id="caisse">–</b><span>{% t "engine/templates/engine/finances.html:caisse" %}</span></div>
+    <div class="pouls-texte"><h2>{% t "engine/templates/engine/finances.html:periode" %}</h2>
+      <p><label>{% t "engine/templates/engine/finances.html:du" %} <input type="date" id="du"></label> <label>{% t "engine/templates/engine/finances.html:au" %} <input type="date" id="au"></label></p></div>
+  </div>
+  <div class="pouls-pied"><div id="chiffres" class="chiffres"></div></div>
+</header>{% endif %}
+{% if "caisse_entrees" in droits %}<section class="reco-section"><div class="section-tete"><h2>{% t "engine/templates/engine/finances.html:marquer_entree" %}</h2></div>
+  <p class="pouls-actions"><select id="en-cat" aria-label="{% t "engine/templates/engine/finances.html:cat" %}"></select> <input id="en-motif" placeholder="{% t "engine/templates/engine/finances.html:cause" %}" maxlength="200"> <input id="en-mt" type="number" min="0" step="any" placeholder="{% t "engine/templates/engine/finances.html:montant" %}">
+  <button id="en-ok" type="button" class="principal">{% t "engine/templates/engine/finances.html:btn_entree" %}</button> <span id="en-msg" role="status"></span></p>
+</section>{% endif %}
+{% if "caisse_sorties" in droits %}<section class="reco-section"><div class="section-tete"><h2>{% t "engine/templates/engine/finances.html:marquer_sortie" %}</h2></div>
+  <p class="pouls-actions"><select id="so-cat" aria-label="{% t "engine/templates/engine/finances.html:cat" %}"></select> <input id="so-lib" placeholder="{% t "engine/templates/engine/finances.html:libelle" %}" maxlength="120"> <input id="so-benef" placeholder="{% t "engine/templates/engine/finances.html:beneficiaire" %}" maxlength="120"> <input id="so-mt" type="number" min="0" step="any" placeholder="{% t "engine/templates/engine/finances.html:montant" %}">
+  <button id="so-ok" type="button" class="principal">{% t "engine/templates/engine/finances.html:btn_sortie" %}</button> <span id="so-msg" role="status"></span></p>
+</section>{% endif %}
+{% if voit_journal %}<section class="reco-section"><div class="section-tete"><h2>{% t "engine/templates/engine/finances.html:journal" %} <small id="filtre"></small></h2>
+  <div class="filtres"><select id="sens"><option value="">{% t "engine/templates/engine/finances.html:tous" %}</option><option value="entree">{% t "engine/templates/engine/finances.html:filtre_entree" %}</option><option value="sortie">{% t "engine/templates/engine/finances.html:filtre_sortie" %}</option><option value="interne">{% t "engine/templates/engine/finances.html:filtre_interne" %}</option></select>
+  <button id="sans-filtre" type="button" hidden>{% t "engine/templates/engine/finances.html:retirer_filtre" %}</button></div></div>
+  <div class="tbl-wrap"><table class="tbl"><thead><tr><th>{% t "engine/templates/engine/finances.html:col_date" %}</th><th>{% t "engine/templates/engine/finances.html:col_type" %}</th><th>{% t "engine/templates/engine/finances.html:col_cause" %}</th><th>{% t "engine/templates/engine/finances.html:col_de" %}</th><th>{% t "engine/templates/engine/finances.html:col_vers" %}</th><th>{% t "engine/templates/engine/finances.html:col_par" %}</th><th>{% t "engine/templates/engine/finances.html:col_montant" %}</th></tr></thead><tbody id="journal"></tbody></table></div>
+  <p id="vide" hidden>{% t "engine/templates/engine/finances.html:aucun" %}</p>
+</section>{% endif %}
+{% if "portefeuilles" in droits %}<section class="reco-section"><div class="section-tete"><h2>{% t "engine/templates/engine/finances.html:portefeuilles" %}</h2></div>
+  <div class="tbl-wrap"><table class="tbl"><thead><tr><th>{% t "engine/templates/engine/finances.html:col_nom" %}</th><th>{% t "engine/templates/engine/finances.html:col_role" %}</th><th>{% t "engine/templates/engine/finances.html:col_solde" %}</th><th>{% t "engine/templates/engine/finances.html:col_depuis" %}</th><th>{% t "engine/templates/engine/finances.html:col_jusqua" %}</th><th>{% t "engine/templates/engine/finances.html:col_abo" %}</th><th></th></tr></thead><tbody id="wallets"></tbody></table></div>
+</section>{% endif %}
+<section class="reco-section"><div class="section-tete"><h2>{% t "engine/templates/engine/finances.html:liens" %}</h2></div>
+  <p class="pouls-actions"><a href="/">{% t "engine/templates/engine/finances.html:l_modules" %}</a> · <a href="/wallets-clients/">{% t "engine/templates/engine/finances.html:l_clients" %}</a> · <a href="/agent-flux/">{% t "engine/templates/engine/finances.html:l_agent" %}</a> · <a href="/agenda/">{% t "engine/templates/engine/finances.html:l_agenda" %}</a>
+  {% if "comptabilite" in droits %} · <a href="/comptabilite-wallet/">{% t "engine/templates/engine/finances.html:l_compta" %}</a>{% endif %}{% if "paiements_config" in droits %} · <a href="/paiement-config/">{% t "engine/templates/engine/finances.html:l_paiements" %}</a>{% endif %}{% if "employes" in droits %} · <a href="/employes/">{% t "engine/templates/engine/finances.html:l_employes" %}</a>{% endif %}</p>
+  {% if est_admin %}<p><small>{% t "engine/templates/engine/finances.html:droits" %}</small></p>{% endif %}
+</section>
+{% endblock %}
+{% block script %}
+{% i18n_js %}
+<script>
+// $, CSRF, toast viennent de page_simple.html
+const fmt = n => Number(n || 0).toLocaleString(undefined, {maximumFractionDigits: 2});
+const jour = iso => iso ? new Date(iso).toLocaleDateString() : "—";
+const ROLES = {admin: tj("engine/templates/engine/finances.html:js:r_admin"), agent: tj("engine/templates/engine/finances.html:js:r_agent"), lecteur: tj("engine/templates/engine/finances.html:js:r_lecteur"), caisse: tj("engine/templates/engine/finances.html:js:r_caisse")};
+const S = {membre: null, nom: ""};
+function cellule(tr, texte){ const td = document.createElement("td"); td.textContent = texte ?? ""; tr.appendChild(td); return td; }
+async function appel(url, corps){
+  const r = await fetch(url, corps ? {method: "POST", headers: {"X-CSRFToken": CSRF, "Content-Type": "application/json"}, body: JSON.stringify(corps)} : {});
+  const d = await r.json().catch(() => ({}));
+  if (!r.ok) throw new Error(d.error || d.erreur || tj("engine/templates/engine/finances.html:js:erreur") + r.status);
+  return d;
+}
+const cle = () => (crypto.randomUUID ? crypto.randomUUID() : String(Date.now()) + Math.random()).replace(/-/g, "").slice(0, 40);
+function remplir(select, liste){ if (!select.options.length) liste.forEach(c => select.add(new Option(c.libelle, c.code))); }
+function carte(titre, valeur){ const d = document.createElement("div"), b = document.createElement("b"), s = document.createElement("span"); b.textContent = valeur; s.textContent = titre; d.append(b, " ", s); return d; }
+async function charger(){
+  const q = new URLSearchParams();
+  if ($("du").value) q.set("du", $("du").value);
+  if ($("au").value) q.set("au", $("au").value);
+  if ($("sens").value) q.set("sens", $("sens").value);
+  if (S.membre) q.set("membre", S.membre);
+  if ($("caisse")) try {
+    const d = await appel("/api/finances/?" + q);
+    $("caisse").textContent = fmt(d.caisse);
+    $("chiffres").replaceChildren(carte(tj("engine/templates/engine/finances.html:js:c_entrees"), fmt(d.totaux.entrees)), carte(tj("engine/templates/engine/finances.html:js:c_sorties"), fmt(d.totaux.sorties)), carte(tj("engine/templates/engine/finances.html:js:c_net"), fmt(d.totaux.net)));
+    if ($("en-cat")) remplir($("en-cat"), d.categories.entrees); if ($("so-cat")) remplir($("so-cat"), d.categories.sorties);
+    $("filtre").textContent = S.membre ? tj("engine/templates/engine/finances.html:js:filtre").replace("{v1}", S.nom) : "";
+    $("sans-filtre").hidden = !S.membre;
+    $("vide").hidden = d.ecritures.length > 0;
+    $("journal").replaceChildren(...d.ecritures.map(e => {
+      const tr = document.createElement("tr");
+      cellule(tr, new Date(e.date).toLocaleString()); cellule(tr, e.type_libelle); cellule(tr, e.motif); cellule(tr, e.source); cellule(tr, e.destinataire || e.client); cellule(tr, e.operateur);
+      cellule(tr, (e.sens === "sortie" ? "− " : e.sens === "entree" ? "+ " : "") + fmt(e.montant));
+      return tr;
+    }));
+  } catch (e) { toast(e.message, true); }
+  if ($("wallets")) chargerPortefeuilles();
+}
+async function chargerPortefeuilles(){
+  try {
+    const d = await appel("/api/finances/portefeuilles/");
+    $("wallets").replaceChildren(...d.portefeuilles.map(p => {
+      const tr = document.createElement("tr");
+      cellule(tr, p.nom); cellule(tr, ROLES[p.role] || p.role); cellule(tr, fmt(p.solde)); cellule(tr, jour(p.depuis)); cellule(tr, jour(p.jusqua));
+      cellule(tr, p.abonnements.map(a => a.categorie + " → " + jour(a.expire_le)).join(", "));
+      const td = document.createElement("td"), b = document.createElement("button");
+      b.type = "button"; b.textContent = "→"; b.title = tj("engine/templates/engine/finances.html:js:voir") + " — " + p.nom;
+      b.addEventListener("click", () => { S.membre = p.membre_id; S.nom = p.nom; charger(); });
+      td.appendChild(b); tr.appendChild(td); return tr;
+    }));
+  } catch (e) { toast(e.message, true); }
+}
+async function enregistrer(url, corps, msg, champs){
+  try {
+    const d = await appel(url, corps);
+    msg.textContent = d.deja_enregistre ? tj("engine/templates/engine/finances.html:js:deja") : tj("engine/templates/engine/finances.html:js:ok");
+    champs.forEach(c => c.value = "");
+    charger();
+  } catch (e) { msg.textContent = e.message; }
+}
+if ($("en-ok")) $("en-ok").addEventListener("click", () => enregistrer("/api/finances/entree/", {categorie: $("en-cat").value, motif: $("en-motif").value, montant: $("en-mt").value, cle: cle()}, $("en-msg"), [$("en-motif"), $("en-mt")]));
+if ($("so-ok")) $("so-ok").addEventListener("click", () => enregistrer("/api/finances/sortie/", {categorie: $("so-cat").value, libelle: $("so-lib").value, beneficiaire: $("so-benef").value, montant: $("so-mt").value}, $("so-msg"), [$("so-lib"), $("so-benef"), $("so-mt")]));
+["du", "au", "sens"].forEach(i => { if ($(i)) $(i).addEventListener("change", charger); });
+if ($("sans-filtre")) $("sans-filtre").addEventListener("click", () => { S.membre = null; charger(); });
+charger();
+</script>
+{% endblock %}

@@ -1,0 +1,115 @@
+{% extends "engine/page_simple.html" %}
+{% load i18n_extras %}
+{% load static %}
+{% block classe_page %}page-reco page-wallets{% endblock %}
+{% block titre %}{% t "engine/templates/engine/comptabilite_wallet.html:4:18" %}{% endblock %}
+{% block contenu %}
+<header class="reco-pouls">
+  <div class="pouls-tete">
+    <div class="pouls-risque"><b id="net">–</b><span>{% t "engine/templates/engine/comptabilite_wallet.html:8:54" %}</span></div>
+    <div class="pouls-texte"><h2>{% t "engine/templates/engine/comptabilite_wallet.html:9:34" %}</h2><p id="coherence">{% t "engine/templates/engine/comptabilite_wallet.html:9:75" %}</p></div>
+  </div>
+  <div class="pouls-pied">
+    <label>{% t "engine/templates/engine/comptabilite_wallet.html:12:12" %} <select id="jours"><option value="7">{% t "engine/templates/engine/comptabilite_wallet.html:12:57" %}</option><option value="30" selected>{% t "engine/templates/engine/comptabilite_wallet.html:12:101" %}</option><option value="90">{% t "engine/templates/engine/comptabilite_wallet.html:12:137" %}</option><option value="365">{% t "engine/templates/engine/comptabilite_wallet.html:un_an" %}</option></select></label>
+    <div id="chiffres" class="chiffres"></div>
+  </div>
+</header>
+<section class="reco-section"><div class="section-tete"><h2>{% t "engine/templates/engine/comptabilite_wallet.html:16:61" %}</h2></div>
+  <p id="caisse"></p>
+  <div class="tbl-wrap"><table class="tbl"><thead><tr><th>{% t "engine/templates/engine/comptabilite_wallet.html:18:59" %}</th><th>{% t "engine/templates/engine/comptabilite_wallet.html:18:73" %}</th><th>{% t "engine/templates/engine/comptabilite_wallet.html:18:105" %}</th><th>{% t "engine/templates/engine/comptabilite_wallet.html:actions" %}</th></tr></thead><tbody id="agents"></tbody></table></div>
+  <p id="msg-agents" role="status"></p>
+</section>
+<section class="reco-section"><div class="section-tete"><h2>{% t "engine/templates/engine/comptabilite_wallet.html:22:61" %}</h2></div>
+  <div class="tbl-wrap"><table class="tbl"><thead><tr><th>{% t "engine/templates/engine/comptabilite_wallet.html:23:59" %}</th><th>{% t "engine/templates/engine/comptabilite_wallet.html:23:71" %}</th><th>{% t "engine/templates/engine/comptabilite_wallet.html:23:84" %}</th><th>{% t "engine/templates/engine/comptabilite_wallet.html:23:99" %}</th><th>{% t "engine/templates/engine/comptabilite_wallet.html:23:120" %}</th></tr></thead><tbody id="wallets"></tbody></table></div>
+</section>
+<section class="reco-section"><div class="section-tete"><h2>{% t "engine/templates/engine/comptabilite_wallet.html:25:61" %}</h2></div>
+  <p class="pouls-actions"><select id="ch-cat"></select> <input id="ch-lib" placeholder="{% t 'engine/templates/engine/comptabilite_wallet.html:26:90' %}"> <input id="ch-benef" placeholder="{% t 'engine/templates/engine/comptabilite_wallet.html:26:134' %}"> <input id="ch-mt" type="number" min="1" placeholder="{% t 'engine/templates/engine/comptabilite_wallet.html:26:202' %}">
+  <button id="ch-ok" type="button" class="principal">{% t "engine/templates/engine/comptabilite_wallet.html:27:54" %}</button> <span id="ch-msg" role="status"></span></p>
+  <div class="tbl-wrap"><table class="tbl"><tbody id="charges"></tbody></table></div>
+</section>
+<section class="reco-section"><div class="section-tete"><h2>{% t "engine/templates/engine/comptabilite_wallet.html:21:61" %}</h2></div>
+  <div class="chiffres" id="politique"></div>
+  <p class="pouls-actions"><button id="enregistrer-politique" type="button" class="principal">{% t "engine/templates/engine/comptabilite_wallet.html:23:95" %}</button> <span id="msg-politique" role="status"></span></p>
+</section>
+<section class="reco-section"><div class="section-tete"><h2>{% t "engine/templates/engine/comptabilite_wallet.html:journal" %} <small id="nb"></small></h2>
+  <div class="filtres"><select id="type"><option value="">{% t "engine/templates/engine/comptabilite_wallet.html:26:59" %}</option></select> <button id="reparer" type="button">{% t "engine/templates/engine/comptabilite_wallet.html:26:127" %}</button></div></div>
+  <div class="tbl-wrap"><table class="tbl"><thead><tr><th>{% t "engine/templates/engine/comptabilite_wallet.html:27:59" %}</th><th>{% t "engine/templates/engine/comptabilite_wallet.html:type" %}</th><th>{% t "engine/templates/engine/comptabilite_wallet.html:de" %}</th><th>{% t "engine/templates/engine/comptabilite_wallet.html:27:96" %}</th><th>{% t "engine/templates/engine/comptabilite_wallet.html:27:118" %}</th><th>{% t "engine/templates/engine/comptabilite_wallet.html:27:132" %}</th><th>{% t "engine/templates/engine/comptabilite_wallet.html:27:150" %}</th><th>{% t "engine/templates/engine/comptabilite_wallet.html:frais" %}</th><th>{% t "engine/templates/engine/comptabilite_wallet.html:bloc" %}</th></tr></thead><tbody id="journal"></tbody></table></div>
+</section>
+{% endblock %}
+{% block script %}
+{% i18n_js %}
+<script>
+// $ et CSRF viennent de page_simple.html
+const fmt = n => Number(n || 0).toLocaleString((window.I18N_LOCALE||"fr-FR"), {maximumFractionDigits: 2});
+const GENRES = [["client_vers_client", tj("engine/templates/engine/comptabilite_wallet.html:js:34:41")], ["client_vers_agent", tj("engine/templates/engine/comptabilite_wallet.html:js:34:86")], ["agent_vers_client", tj("engine/templates/engine/comptabilite_wallet.html:js:34:130")], ["agent_vers_agent", tj("engine/templates/engine/comptabilite_wallet.html:js:34:173")]];
+function cellule(tr, texte){ const td = document.createElement("td"); td.textContent = texte ?? ""; tr.appendChild(td); return td; }
+async function api(url, corps){
+  const r = await fetch(url, corps ? {method: "POST", headers: {"X-CSRFToken": CSRF, "Content-Type": "application/json"}, body: JSON.stringify(corps)} : {});
+  const d = await r.json().catch(() => ({}));
+  if (!r.ok) throw new Error(d.error || tj("engine/templates/engine/comptabilite_wallet.html:js:39:42") + r.status);
+  return d;
+}
+function carte(titre, valeur){ const d = document.createElement("div"); const b = document.createElement("b"); b.textContent = valeur; const s = document.createElement("span"); s.textContent = titre; d.append(b, " ", s); return d; }
+function afficherPolitique(p){
+  const zone = $("politique"); zone.replaceChildren();
+  GENRES.forEach(([c, lib]) => { const l = document.createElement("label"), i = document.createElement("input"); i.type = "checkbox"; i.id = "pol-" + c; i.checked = !!p[c]; l.append(i, " " + lib); zone.appendChild(l); });
+}
+function afficherAgents(agents, especes){
+  const detenu = Object.fromEntries((especes || []).map(a => [a.membre_id, a.especes]));
+  $("agents").replaceChildren(...agents.map(a => {
+    const tr = document.createElement("tr");
+    cellule(tr, a.nom); cellule(tr, fmt(detenu[a.membre_id] ?? a.especes)); cellule(tr, a.habilite ? tj("engine/templates/engine/comptabilite_wallet.html:js:51:103") : tj("engine/templates/engine/comptabilite_wallet.html:js:51:111"));
+    const td = document.createElement("td");
+    const bouton = (texte, f) => { const b = document.createElement("button"); b.type = "button"; b.textContent = texte; b.addEventListener("click", f); td.appendChild(b); td.append(" "); };
+    bouton(a.habilite ? tj("engine/templates/engine/comptabilite_wallet.html:js:54:26") : tj("engine/templates/engine/comptabilite_wallet.html:habiliter"), () => habiliter(a.membre_id, !a.habilite));
+    if (a.habilite) { bouton(tj("engine/templates/engine/comptabilite_wallet.html:js:55:31"), async () => await mouvement(a.membre_id, "avance")); bouton(tj("engine/templates/engine/comptabilite_wallet.html:js:55:102"), async () => await mouvement(a.membre_id, "remise")); }
+    tr.appendChild(td); return tr;
+  }));
+}
+async function habiliter(id, actif){ try { await api("/api/wallet/habilitations", {membre_id: id, actif}); charger(); } catch (e) { $("msg-agents").textContent = e.message; } }
+async function mouvement(id, sens){
+  const m = Number(await GY.demander(sens === "avance" ? tj("engine/templates/engine/comptabilite_wallet.html:js:61:48") : tj("engine/templates/engine/comptabilite_wallet.html:js:61:86")));
+  if (!(m > 0)) return;
+  try { await api("/api/wallet/especes", {agent_id: id, montant: m, sens, cle: (crypto.randomUUID ? crypto.randomUUID() : String(Date.now())).replace(/-/g, "").slice(0, 40)}); charger(); } catch (e) { $("msg-agents").textContent = e.message; }
+}
+const MODES = {salaire: tj("engine/templates/engine/comptabilite_wallet.html:js:mode_salaire_fixe"), pourcentage: tj("engine/templates/engine/comptabilite_wallet.html:js:mode_pourcentage"), aucun: tj("engine/templates/engine/comptabilite_wallet.html:js:75:77")}, ETATS = {verse: tj("engine/templates/engine/comptabilite_wallet.html:js:75:104"), du: tj("engine/templates/engine/comptabilite_wallet.html:js:etat_du"), a_venir: tj("engine/templates/engine/comptabilite_wallet.html:js:75:132")};
+async function chargerEquipe(){
+  const r = await api("/api/wallet/remuneration"), c = await api("/api/wallet/charges?jours=" + $("jours").value);
+  $("wallets").replaceChildren(...r.agents.map(a => { const tr = document.createElement("tr");
+    [a.nom, a.role === "admin" ? tj("engine/templates/engine/comptabilite_wallet.html:js:lbl_administrateur") : tj("engine/templates/engine/comptabilite_wallet.html:js:79:54"), fmt(a.solde) + " FCFA", MODES[a.mode] + (a.mode === "salaire" ? " " + fmt(a.salaire) : a.mode === "pourcentage" ? " " + a.pourcentage + " %" : ""), ETATS[a.etat_salaire] || "—"].forEach(v => cellule(tr, v)); return tr; }));
+  if (!$("ch-cat").options.length) c.categories.forEach(k => $("ch-cat").add(new Option(k.libelle, k.code)));
+  $("charges").replaceChildren(...c.charges.map(x => { const tr = document.createElement("tr"); [x.date, x.categorie_libelle, x.libelle, x.beneficiaire, "− " + fmt(x.montant)].forEach(v => cellule(tr, v)); return tr; }));
+}
+$("ch-ok").addEventListener("click", async () => {
+  try { await api("/api/wallet/charges", {categorie: $("ch-cat").value, libelle: $("ch-lib").value, beneficiaire: $("ch-benef").value, montant: Number($("ch-mt").value)}); $("ch-lib").value = $("ch-benef").value = $("ch-mt").value = ""; $("ch-msg").textContent = ""; charger(); } catch (e) { $("ch-msg").textContent = e.message; }
+});
+async function charger(){
+  const type = $("type").value, q = "?jours=" + $("jours").value + (type ? "&type=" + encodeURIComponent(type) : "");
+  try {
+    const d = await api("/api/wallet/comptabilite" + q), b = d.bilan;
+    $("net").textContent = fmt(b.net_externe);
+    $("coherence").textContent = (b.coherence.coherent ? tj("engine/templates/engine/comptabilite_wallet.html:js:70:59") + fmt(b.coherence.total_wallets) + tj("engine/templates/engine/comptabilite_wallet.html:js:70:139") : tj("engine/templates/engine/comptabilite_wallet.html:js:70:174") + fmt(b.coherence.ecart) + tj("engine/templates/engine/comptabilite_wallet.html:js:70:213"))
+      + (b.blocs_manquants ? tj("engine/templates/engine/comptabilite_wallet.html:blocs_manquants", {v1: b.blocs_manquants}) : "") + (b.chaine_valide ? "" : tj("engine/templates/engine/comptabilite_wallet.html:js:71:108"));
+    $("chiffres").replaceChildren(carte(tj("engine/templates/engine/comptabilite_wallet.html:js:72:42"), fmt(b.entrees.depots_especes)), carte(tj("engine/templates/engine/comptabilite_wallet.html:js:72:101"), fmt(b.sorties.retraits_especes)), carte(tj("engine/templates/engine/comptabilite_wallet.html:charges"), fmt(b.sorties.charges)),
+      carte(tj("engine/templates/engine/comptabilite_wallet.html:transferts_internes"), fmt(b.internes.transferts)), carte(tj("engine/templates/engine/comptabilite_wallet.html:js:73:72"), fmt(b.frais_percus)), carte(tj("engine/templates/engine/comptabilite_wallet.html:js:73:116"), fmt(b.caisse.solde)));
+    $("caisse").textContent = tj("engine/templates/engine/comptabilite_wallet.html:js:74:32") + fmt(b.caisse.solde) + tj("engine/templates/engine/comptabilite_wallet.html:js:74:80");
+    afficherAgents(d.agents, b.especes.par_agent); afficherPolitique(d.politique); chargerEquipe().catch(() => {});
+    if ($("type").options.length === 1) d.types.forEach(t => { const o = document.createElement("option"); o.value = t.code; o.textContent = t.libelle; $("type").appendChild(o); });
+    $("nb").textContent = tj("engine/templates/engine/comptabilite_wallet.html:nb_ecritures", {v1: d.ecritures.length});
+    $("journal").replaceChildren(...d.ecritures.map(e => {
+      const tr = document.createElement("tr");
+      cellule(tr, new Date(e.date).toLocaleString((window.I18N_LOCALE||"fr-FR"))); cellule(tr, e.type_libelle); cellule(tr, e.source); cellule(tr, e.destinataire || e.client); cellule(tr, e.agent); cellule(tr, e.operateur);
+      cellule(tr, (e.sens === "sortie" ? "− " : e.sens === "entree" ? "+ " : "") + fmt(e.montant)); cellule(tr, fmt(e.frais)); cellule(tr, e.bloc ?? "—");
+      return tr;
+    }));
+  } catch (e) { $("coherence").textContent = e.message; }
+}
+$("jours").addEventListener("change", charger); $("type").addEventListener("change", charger);
+$("reparer").addEventListener("click", async () => { try { const d = await api("/api/wallet/comptabilite", {}); $("coherence").textContent = tj("engine/templates/engine/comptabilite_wallet.html:js:87:143", {v1: d.repares, v2: d.manquants}); charger(); } catch (e) { $("coherence").textContent = e.message; } });
+$("enregistrer-politique").addEventListener("click", async () => {
+  const corps = {}; GENRES.forEach(([c]) => corps[c] = $("pol-" + c).checked);
+  try { await api("/api/wallet/politique", corps); $("msg-politique").textContent = tj("engine/templates/engine/comptabilite_wallet.html:enregistree"); } catch (e) { $("msg-politique").textContent = e.message; }
+});
+charger();
+</script>
+{% endblock %}

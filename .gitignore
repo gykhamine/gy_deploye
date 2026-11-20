@@ -1,0 +1,36 @@
+# Tout ce qui est produit à l'exécution : rien de ceci ne part sur GitHub.
+
+# Données de l'application (bases SQLite, fichiers déposés, Parquet, clés secrètes, scripts générés)
+/media/
+*.sqlite3
+*.sqlite3-wal
+*.sqlite3-shm
+*.sqlite3-journal
+db.sqlite3
+.secret_key
+
+# Fichiers statiques rassemblés par collectstatic
+/staticfiles/
+
+# Journaux et sauvegardes
+/logs/
+*.log
+/sauvegardes/
+
+# Python et environnements virtuels
+__pycache__/
+*.py[cod]
+venv/
+.venv/
+venv-agentgy/
+/env/
+
+# Configuration locale et secrets
+.env
+.env.*
+
+# Éditeurs et système
+.vscode/
+.idea/
+.DS_Store
+Thumbs.db

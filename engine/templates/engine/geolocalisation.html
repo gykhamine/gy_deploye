@@ -1,0 +1,509 @@
+{% load static %}<!DOCTYPE html>
+{% load i18n_extras %}
+<html lang="{{ langue_html|default:'fr' }}">
+<head>
+<link rel="stylesheet" href="{% static 'engine/css/app.css' %}"><link rel="stylesheet" href="{% url 'engine:marque_css' %}"><script src="{% static 'engine/js/marque.js' %}" defer></script><script src="{% static 'engine/js/gestes_tactiles.js' %}" defer></script>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>{% tf "engine/templates/engine/geolocalisation.html:8:8" v1=table.nom %}</title>
+<script src="{% static 'engine/js/dialogues.js' %}"></script>
+</head>
+<body class="page-geolocalisation page-dashboard_bi{% if lecture_seule %} lecture-seule-partage{% endif %}">
+{# Même châssis que le dashboard BI (sidebar + en-tête) : le canevas ne contient que la carte, qui en prend toute la taille. #}
+<div id="sidebar-overlay"></div>
+<div id="app">
+
+<div id="sidebar">
+  <div id="marque"><img class="logo-gy" src="{% static 'engine/img/logo_agent_gy.png' %}" alt="{% t 'engine/templates/engine/geolocalisation.html:17:96' %}"> {% t "engine/templates/engine/geolocalisation.html:17:107" %}</div>
+
+    <div class="geo-section">{% t "engine/templates/engine/geolocalisation.html:cartes:section_carte" %}</div>
+  <div class="geo-bloc">
+    <button class="geo-btn principal" id="btn-analyser">{% t "engine/templates/engine/geolocalisation.html:67:57" %}</button>
+    
+<button class="geo-btn" id="btn-ajuster">{% t "engine/templates/engine/geolocalisation.html:266:46" %}</button>    <button class="geo-btn" id="btn-geojson">{% t "engine/templates/engine/geolocalisation.html:267:46" %}</button>    <button class="geo-btn" id="btn-plein-ecran">{% t "engine/templates/engine/geolocalisation.html:268:50" %}</button>
+  </div>
+
+  <div class="geo-bloc" id="geo-vide-lateral" style="display:none"></div>
+
+  <div class="geo-section">{% t "engine/templates/engine/geolocalisation.html:cartes:section_panneaux" %}</div>
+  <div class="geo-bloc" id="geo-menu-cartes">
+    <div class="geo-menu-actions">
+      <button type="button" class="geo-btn" id="gc-tout-afficher">{% t "engine/templates/engine/geolocalisation.html:cartes:tout_afficher" %}</button>
+      <button type="button" class="geo-btn" id="gc-tout-masquer">{% t "engine/templates/engine/geolocalisation.html:cartes:tout_masquer" %}</button>
+    </div>
+    <div class="geo-menu-groupe">{% t "engine/templates/engine/geolocalisation.html:cartes:groupe_info" %}</div>
+    <button type="button" class="geo-btn geo-menu-btn" data-ouvrir="mouvement" aria-pressed="false">{% t "engine/templates/engine/geolocalisation.html:cartes:titre_mouvement" %}</button>
+    <button type="button" class="geo-btn geo-menu-btn" data-ouvrir="objets" aria-pressed="false">{% t "engine/templates/engine/geolocalisation.html:17:28" %}</button>
+    <button type="button" class="geo-btn geo-menu-btn" data-ouvrir="alertes" aria-pressed="false">{% t "engine/templates/engine/geolocalisation.html:258:28" %}</button>
+    <button type="button" class="geo-btn geo-menu-btn" data-ouvrir="geostat" aria-pressed="false">{% t "engine/templates/engine/geolocalisation.html:261:28" %}</button>
+    <div class="geo-menu-groupe">{% t "engine/templates/engine/geolocalisation.html:cartes:groupe_analyse" %}</div>
+    <button type="button" class="geo-btn geo-menu-btn" data-ouvrir="donnees" aria-pressed="false">{% t "engine/templates/engine/geolocalisation.html:23:28" %}</button>
+    <button type="button" class="geo-btn geo-menu-btn" data-ouvrir="couches" aria-pressed="false">{% t "engine/templates/engine/geolocalisation.html:35:28" %}</button>
+    <button type="button" class="geo-btn geo-menu-btn" data-ouvrir="calques" aria-pressed="false">{% t "engine/templates/engine/geolocalisation.html:46:28" %}</button>
+    <button type="button" class="geo-btn geo-menu-btn" data-ouvrir="analyse" aria-pressed="false">{% t "engine/templates/engine/geolocalisation.html:57:28" %}</button>
+    <button type="button" class="geo-btn geo-menu-btn" data-ouvrir="flux" aria-pressed="false">{% t "engine/templates/engine/geolocalisation.html:74:28" %}</button>
+    <button type="button" class="geo-btn geo-menu-btn" data-ouvrir="veille" aria-pressed="false">{% t "engine/templates/engine/geolocalisation.html:109:28" %}</button>
+    <button type="button" class="geo-btn geo-menu-btn" data-ouvrir="archives" aria-pressed="false">{% t "engine/templates/engine/geolocalisation.html:124:28" %}</button>
+    <button type="button" class="geo-btn geo-menu-btn" data-ouvrir="logistique" aria-pressed="false">{% t "engine/templates/engine/geolocalisation.html:135:28" %}</button>
+    <div class="geo-menu-groupe">{% t "engine/templates/engine/geolocalisation.html:cartes:groupe_outils" %}</div>
+    <button type="button" class="geo-btn geo-menu-btn" data-ouvrir="annotations" aria-pressed="false">{% t "engine/templates/engine/geolocalisation.html:153:28" %}</button>
+    <button type="button" class="geo-btn geo-menu-btn" data-ouvrir="outils" aria-pressed="false">{% t "engine/templates/engine/geolocalisation.html:187:28" %}</button>
+    <button type="button" class="geo-btn geo-menu-btn" data-ouvrir="projection" aria-pressed="false">{% t "engine/templates/engine/geolocalisation.html:210:28" %}</button>
+    <button type="button" class="geo-btn geo-menu-btn" data-ouvrir="zones" aria-pressed="false">{% t "engine/templates/engine/geolocalisation.html:220:28" %}</button>
+    <button type="button" class="geo-btn geo-menu-btn" data-ouvrir="itineraire" aria-pressed="false">{% t "engine/templates/engine/geolocalisation.html:228:28" %}</button>
+    <button type="button" class="geo-btn geo-menu-btn" data-ouvrir="exports" aria-pressed="false">{% t "engine/templates/engine/geolocalisation.html:252:28" %}</button>
+  </div>
+
+  <div style="border-top:1px solid var(--border);padding:8px 10px 4px;font-size:11px;color:var(--muted)">
+    <a class="retour" href="/tables/{{ table.slug }}/?retour=1" style="font-size:12px">{% tf "engine/templates/engine/geolocalisation.html:56:79" v1=table.nom %}</a>
+  </div>
+</div>
+
+<div id="principal">
+  <div id="entete">
+    <div class="entete-rangee-titre">
+      <div class="entete-gauche">
+        <button id="btn-toggle-sidebar" aria-label="{% t 'engine/templates/engine/geolocalisation.html:280:53' %}">☰</button>
+      </div>
+    </div>
+  </div>
+
+  <div id="zone-carte">
+    <canvas id="carte"></canvas>
+    <div id="geo-vide" style="display:none"></div>
+    <div id="geo-flot-g" class="geo-flot geo-flot-g" aria-label="{% t "engine/templates/engine/geolocalisation.html:cartes:colonne_outils" %}">
+    <section class="geo-carte" id="gc-donnees" data-carte="donnees" data-groupe="analyse" hidden>
+      <header class="geo-carte-tete">
+        <span class="geo-carte-titre">{% t "engine/templates/engine/geolocalisation.html:23:28" %}</span>
+        <button type="button" class="gc-btn" data-gc="couleur" title="{% t "engine/templates/engine/geolocalisation.html:cartes:couleur_carte" %}" aria-label="{% t "engine/templates/engine/geolocalisation.html:cartes:couleur_carte" %}">●</button>
+        <button type="button" class="gc-btn" data-gc="replier" title="{% t "engine/templates/engine/geolocalisation.html:cartes:replier_carte" %}" aria-label="{% t "engine/templates/engine/geolocalisation.html:cartes:replier_carte" %}">–</button>
+        <button type="button" class="gc-btn" data-gc="fermer" title="{% t "engine/templates/engine/geolocalisation.html:cartes:masquer_carte" %}" aria-label="{% t "engine/templates/engine/geolocalisation.html:cartes:masquer_carte" %}">✕</button>
+      </header>
+      <div class="geo-carte-corps">
+    <div class="geo-bloc" id="geo-tables">
+    <div class="geo-note">{% t "engine/templates/engine/geolocalisation.html:25:27" %}</div>
+    {% for c in sources_geo %}
+    <div class="geo-table" data-table="{{ c.id }}">
+      <div class="geo-table-nom">{{ c.nom }}{% if c.ouverte %} <span style="color:var(--muted)">{% t "engine/templates/engine/geolocalisation.html:28:97" %}</span>{% endif %}</div>
+      {% for p in c.positions %}<label class="geo-case"><input type="checkbox" data-pos="{{ p.slug }}"> {{ p.nom }}</label>{% empty %}<div class="geo-note">{% t "engine/templates/engine/geolocalisation.html:29:157" %}</div>{% endfor %}
+      {% if c.positions %}<label class="geo-champ">{% t "engine/templates/engine/geolocalisation.html:89:52" %}
+        <select data-temps><option value="-">{% t "engine/templates/engine/geolocalisation.html:31:46" %}</option>{% for d in c.temps %}<option value="{{ d.slug }}">{{ d.nom }}</option>{% endfor %}</select></label>{% endif %}
+    </div>{% endfor %}
+  </div>
+      </div>
+    </section>
+    <section class="geo-carte" id="gc-couches" data-carte="couches" data-groupe="analyse" hidden>
+      <header class="geo-carte-tete">
+        <span class="geo-carte-titre">{% t "engine/templates/engine/geolocalisation.html:35:28" %}</span>
+        <button type="button" class="gc-btn" data-gc="couleur" title="{% t "engine/templates/engine/geolocalisation.html:cartes:couleur_carte" %}" aria-label="{% t "engine/templates/engine/geolocalisation.html:cartes:couleur_carte" %}">●</button>
+        <button type="button" class="gc-btn" data-gc="replier" title="{% t "engine/templates/engine/geolocalisation.html:cartes:replier_carte" %}" aria-label="{% t "engine/templates/engine/geolocalisation.html:cartes:replier_carte" %}">–</button>
+        <button type="button" class="gc-btn" data-gc="fermer" title="{% t "engine/templates/engine/geolocalisation.html:cartes:masquer_carte" %}" aria-label="{% t "engine/templates/engine/geolocalisation.html:cartes:masquer_carte" %}">✕</button>
+      </header>
+      <div class="geo-carte-corps">
+    <div class="geo-bloc">
+    <label class="geo-case"><input type="checkbox" data-couche="trajets" checked> {% t "engine/templates/engine/geolocalisation.html:37:83" %}</label>
+    <label class="geo-case"><input type="checkbox" data-couche="trainee" checked> {% t "engine/templates/engine/geolocalisation.html:38:83" %}</label>
+    <label class="geo-case"><input type="checkbox" data-couche="etiquettes" checked> {% t "engine/templates/engine/geolocalisation.html:39:86" %}</label>
+    <label class="geo-case"><input type="checkbox" data-couche="prevision" checked> {% t "engine/templates/engine/geolocalisation.html:40:85" %}</label>
+    <label class="geo-case"><input type="checkbox" data-couche="collisions" checked> {% t "engine/templates/engine/geolocalisation.html:41:86" %}</label>
+    <label class="geo-case"><input type="checkbox" data-couche="densite" checked> {% t "engine/templates/engine/geolocalisation.html:42:83" %}</label>
+    <label class="geo-case" title="{% t 'engine/templates/engine/geolocalisation.html:43:36' %}"><input type="checkbox" data-couche="osm" checked> {% t "engine/templates/engine/geolocalisation.html:43:216" %}</label>
+  </div>
+    <div class="geo-bloc" id="gt-bloc">
+      <div class="geo-note" id="gt-etat">…</div>
+      <button type="button" class="geo-btn" id="gt-pause" hidden></button>
+      <a class="geo-btn" id="gt-zip" href="/api/geolocalisation/tuiles/zip/" download hidden>{% t "engine/templates/engine/geolocalisation.html:116:94" %}</a>
+      <label class="geo-btn" id="gt-restaurer" for="gt-fichier" hidden>{% t "engine/templates/engine/geolocalisation.html:117:72" %}</label>
+      <input type="file" id="gt-fichier" accept=".zip,application/zip" hidden>
+    </div>
+      </div>
+    </section>
+    <section class="geo-carte" id="gc-calques" data-carte="calques" data-groupe="analyse" hidden>
+      <header class="geo-carte-tete">
+        <span class="geo-carte-titre">{% t "engine/templates/engine/geolocalisation.html:46:28" %}</span>
+        <button type="button" class="gc-btn" data-gc="couleur" title="{% t "engine/templates/engine/geolocalisation.html:cartes:couleur_carte" %}" aria-label="{% t "engine/templates/engine/geolocalisation.html:cartes:couleur_carte" %}">●</button>
+        <button type="button" class="gc-btn" data-gc="replier" title="{% t "engine/templates/engine/geolocalisation.html:cartes:replier_carte" %}" aria-label="{% t "engine/templates/engine/geolocalisation.html:cartes:replier_carte" %}">–</button>
+        <button type="button" class="gc-btn" data-gc="fermer" title="{% t "engine/templates/engine/geolocalisation.html:cartes:masquer_carte" %}" aria-label="{% t "engine/templates/engine/geolocalisation.html:cartes:masquer_carte" %}">✕</button>
+      </header>
+      <div class="geo-carte-corps">
+    <div class="geo-bloc">
+    <div class="geo-note">{% t "engine/templates/engine/geolocalisation.html:48:27" %}</div>
+    <div id="cq-liste"></div>
+    <button class="geo-btn" id="cq-reinit">{% t "engine/templates/engine/geolocalisation.html:50:44" %}</button>
+    <label class="geo-champ">{% t "engine/templates/engine/geolocalisation.html:51:30" %} <input type="text" id="cq-adresse" maxlength="200" placeholder="{% t 'engine/templates/engine/geolocalisation.html:51:128' %}" autocomplete="off"></label>
+    <button class="geo-btn principal" id="cq-chercher" title="{% t 'engine/templates/engine/geolocalisation.html:52:63' %}">{% t "engine/templates/engine/geolocalisation.html:52:146" %}</button>
+    <div id="cq-resultats"></div>
+    <button class="geo-btn" id="cq-repere-effacer">{% t "engine/templates/engine/geolocalisation.html:54:52" %}</button>
+  </div>
+      </div>
+    </section>
+    <section class="geo-carte" id="gc-analyse" data-carte="analyse" data-groupe="analyse" hidden>
+      <header class="geo-carte-tete">
+        <span class="geo-carte-titre">{% t "engine/templates/engine/geolocalisation.html:57:28" %}</span>
+        <button type="button" class="gc-btn" data-gc="couleur" title="{% t "engine/templates/engine/geolocalisation.html:cartes:couleur_carte" %}" aria-label="{% t "engine/templates/engine/geolocalisation.html:cartes:couleur_carte" %}">●</button>
+        <button type="button" class="gc-btn" data-gc="replier" title="{% t "engine/templates/engine/geolocalisation.html:cartes:replier_carte" %}" aria-label="{% t "engine/templates/engine/geolocalisation.html:cartes:replier_carte" %}">–</button>
+        <button type="button" class="gc-btn" data-gc="fermer" title="{% t "engine/templates/engine/geolocalisation.html:cartes:masquer_carte" %}" aria-label="{% t "engine/templates/engine/geolocalisation.html:cartes:masquer_carte" %}">✕</button>
+      </header>
+      <div class="geo-carte-corps">
+    <div class="geo-bloc">
+    <label class="geo-champ">{% t "engine/templates/engine/geolocalisation.html:59:30" %} <input type="number" id="p-seuil" value="50" min="1" step="1"></label>
+    <label class="geo-champ">{% t "engine/templates/engine/geolocalisation.html:60:30" %} <input type="number" id="p-horizon" value="30" min="1" max="120" step="1"></label>
+    <label class="geo-champ">{% t "engine/templates/engine/geolocalisation.html:61:30" %} <input type="number" id="p-sigma" value="5" min="0.1" step="0.5"></label>
+    <label class="geo-champ" title="{% t 'engine/templates/engine/geolocalisation.html:62:37' %}"> {% t "engine/templates/engine/geolocalisation.html:145:100" %}
+      <select id="p-mode"><option value="auto">{% t "engine/templates/engine/geolocalisation.html:63:48" %}</option><option value="trajectoire">{% t "engine/templates/engine/geolocalisation.html:63:109" %}</option><option value="points">{% t "engine/templates/engine/geolocalisation.html:63:168" %}</option></select></label>
+    <label class="geo-champ" title="{% t 'engine/templates/engine/geolocalisation.html:64:37' %}">{% t "engine/templates/engine/geolocalisation.html:64:206" %} <input type="number" id="p-objets" min="1" step="10"></label>
+    <label class="geo-champ" title="{% t 'engine/templates/engine/geolocalisation.html:65:37' %}">{% t "engine/templates/engine/geolocalisation.html:65:187" %} <input type="number" id="p-fenetre" min="10" step="100"></label>
+    <div id="geo-lecture" class="geo-note"></div>
+    {% if not lecture_seule %}<button class="geo-btn" id="btn-simuler" title="{% t 'engine/templates/engine/geolocalisation.html:68:79' %}">{% t "engine/templates/engine/geolocalisation.html:68:231" %}</button>{% endif %}
+    <button class="geo-btn" id="btn-demo" title="{% t 'engine/templates/engine/geolocalisation.html:69:50' %}">{% t "engine/templates/engine/geolocalisation.html:69:143" %}</button>
+    <button class="geo-btn" id="btn-mesure" title="{% t 'engine/templates/engine/geolocalisation.html:70:52' %}">{% t "engine/templates/engine/geolocalisation.html:70:86" %}</button>
+  </div>
+
+{% if not lecture_seule %}
+      </div>
+    </section>
+    <section class="geo-carte" id="gc-flux" data-carte="flux" data-groupe="analyse" hidden>
+      <header class="geo-carte-tete">
+        <span class="geo-carte-titre">{% t "engine/templates/engine/geolocalisation.html:74:28" %}</span>
+        <button type="button" class="gc-btn" data-gc="couleur" title="{% t "engine/templates/engine/geolocalisation.html:cartes:couleur_carte" %}" aria-label="{% t "engine/templates/engine/geolocalisation.html:cartes:couleur_carte" %}">●</button>
+        <button type="button" class="gc-btn" data-gc="replier" title="{% t "engine/templates/engine/geolocalisation.html:cartes:replier_carte" %}" aria-label="{% t "engine/templates/engine/geolocalisation.html:cartes:replier_carte" %}">–</button>
+        <button type="button" class="gc-btn" data-gc="fermer" title="{% t "engine/templates/engine/geolocalisation.html:cartes:masquer_carte" %}" aria-label="{% t "engine/templates/engine/geolocalisation.html:cartes:masquer_carte" %}">✕</button>
+      </header>
+      <div class="geo-carte-corps">
+    <div class="geo-bloc">
+    <label class="geo-champ">{% t "engine/templates/engine/geolocalisation.html:175:30" %}
+      <select id="f-format">
+        <option value="auto">{% t "engine/templates/engine/geolocalisation.html:78:30" %}</option>
+        <option value="ais">{% t "engine/templates/engine/geolocalisation.html:79:29" %}</option>
+        <option value="nmea">{% t "engine/templates/engine/geolocalisation.html:80:30" %}</option>
+        <option value="sbs">{% t "engine/templates/engine/geolocalisation.html:81:29" %}</option>
+        <option value="json">{% t "engine/templates/engine/geolocalisation.html:82:30" %}</option>
+        <option value="csv">{% t "engine/templates/engine/geolocalisation.html:83:29" %}</option>
+      </select></label>
+    <label class="geo-champ">{% t "engine/templates/engine/geolocalisation.html:85:30" %} <input type="file" id="f-fichier" accept=".txt,.log,.nmea,.sbs,.json,.geojson,.csv,text/*,application/json"></label>
+    <label class="geo-champ">{% t "engine/templates/engine/geolocalisation.html:86:30" %} <textarea id="f-texte" rows="4" spellcheck="false" placeholder="{% t 'engine/templates/engine/geolocalisation.html:86:112' %}"></textarea></label>
+    <label class="geo-champ">{% t "engine/templates/engine/geolocalisation.html:87:30" %} <input type="number" id="f-pas" value="10" min="0.5" step="0.5"></label>
+    <label class="geo-champ">{% t "engine/templates/engine/geolocalisation.html:88:30" %} <input type="text" id="f-id" value="gps" maxlength="60"></label>
+    <label class="geo-champ">{% t "engine/templates/engine/geolocalisation.html:180:30" %}
+      <select id="f-horodatage"><option value="source">{% t "engine/templates/engine/geolocalisation.html:90:56" %}</option><option value="reception">{% t "engine/templates/engine/geolocalisation.html:90:126" %}</option></select></label>
+    <label class="geo-case"><input type="checkbox" id="f-creer" checked> {% t "engine/templates/engine/geolocalisation.html:91:74" %}</label>
+    <button class="geo-btn" id="btn-flux-apercu" title="{% t 'engine/templates/engine/geolocalisation.html:92:57' %}">{% t "engine/templates/engine/geolocalisation.html:92:136" %}</button>
+    <button class="geo-btn principal" id="btn-flux-importer" title="{% t 'engine/templates/engine/geolocalisation.html:93:69' %}">{% t "engine/templates/engine/geolocalisation.html:93:172" %}</button>
+    <div id="flux-resultat" class="geo-note">{% t "engine/templates/engine/geolocalisation.html:94:46" %}</div>
+  </div>
+      </div>
+    </section>
+{% endif %}
+    <section class="geo-carte" id="gc-veille" data-carte="veille" data-groupe="analyse" hidden>
+      <header class="geo-carte-tete">
+        <span class="geo-carte-titre">{% t "engine/templates/engine/geolocalisation.html:109:28" %}</span>
+        <button type="button" class="gc-btn" data-gc="couleur" title="{% t "engine/templates/engine/geolocalisation.html:cartes:couleur_carte" %}" aria-label="{% t "engine/templates/engine/geolocalisation.html:cartes:couleur_carte" %}">●</button>
+        <button type="button" class="gc-btn" data-gc="replier" title="{% t "engine/templates/engine/geolocalisation.html:cartes:replier_carte" %}" aria-label="{% t "engine/templates/engine/geolocalisation.html:cartes:replier_carte" %}">–</button>
+        <button type="button" class="gc-btn" data-gc="fermer" title="{% t "engine/templates/engine/geolocalisation.html:cartes:masquer_carte" %}" aria-label="{% t "engine/templates/engine/geolocalisation.html:cartes:masquer_carte" %}">✕</button>
+      </header>
+      <div class="geo-carte-corps">
+    <div class="geo-bloc">
+    <div class="geo-note">{% t "engine/templates/engine/geolocalisation.html:111:27" %}</div>
+    <div id="veille-etat" class="geo-note">{% t "engine/templates/engine/geolocalisation.html:112:44" %}</div>
+    {% if not lecture_seule %}
+    <label class="geo-case"><input type="checkbox" id="veille-active"> {% t "engine/templates/engine/geolocalisation.html:114:72" %}</label>
+    <div class="geo-note">{% t "engine/templates/engine/geolocalisation.html:115:27" %}</div>
+    <div id="veille-objets">{% for c in colonnes_geo %}<label class="geo-case"><input type="checkbox" data-veille-objet="{{ c.slug }}" checked> {{ c.nom }}</label>{% endfor %}</div>
+    <button class="geo-btn principal" id="btn-veille-enregistrer" title="{% t 'engine/templates/engine/geolocalisation.html:117:74' %}">{% t "engine/templates/engine/geolocalisation.html:117:201" %}</button>
+    <button class="geo-btn" id="btn-veille-evaluer">{% t "engine/templates/engine/geolocalisation.html:118:53" %}</button>
+    {% endif %}
+    <div id="veille-alertes"></div>
+  </div>
+
+  {% if not lecture_seule %}
+      </div>
+    </section>
+    <section class="geo-carte" id="gc-archives" data-carte="archives" data-groupe="analyse" hidden>
+      <header class="geo-carte-tete">
+        <span class="geo-carte-titre">{% t "engine/templates/engine/geolocalisation.html:124:28" %}</span>
+        <button type="button" class="gc-btn" data-gc="couleur" title="{% t "engine/templates/engine/geolocalisation.html:cartes:couleur_carte" %}" aria-label="{% t "engine/templates/engine/geolocalisation.html:cartes:couleur_carte" %}">●</button>
+        <button type="button" class="gc-btn" data-gc="replier" title="{% t "engine/templates/engine/geolocalisation.html:cartes:replier_carte" %}" aria-label="{% t "engine/templates/engine/geolocalisation.html:cartes:replier_carte" %}">–</button>
+        <button type="button" class="gc-btn" data-gc="fermer" title="{% t "engine/templates/engine/geolocalisation.html:cartes:masquer_carte" %}" aria-label="{% t "engine/templates/engine/geolocalisation.html:cartes:masquer_carte" %}">✕</button>
+      </header>
+      <div class="geo-carte-corps">
+    <div class="geo-bloc">
+    <div class="geo-note">{% t "engine/templates/engine/geolocalisation.html:126:27" %}</div>
+    <label class="geo-champ">{% t "engine/templates/engine/geolocalisation.html:127:30" %} <input type="datetime-local" id="a-du"></label>
+    <label class="geo-champ">{% t "engine/templates/engine/geolocalisation.html:128:30" %} <input type="datetime-local" id="a-au"></label>
+    <button class="geo-btn principal" id="btn-archive-rejouer">{% t "engine/templates/engine/geolocalisation.html:129:64" %}</button>
+    <button class="geo-btn" id="btn-archive-direct" style="display:none">{% t "engine/templates/engine/geolocalisation.html:130:74" %}</button>
+    <div id="archive-etat" class="geo-note">{% t "engine/templates/engine/geolocalisation.html:131:45" %}</div>
+  </div>
+  {% endif %}
+      </div>
+    </section>
+    <section class="geo-carte" id="gc-logistique" data-carte="logistique" data-groupe="analyse" hidden>
+      <header class="geo-carte-tete">
+        <span class="geo-carte-titre">{% t "engine/templates/engine/geolocalisation.html:135:28" %}</span>
+        <button type="button" class="gc-btn" data-gc="couleur" title="{% t "engine/templates/engine/geolocalisation.html:cartes:couleur_carte" %}" aria-label="{% t "engine/templates/engine/geolocalisation.html:cartes:couleur_carte" %}">●</button>
+        <button type="button" class="gc-btn" data-gc="replier" title="{% t "engine/templates/engine/geolocalisation.html:cartes:replier_carte" %}" aria-label="{% t "engine/templates/engine/geolocalisation.html:cartes:replier_carte" %}">–</button>
+        <button type="button" class="gc-btn" data-gc="fermer" title="{% t "engine/templates/engine/geolocalisation.html:cartes:masquer_carte" %}" aria-label="{% t "engine/templates/engine/geolocalisation.html:cartes:masquer_carte" %}">✕</button>
+      </header>
+      <div class="geo-carte-corps">
+    <div class="geo-bloc">
+    <label class="geo-champ">{% t "engine/templates/engine/geolocalisation.html:261:30" %}
+      <select id="l-table"><option value="">{% t "engine/templates/engine/geolocalisation.html:138:45" %}</option>{% for c in tables_commandes %}<option value="{{ c.id }}">{{ c.nom }}</option>{% endfor %}</select></label>
+    <label class="geo-champ">{% t "engine/templates/engine/geolocalisation.html:139:30" %} <input type="number" id="l-capacite" min="0" step="any"></label>
+    <label class="geo-champ">{% t "engine/templates/engine/geolocalisation.html:140:30" %} <input type="number" id="l-service" value="5" min="0" step="1"></label>
+    <label class="geo-case"><input type="checkbox" id="l-retour" checked> {% t "engine/templates/engine/geolocalisation.html:141:75" %}</label>
+    <label class="geo-case" title="{% t 'engine/templates/engine/geolocalisation.html:142:36' %}"><input type="checkbox" id="l-position" checked> {% t "engine/templates/engine/geolocalisation.html:142:188" %}</label>
+    <button class="geo-btn principal" id="btn-optimiser">{% t "engine/templates/engine/geolocalisation.html:143:58" %}</button>
+    {% if not lecture_seule %}<button class="geo-btn" id="btn-optimiser-enreg" title="{% t 'engine/templates/engine/geolocalisation.html:144:87' %}">{% t "engine/templates/engine/geolocalisation.html:144:241" %}</button>{% endif %}
+    <button class="geo-btn" id="btn-depot" title="{% t 'engine/templates/engine/geolocalisation.html:145:51' %}">{% t "engine/templates/engine/geolocalisation.html:145:78" %}</button>
+    <button class="geo-btn" id="btn-depot-conseille" style="display:none">{% t "engine/templates/engine/geolocalisation.html:146:75" %}</button>
+    <button class="geo-btn" id="btn-logi-demo">{% t "engine/templates/engine/geolocalisation.html:147:48" %}</button>
+    <button class="geo-btn" id="btn-logi-strat" title="{% t 'engine/templates/engine/geolocalisation.html:148:56' %}">{% t "engine/templates/engine/geolocalisation.html:148:195" %}</button>
+    <div id="logi-resume" class="geo-note"></div>
+    <div id="logi-tournees"></div>
+  </div>
+      </div>
+    </section>
+    <section class="geo-carte" id="gc-annotations" data-carte="annotations" data-groupe="outils" hidden>
+      <header class="geo-carte-tete">
+        <span class="geo-carte-titre">{% t "engine/templates/engine/geolocalisation.html:153:28" %}</span>
+        <button type="button" class="gc-btn" data-gc="couleur" title="{% t "engine/templates/engine/geolocalisation.html:cartes:couleur_carte" %}" aria-label="{% t "engine/templates/engine/geolocalisation.html:cartes:couleur_carte" %}">●</button>
+        <button type="button" class="gc-btn" data-gc="replier" title="{% t "engine/templates/engine/geolocalisation.html:cartes:replier_carte" %}" aria-label="{% t "engine/templates/engine/geolocalisation.html:cartes:replier_carte" %}">–</button>
+        <button type="button" class="gc-btn" data-gc="fermer" title="{% t "engine/templates/engine/geolocalisation.html:cartes:masquer_carte" %}" aria-label="{% t "engine/templates/engine/geolocalisation.html:cartes:masquer_carte" %}">✕</button>
+      </header>
+      <div class="geo-carte-corps">
+    <div class="geo-bloc">
+    <label class="geo-case"><input type="checkbox" data-couche="annotations" checked> {% t "engine/templates/engine/geolocalisation.html:155:87" %}</label>
+{% if not lecture_seule %}
+    <div class="geo-note">{% t "engine/templates/engine/geolocalisation.html:157:27" %}</div>
+    <button class="geo-btn" data-outil="point">{% t "engine/templates/engine/geolocalisation.html:158:48" %}</button>
+    <button class="geo-btn" data-outil="trajectoire">{% t "engine/templates/engine/geolocalisation.html:159:54" %}</button>
+    <button class="geo-btn" data-outil="zone">{% t "engine/templates/engine/geolocalisation.html:160:47" %}</button>
+    <label class="geo-champ">{% t "engine/templates/engine/geolocalisation.html:161:30" %} <input type="text" id="an-titre" maxlength="200" autocomplete="off"></label>
+    <label class="geo-champ">{% t "engine/templates/engine/geolocalisation.html:162:30" %} <input type="color" id="an-couleur" value="#f5a524" data-gy-var="--forme-annotation" data-gy-defaut="#f5a524"></label>
+    <label class="geo-champ">{% t "engine/templates/engine/geolocalisation.html:163:30" %} <textarea id="an-note" rows="2" maxlength="2000"></textarea></label>
+    <label class="geo-champ" title="{% t 'engine/templates/engine/geolocalisation.html:164:37' %}">{% t "engine/templates/engine/geolocalisation.html:304:100" %}
+      <select id="an-aff"><option value="">{% t "engine/templates/engine/geolocalisation.html:165:44" %}</option><option value="ami">{% t "engine/templates/engine/geolocalisation.html:165:96" %}</option><option value="presume_ami">{% t "engine/templates/engine/geolocalisation.html:165:136" %}</option><option value="neutre">{% t "engine/templates/engine/geolocalisation.html:165:179" %}</option><option value="inconnu">{% t "engine/templates/engine/geolocalisation.html:165:218" %}</option><option value="en_attente">{% t "engine/templates/engine/geolocalisation.html:165:261" %}</option><option value="suspect">{% t "engine/templates/engine/geolocalisation.html:165:317" %}</option><option value="hostile">{% t "engine/templates/engine/geolocalisation.html:165:357" %}</option></select></label>
+    <label class="geo-champ">{% t "engine/templates/engine/geolocalisation.html:306:30" %}
+      <select id="an-dim"><option value="">{% t "engine/templates/engine/geolocalisation.html:167:44" %}</option><option value="terre_equipement">{% t "engine/templates/engine/geolocalisation.html:167:99" %}</option><option value="terre_installation">{% t "engine/templates/engine/geolocalisation.html:167:161" %}</option><option value="air">{% t "engine/templates/engine/geolocalisation.html:167:210" %}</option><option value="mer">{% t "engine/templates/engine/geolocalisation.html:167:242" %}</option><option value="sous_marin">{% t "engine/templates/engine/geolocalisation.html:167:291" %}</option><option value="espace">{% t "engine/templates/engine/geolocalisation.html:167:333" %}</option></select></label>
+    <label class="geo-champ">{% t "engine/templates/engine/geolocalisation.html:300:30" %}
+      <select id="an-ech"><option value="">{% t "engine/templates/engine/geolocalisation.html:169:44" %}</option><option value="equipe">{% t "engine/templates/engine/geolocalisation.html:169:81" %}</option><option value="groupe">{% t "engine/templates/engine/geolocalisation.html:169:130" %}</option><option value="section">{% t "engine/templates/engine/geolocalisation.html:169:169" %}</option><option value="peloton">{% t "engine/templates/engine/geolocalisation.html:169:209" %}</option><option value="compagnie">{% t "engine/templates/engine/geolocalisation.html:169:251" %}</option><option value="bataillon">{% t "engine/templates/engine/geolocalisation.html:169:295" %}</option><option value="regiment">{% t "engine/templates/engine/geolocalisation.html:169:338" %}</option><option value="brigade">{% t "engine/templates/engine/geolocalisation.html:169:379" %}</option><option value="division">{% t "engine/templates/engine/geolocalisation.html:169:420" %}</option><option value="corps">{% t "engine/templates/engine/geolocalisation.html:169:459" %}</option><option value="armee">{% t "engine/templates/engine/geolocalisation.html:169:495" %}</option><option value="groupe_armees">{% t "engine/templates/engine/geolocalisation.html:169:539" %}</option><option value="region">{% t "engine/templates/engine/geolocalisation.html:169:586" %}</option></select></label>
+    <div id="an-brouillon" style="display:none">
+      <div id="an-trace" class="geo-note"></div>
+      <button class="geo-btn principal" id="an-valider">{% t "engine/templates/engine/geolocalisation.html:172:57" %}</button>
+      <button class="geo-btn" id="an-retirer">{% t "engine/templates/engine/geolocalisation.html:173:47" %}</button>
+      <button class="geo-btn" id="an-abandonner">{% t "engine/templates/engine/geolocalisation.html:174:50" %}</button>
+    </div>
+{% endif %}
+{% if not lecture_seule %}
+    <label class="geo-champ" title="{% t 'engine/templates/engine/geolocalisation.html:178:37' %}">{% t "engine/templates/engine/geolocalisation.html:178:133" %} <input type="file" id="cq-fichier" accept=".geojson,.json,.kml,.kmz,.gpx,.shp,.zip"></label>
+    <button class="geo-btn" id="cq-import">{% t "engine/templates/engine/geolocalisation.html:179:44" %}</button>
+    <div id="cq-import-bilan" class="geo-note"></div>
+{% endif %}
+    <div id="an-detail" class="geo-note"></div>
+    <div id="an-liste"></div>
+    <button class="geo-btn" id="an-export" title="{% t 'engine/templates/engine/geolocalisation.html:184:51' %}">{% t "engine/templates/engine/geolocalisation.html:184:100" %}</button>
+  </div>
+      </div>
+    </section>
+    <section class="geo-carte" id="gc-outils" data-carte="outils" data-groupe="outils" hidden>
+      <header class="geo-carte-tete">
+        <span class="geo-carte-titre">{% t "engine/templates/engine/geolocalisation.html:187:28" %}</span>
+        <button type="button" class="gc-btn" data-gc="couleur" title="{% t "engine/templates/engine/geolocalisation.html:cartes:couleur_carte" %}" aria-label="{% t "engine/templates/engine/geolocalisation.html:cartes:couleur_carte" %}">●</button>
+        <button type="button" class="gc-btn" data-gc="replier" title="{% t "engine/templates/engine/geolocalisation.html:cartes:replier_carte" %}" aria-label="{% t "engine/templates/engine/geolocalisation.html:cartes:replier_carte" %}">–</button>
+        <button type="button" class="gc-btn" data-gc="fermer" title="{% t "engine/templates/engine/geolocalisation.html:cartes:masquer_carte" %}" aria-label="{% t "engine/templates/engine/geolocalisation.html:cartes:masquer_carte" %}">✕</button>
+      </header>
+      <div class="geo-carte-corps">
+    <div class="geo-bloc">
+    <div class="geo-note">{% t "engine/templates/engine/geolocalisation.html:189:27" %}</div>
+    <label class="geo-champ">{% t "engine/templates/engine/geolocalisation.html:190:30" %} <input type="text" id="ot-coord" placeholder="{% t 'engine/templates/engine/geolocalisation.html:190:99' %}" maxlength="120" spellcheck="false" autocomplete="off"></label>
+    <button class="geo-btn" id="ot-aller">{% t "engine/templates/engine/geolocalisation.html:191:43" %}</button>
+    <button class="geo-btn" data-ot="repere" title="{% t 'engine/templates/engine/geolocalisation.html:192:53' %}">{% t "engine/templates/engine/geolocalisation.html:192:112" %}</button>
+    <button class="geo-btn" data-ot="mesure" title="{% t 'engine/templates/engine/geolocalisation.html:193:53' %}">{% t "engine/templates/engine/geolocalisation.html:193:120" %}</button>
+    <label class="geo-champ">{% t "engine/templates/engine/geolocalisation.html:194:30" %} <input type="number" id="ot-vitesse" min="0" step="any" placeholder="{% t 'engine/templates/engine/geolocalisation.html:334:161' %}"></label>
+    <button class="geo-btn" id="ot-mesure-retirer">{% t "engine/templates/engine/geolocalisation.html:195:52" %}</button>
+    <button class="geo-btn" id="ot-mesure-effacer">{% t "engine/templates/engine/geolocalisation.html:196:52" %}</button>
+    <label class="geo-champ">{% t "engine/templates/engine/geolocalisation.html:197:30" %} <input type="number" id="ot-largeur" value="1000" min="1" step="any"></label>
+    <button class="geo-btn" id="ot-corridor" title="{% t 'engine/templates/engine/geolocalisation.html:198:53' %}">{% t "engine/templates/engine/geolocalisation.html:198:99" %}</button>
+    <label class="geo-champ">{% t "engine/templates/engine/geolocalisation.html:199:30" %} <input type="number" id="ot-rayon" value="500" min="1" step="any"></label>
+    <button class="geo-btn" data-ot="cercle" title="{% t 'engine/templates/engine/geolocalisation.html:200:53' %}">{% t "engine/templates/engine/geolocalisation.html:200:72" %}</button>
+    <button class="geo-btn" id="ot-cercle-effacer">{% t "engine/templates/engine/geolocalisation.html:201:52" %}</button>
+{% if not lecture_seule %}
+    <button class="geo-btn" id="ot-enreg-trace" title="{% t 'engine/templates/engine/geolocalisation.html:203:56' %}">{% t "engine/templates/engine/geolocalisation.html:203:123" %}</button>
+    <button class="geo-btn" id="ot-enreg-zone" title="{% t 'engine/templates/engine/geolocalisation.html:204:55' %}">{% t "engine/templates/engine/geolocalisation.html:204:167" %}</button>
+{% endif %}
+    <div id="ot-aide" class="geo-note"></div>
+    <div id="ot-resultat" class="geo-note">—</div>
+  </div>
+      </div>
+    </section>
+    <section class="geo-carte" id="gc-projection" data-carte="projection" data-groupe="outils" hidden>
+      <header class="geo-carte-tete">
+        <span class="geo-carte-titre">{% t "engine/templates/engine/geolocalisation.html:210:28" %}</span>
+        <button type="button" class="gc-btn" data-gc="couleur" title="{% t "engine/templates/engine/geolocalisation.html:cartes:couleur_carte" %}" aria-label="{% t "engine/templates/engine/geolocalisation.html:cartes:couleur_carte" %}">●</button>
+        <button type="button" class="gc-btn" data-gc="replier" title="{% t "engine/templates/engine/geolocalisation.html:cartes:replier_carte" %}" aria-label="{% t "engine/templates/engine/geolocalisation.html:cartes:replier_carte" %}">–</button>
+        <button type="button" class="gc-btn" data-gc="fermer" title="{% t "engine/templates/engine/geolocalisation.html:cartes:masquer_carte" %}" aria-label="{% t "engine/templates/engine/geolocalisation.html:cartes:masquer_carte" %}">✕</button>
+      </header>
+      <div class="geo-carte-corps">
+    <div class="geo-bloc">
+    <div class="geo-note">{% t "engine/templates/engine/geolocalisation.html:212:27" %}</div>
+    <label class="geo-champ">{% t "engine/templates/engine/geolocalisation.html:213:30" %} <input type="number" id="ot-cap" min="-360" max="720" step="any"></label>
+    <label class="geo-champ">{% t "engine/templates/engine/geolocalisation.html:214:30" %} <input type="number" id="ot-vit" min="0" step="any"></label>
+    <label class="geo-champ">{% t "engine/templates/engine/geolocalisation.html:215:30" %} <input type="text" id="ot-horizons" value="60, 300, 900" maxlength="120"></label>
+    <button class="geo-btn" id="ot-projeter">{% t "engine/templates/engine/geolocalisation.html:216:46" %}</button>
+    <button class="geo-btn" id="ot-matrice" title="{% t 'engine/templates/engine/geolocalisation.html:217:52' %}">{% t "engine/templates/engine/geolocalisation.html:217:126" %}</button>
+  </div>
+      </div>
+    </section>
+    <section class="geo-carte" id="gc-zones" data-carte="zones" data-groupe="outils" hidden>
+      <header class="geo-carte-tete">
+        <span class="geo-carte-titre">{% t "engine/templates/engine/geolocalisation.html:220:28" %}</span>
+        <button type="button" class="gc-btn" data-gc="couleur" title="{% t "engine/templates/engine/geolocalisation.html:cartes:couleur_carte" %}" aria-label="{% t "engine/templates/engine/geolocalisation.html:cartes:couleur_carte" %}">●</button>
+        <button type="button" class="gc-btn" data-gc="replier" title="{% t "engine/templates/engine/geolocalisation.html:cartes:replier_carte" %}" aria-label="{% t "engine/templates/engine/geolocalisation.html:cartes:replier_carte" %}">–</button>
+        <button type="button" class="gc-btn" data-gc="fermer" title="{% t "engine/templates/engine/geolocalisation.html:cartes:masquer_carte" %}" aria-label="{% t "engine/templates/engine/geolocalisation.html:cartes:masquer_carte" %}">✕</button>
+      </header>
+      <div class="geo-carte-corps">
+    <div class="geo-bloc">
+    <div class="geo-note">{% t "engine/templates/engine/geolocalisation.html:222:27" %}</div>
+    <button class="geo-btn principal" id="ot-zones-verifier">{% t "engine/templates/engine/geolocalisation.html:223:62" %}</button>
+    <label class="geo-case"><input type="checkbox" id="ot-zones-auto"> {% t "engine/templates/engine/geolocalisation.html:224:72" %}</label>
+    <div id="ot-zones"></div>
+  </div>
+      </div>
+    </section>
+    <section class="geo-carte" id="gc-itineraire" data-carte="itineraire" data-groupe="outils" hidden>
+      <header class="geo-carte-tete">
+        <span class="geo-carte-titre">{% t "engine/templates/engine/geolocalisation.html:228:28" %}</span>
+        <button type="button" class="gc-btn" data-gc="couleur" title="{% t "engine/templates/engine/geolocalisation.html:cartes:couleur_carte" %}" aria-label="{% t "engine/templates/engine/geolocalisation.html:cartes:couleur_carte" %}">●</button>
+        <button type="button" class="gc-btn" data-gc="replier" title="{% t "engine/templates/engine/geolocalisation.html:cartes:replier_carte" %}" aria-label="{% t "engine/templates/engine/geolocalisation.html:cartes:replier_carte" %}">–</button>
+        <button type="button" class="gc-btn" data-gc="fermer" title="{% t "engine/templates/engine/geolocalisation.html:cartes:masquer_carte" %}" aria-label="{% t "engine/templates/engine/geolocalisation.html:cartes:masquer_carte" %}">✕</button>
+      </header>
+      <div class="geo-carte-corps">
+    <div class="geo-bloc">
+    <div class="geo-note">{% t "engine/templates/engine/geolocalisation.html:230:27" %}</div>
+    <button class="geo-btn" data-ot="itineraire">{% t "engine/templates/engine/geolocalisation.html:231:50" %}</button>
+    <button class="geo-btn" id="ot-depart-objet">{% t "engine/templates/engine/geolocalisation.html:232:50" %}</button>
+    <button class="geo-btn" id="ot-dest-annuler">{% t "engine/templates/engine/geolocalisation.html:233:50" %}</button>
+    <button class="geo-btn" id="ot-depart-annuler">{% t "engine/templates/engine/geolocalisation.html:234:52" %}</button>
+    <div id="ot-depart" class="geo-note"></div>
+    <div class="geo-note"><b>{% t "engine/templates/engine/geolocalisation.html:236:30" %}</b></div>
+    <label class="geo-case">{% t "engine/templates/engine/geolocalisation.html:237:29" %} <input type="number" id="ot-poll" value="10" min="2" step="1" style="width:60px"></label>
+    <button class="geo-btn principal" id="ot-gps">{% t "engine/templates/engine/geolocalisation.html:238:51" %}</button>
+    <button class="geo-btn" id="ot-suivre-objet">{% t "engine/templates/engine/geolocalisation.html:239:50" %}</button>
+    <button class="geo-btn" id="ot-arreter-suivi">{% t "engine/templates/engine/geolocalisation.html:240:51" %}</button>
+    <button class="geo-btn" data-ot="position">{% t "engine/templates/engine/geolocalisation.html:241:48" %}</button>
+    <div>
+      <input type="text" id="ot-man-lat" placeholder="{% t 'engine/templates/engine/geolocalisation.html:243:55' %}" inputmode="decimal" style="width:42%">
+      <input type="text" id="ot-man-lon" placeholder="{% t 'engine/templates/engine/geolocalisation.html:244:55' %}" inputmode="decimal" style="width:42%">
+      <button class="geo-btn" id="ot-man-ok">{% t "engine/templates/engine/geolocalisation.html:245:46" %}</button>
+    </div>
+    <div id="ot-suivi" class="geo-note"></div>
+    <div id="ot-reste"></div>
+    <button class="geo-btn" id="ot-osm">{% t "engine/templates/engine/geolocalisation.html:249:41" %}</button>
+  </div>
+      </div>
+    </section>
+    <section class="geo-carte" id="gc-exports" data-carte="exports" data-groupe="outils" hidden>
+      <header class="geo-carte-tete">
+        <span class="geo-carte-titre">{% t "engine/templates/engine/geolocalisation.html:252:28" %}</span>
+        <button type="button" class="gc-btn" data-gc="couleur" title="{% t "engine/templates/engine/geolocalisation.html:cartes:couleur_carte" %}" aria-label="{% t "engine/templates/engine/geolocalisation.html:cartes:couleur_carte" %}">●</button>
+        <button type="button" class="gc-btn" data-gc="replier" title="{% t "engine/templates/engine/geolocalisation.html:cartes:replier_carte" %}" aria-label="{% t "engine/templates/engine/geolocalisation.html:cartes:replier_carte" %}">–</button>
+        <button type="button" class="gc-btn" data-gc="fermer" title="{% t "engine/templates/engine/geolocalisation.html:cartes:masquer_carte" %}" aria-label="{% t "engine/templates/engine/geolocalisation.html:cartes:masquer_carte" %}">✕</button>
+      </header>
+      <div class="geo-carte-corps">
+    <div class="geo-bloc">
+    <button class="geo-btn" id="ot-kml" title="{% t 'engine/templates/engine/geolocalisation.html:254:48' %}">{% t "engine/templates/engine/geolocalisation.html:254:113" %}</button>
+    <button class="geo-btn" id="ot-gpx" title="{% t 'engine/templates/engine/geolocalisation.html:255:48' %}">{% t "engine/templates/engine/geolocalisation.html:255:113" %}</button>
+  </div>
+      </div>
+    </section>
+    </div>
+    <div id="geo-flot-d" class="geo-flot geo-flot-d" aria-label="{% t "engine/templates/engine/geolocalisation.html:cartes:colonne_infos" %}">
+    <div id="geo-info" style="display:none"></div>
+    <section class="geo-carte" id="gc-mouvement" data-carte="mouvement" data-groupe="info" data-defaut="ouverte" hidden>
+      <header class="geo-carte-tete">
+        <span class="geo-carte-titre">{% t "engine/templates/engine/geolocalisation.html:cartes:titre_mouvement" %}</span>
+        <button type="button" class="gc-btn" data-gc="couleur" title="{% t "engine/templates/engine/geolocalisation.html:cartes:couleur_carte" %}" aria-label="{% t "engine/templates/engine/geolocalisation.html:cartes:couleur_carte" %}">●</button>
+        <button type="button" class="gc-btn" data-gc="replier" title="{% t "engine/templates/engine/geolocalisation.html:cartes:replier_carte" %}" aria-label="{% t "engine/templates/engine/geolocalisation.html:cartes:replier_carte" %}">–</button>
+        <button type="button" class="gc-btn" data-gc="fermer" title="{% t "engine/templates/engine/geolocalisation.html:cartes:masquer_carte" %}" aria-label="{% t "engine/templates/engine/geolocalisation.html:cartes:masquer_carte" %}">✕</button>
+      </header>
+      <div class="geo-carte-corps">
+    <div class="geo-bloc">
+      <div id="mv-tuiles" class="mv-tuiles"></div>
+      <div id="mv-table" class="mv-table"></div>
+      <div id="mv-note" class="geo-note">—</div>
+    </div>
+      </div>
+    </section>
+    <section class="geo-carte" id="gc-objets" data-carte="objets" data-groupe="info" data-defaut="ouverte" hidden>
+      <header class="geo-carte-tete">
+        <span class="geo-carte-titre">{% t "engine/templates/engine/geolocalisation.html:17:28" %}</span>
+        <button type="button" class="gc-btn" data-gc="couleur" title="{% t "engine/templates/engine/geolocalisation.html:cartes:couleur_carte" %}" aria-label="{% t "engine/templates/engine/geolocalisation.html:cartes:couleur_carte" %}">●</button>
+        <button type="button" class="gc-btn" data-gc="replier" title="{% t "engine/templates/engine/geolocalisation.html:cartes:replier_carte" %}" aria-label="{% t "engine/templates/engine/geolocalisation.html:cartes:replier_carte" %}">–</button>
+        <button type="button" class="gc-btn" data-gc="fermer" title="{% t "engine/templates/engine/geolocalisation.html:cartes:masquer_carte" %}" aria-label="{% t "engine/templates/engine/geolocalisation.html:cartes:masquer_carte" %}">✕</button>
+      </header>
+      <div class="geo-carte-corps">
+    <div class="geo-bloc">
+    <div id="geo-resume" class="geo-note">{% t "engine/templates/engine/geolocalisation.html:19:43" %}</div>
+    <div id="geo-objets"></div>
+  </div>
+      </div>
+    </section>
+    <section class="geo-carte" id="gc-alertes" data-carte="alertes" data-groupe="info" data-defaut="ouverte" hidden>
+      <header class="geo-carte-tete">
+        <span class="geo-carte-titre">{% t "engine/templates/engine/geolocalisation.html:258:28" %}</span>
+        <button type="button" class="gc-btn" data-gc="couleur" title="{% t "engine/templates/engine/geolocalisation.html:cartes:couleur_carte" %}" aria-label="{% t "engine/templates/engine/geolocalisation.html:cartes:couleur_carte" %}">●</button>
+        <button type="button" class="gc-btn" data-gc="replier" title="{% t "engine/templates/engine/geolocalisation.html:cartes:replier_carte" %}" aria-label="{% t "engine/templates/engine/geolocalisation.html:cartes:replier_carte" %}">–</button>
+        <button type="button" class="gc-btn" data-gc="fermer" title="{% t "engine/templates/engine/geolocalisation.html:cartes:masquer_carte" %}" aria-label="{% t "engine/templates/engine/geolocalisation.html:cartes:masquer_carte" %}">✕</button>
+      </header>
+      <div class="geo-carte-corps">
+    <div class="geo-bloc"><div id="geo-alertes" class="geo-note">—</div></div>
+      </div>
+    </section>
+    <section class="geo-carte" id="gc-geostat" data-carte="geostat" data-groupe="info" hidden>
+      <header class="geo-carte-tete">
+        <span class="geo-carte-titre">{% t "engine/templates/engine/geolocalisation.html:261:28" %}</span>
+        <button type="button" class="gc-btn" data-gc="couleur" title="{% t "engine/templates/engine/geolocalisation.html:cartes:couleur_carte" %}" aria-label="{% t "engine/templates/engine/geolocalisation.html:cartes:couleur_carte" %}">●</button>
+        <button type="button" class="gc-btn" data-gc="replier" title="{% t "engine/templates/engine/geolocalisation.html:cartes:replier_carte" %}" aria-label="{% t "engine/templates/engine/geolocalisation.html:cartes:replier_carte" %}">–</button>
+        <button type="button" class="gc-btn" data-gc="fermer" title="{% t "engine/templates/engine/geolocalisation.html:cartes:masquer_carte" %}" aria-label="{% t "engine/templates/engine/geolocalisation.html:cartes:masquer_carte" %}">✕</button>
+      </header>
+      <div class="geo-carte-corps">
+    <div class="geo-bloc"><div id="geo-stats" class="geo-note">—</div></div>
+      </div>
+    </section>
+    </div>
+    <div id="ot-curseur" style="position:absolute;left:12px;bottom:40px;font-size:11px;color:var(--texte-nav,#9fb4c2);pointer-events:none"></div>
+    <div id="geo-barre-lecture">
+      <button id="lec-play" aria-label="{% t 'engine/templates/engine/geolocalisation.html:293:41' %}">▶</button>
+      <input type="range" id="lec-curseur" min="0" max="1" step="0.01" value="0">
+      <span id="lec-temps">—</span>
+      <span id="lec-plage" class="geo-note" style="flex-basis:100%"></span>
+      <select id="lec-vitesse" aria-label="{% t 'engine/templates/engine/geolocalisation.html:297:44' %}">
+        <option value="1">{% t "engine/templates/engine/geolocalisation.html:298:27" %}</option><option value="3" selected>{% t "engine/templates/engine/geolocalisation.html:298:70" %}</option><option value="8">{% t "engine/templates/engine/geolocalisation.html:298:104" %}</option><option value="20">{% t "engine/templates/engine/geolocalisation.html:298:139" %}</option><option value="60">{% t "engine/templates/engine/geolocalisation.html:298:175" %}</option>
+      </select>
+    </div>
+  </div>
+</div>
+</div>
+
+<button id="btn-quitter-plein-ecran" title="{% t 'engine/templates/engine/geolocalisation.html:305:45' %}">✕</button>
+<div id="toast"></div>
+{% i18n_js %}
+<script>
+window.GEO = {tableId: {{ table.id }}, fluxMax: {{ flux_max|default:5242880 }}, entrepriseId: {{ entreprise.id }}, lectureSeule: {{ lecture_seule|yesno:"true,false" }}};
+</script>
+<script src="{% static 'engine/js/plein_ecran.js' %}"></script>
+<script src="{% static 'engine/js/selecteur_couleur.js' %}"></script>
+<script src="{% static 'engine/js/gy_couleur.js' %}"></script>
+<script src="{% static 'engine/js/filtre_table_liste.js' %}"></script>
+<script src="{% static 'engine/js/geolocalisation.js' %}"></script>
+<script src="{% static 'engine/js/notifications_navigateur.js' %}"></script>
+<script src="{% static 'engine/js/geo_outils.js' %}"></script>
+<script src="{% static 'engine/js/logistique.js' %}"></script>
+<script src="{% static 'engine/js/geo_livreur.js' %}"></script>
+<script src="{% static 'engine/js/annotations_carte.js' %}"></script>
+<script src="{% static 'engine/js/geo_calques.js' %}"></script>
+<script src="{% static 'engine/js/geo_cartes.js' %}"></script>
+<script src="{% static 'engine/js/sidebar_toggle.js' %}"></script>
+<script src="{% static 'engine/js/selecteur_table_page.js' %}" defer></script>
+</body>
+</html>

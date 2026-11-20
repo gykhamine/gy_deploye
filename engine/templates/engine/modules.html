@@ -1,0 +1,35 @@
+{% load i18n_extras %}{% load static %}<!DOCTYPE html>
+<html lang="{{ langue_html|default:'fr' }}">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>{% t "engine/templates/engine/modules.html:titre" %}</title>
+<link rel="stylesheet" href="{% static 'engine/css/app.css' %}"><link rel="stylesheet" href="{% url 'engine:marque_css' %}"><script src="{% static 'engine/js/marque.js' %}" defer></script><script src="{% static 'engine/js/gestes_tactiles.js' %}" defer></script>
+<script src="{% static 'engine/js/dialogues.js' %}"></script>
+</head>
+<body class="page-modules page-decideur">
+<div class="header">{% include "engine/_marque_entete.html" %}
+  {% if client %}<a class="btn" href="{% url 'engine:espace_client' %}">{% t "engine/templates/engine/modules.html:retour_client" %}</a>{% endif %}
+</div>
+<div class="layout">
+  <p class="aide">{% t "engine/templates/engine/modules.html:intro" %}</p>
+  {% for g in groupes %}
+  <section class="mod-groupe">
+    <h2>{{ g.titre }}</h2>
+    <div class="mod-grille">
+      {% for m in g.modules %}
+      <a class="mod-carte" href="{{ m.url }}" id="module-{{ m.id }}">
+        <span class="mod-icone" aria-hidden="true">{{ m.icone }}</span>
+        <span class="mod-titre">{{ m.titre }}</span>
+        <span class="mod-desc">{{ m.description }}</span>
+      </a>
+      {% endfor %}
+    </div>
+  </section>
+  {% empty %}
+  <p class="aide">{% t "engine/templates/engine/modules.html:vide" %}</p>
+  {% endfor %}
+</div>
+{% i18n_js %}
+</body>
+</html>

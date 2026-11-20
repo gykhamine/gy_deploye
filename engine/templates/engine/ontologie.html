@@ -1,0 +1,2614 @@
+{% load i18n_extras %}
+<!DOCTYPE html>
+{% load static %}
+<html lang="{{ langue_html|default:'fr' }}">
+<head>
+<link rel="stylesheet" href="{% static 'engine/css/app.css' %}"><link rel="stylesheet" href="{% url 'engine:marque_css' %}"><script src="{% static 'engine/js/marque.js' %}" defer></script><script src="{% static 'engine/js/gestes_tactiles.js' %}" defer></script>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>{% t "engine/templates/engine/ontologie.html:titre_page" %} — {{ entreprise.nom }}</title>
+<style>
+/* Utilitaires flottants de la toile : rangés dans deux « docks » (haut et bas) qui les disposent à la suite, à la ligne si besoin ;
+   plus aucun n'est posé à une position fixe qui recouvrirait un autre. */
+.dock{position:absolute;left:10px;right:10px;z-index:46;display:flex;flex-direction:row;gap:6px;pointer-events:none;box-sizing:border-box;max-height:48%;overflow:visible}
+.dock>*{pointer-events:auto;position:static !important;left:auto !important;top:auto !important;right:auto !important;bottom:auto !important;margin:0 !important;transform:none !important;max-width:100%;box-sizing:border-box}
+#dock-haut{top:10px;flex-wrap:wrap;align-items:flex-start;align-content:flex-start}
+#dock-bas{bottom:10px;flex-wrap:wrap-reverse;align-items:flex-end;align-content:flex-end}
+.dock>.dock-panneau{flex:0 0 100% !important;width:auto !important;max-width:min(340px,100%) !important;max-height:38vh !important;overflow:auto}
+#panneau-explorer.masque{display:none !important}
+#panneau-explorer{display:none;position:absolute;top:50px;right:10px;width:340px;max-height:calc(100vh - 70px);
+  overflow-y:auto;background:var(--panel);border:1px solid var(--border);border-radius:8px;padding:12px;z-index:200;
+  box-shadow:0 4px 24px color-mix(in srgb,var(--ombre,#000000) 50%,transparent);max-width:calc(100vw - 20px)}
+.explo-onglets{display:flex;flex-wrap:wrap;gap:4px;margin-bottom:10px}
+.explo-ong{flex:1 1 auto;padding:4px 6px;font-size:11px;background:transparent;
+  border:1px solid var(--border);color:var(--muted);border-radius:4px;cursor:pointer;min-width:60px}
+.explo-ong.actif{background:var(--accent);color:var(--texte-sombre,#fff);border-color:var(--accent)}
+.explo-section label{display:block;font-size:11px;color:var(--muted);margin:6px 0 2px}
+.explo-hint{font-size:10px;opacity:.6;font-style:italic}
+.explo-section select[multiple]{width:100%;height:80px;background:var(--fond-noir,#000);color:var(--text);
+  border:1px solid var(--border);border-radius:4px;font-size:11px}
+#explo-resultats{margin-top:10px;font-size:12px}
+.explo-res-titre{font-size:11px;font-weight:700;color:var(--accent);margin:8px 0 4px;
+  border-bottom:1px solid var(--border);padding-bottom:3px}
+.explo-res-noeud,.explo-res-arete{display:flex;align-items:center;gap:5px;padding:3px 0;
+  border-bottom:1px solid color-mix(in srgb,var(--voile-clair,#ffffff) 5%,transparent);cursor:pointer}
+.explo-res-noeud:hover,.explo-res-arete:hover{background:color-mix(in srgb,var(--voile-clair,#ffffff) 4%,transparent)}
+.explo-pastille{width:10px;height:10px;border-radius:50%;flex-shrink:0}
+.explo-res-label{flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.explo-res-type{font-size:10px;color:var(--muted);flex-shrink:0}
+.explo-dist{font-size:10px;color:var(--texte-info,#7dd3fc);margin-left:4px;flex-shrink:0}
+.explo-stat-ligne{display:flex;justify-content:space-between;padding:2px 0;font-size:12px;
+  border-bottom:1px solid color-mix(in srgb,var(--voile-clair,#ffffff) 4%,transparent)}
+.explo-stat-cle{color:var(--muted)}
+.explo-bar-wrap{display:flex;align-items:center;gap:4px;margin:2px 0}
+.explo-bar{height:8px;background:var(--accent);border-radius:2px;min-width:2px}
+.explo-bar-label{font-size:10px;color:var(--muted);min-width:70px;overflow:hidden;
+  text-overflow:ellipsis;white-space:nowrap}
+.explo-bar-val{font-size:10px;color:var(--text)}
+.explo-chemin-item{background:color-mix(in srgb,var(--voile-clair,#ffffff) 4%,transparent);border-radius:4px;padding:5px;margin-bottom:5px}
+.explo-chemin-noeuds{display:flex;flex-wrap:wrap;gap:3px;margin-bottom:4px}
+.explo-cn{font-size:10px;background:color-mix(in srgb,var(--voile-clair,#ffffff) 10%,transparent);border-radius:3px;padding:1px 4px;cursor:pointer}
+</style>
+<script src="{% static 'engine/js/dialogues.js' %}"></script>
+</head>
+<body class="page-ontologie{% if lecture_seule %} lecture-seule{% endif %}">
+
+<div id="sidebar-overlay"></div>
+<div id="app">
+
+<div id="sidebar">
+  <div id="marque"><img class="logo-gy" src="{% static 'engine/img/logo_agent_gy.png' %}" alt="{% t 'engine/templates/engine/ontologie.html:53:96' %}"> {% t "engine/templates/engine/ontologie.html:53:107" %}</div>
+  <div style="padding:10px 10px 4px;font-size:11px;color:var(--muted);text-transform:uppercase;letter-spacing:.06em">{% t "engine/templates/engine/ontologie.html:54:118" %}</div>
+
+  <div style="padding:6px 10px">
+    {% if pages_ontologie|length > 1 or pages_ontologie %}
+    <select id="sel-page-ontologie" title="{% t 'engine/templates/engine/ontologie.html:58:44' %}" onchange="if(this.value){location.href='?page='+this.value}" style="width:100%;margin-bottom:6px">
+      {% if not lecture_seule %}<option value="principal" {% if not page_courante_id %}selected{% endif %}>{% t "engine/templates/engine/ontologie.html:59:108" %}</option>{% endif %}
+      {% for p in pages_ontologie %}
+      <option value="{{ p.id }}" {% if p.id == page_courante_id %}selected{% endif %}>{{ p.nom }}</option>
+      {% endfor %}
+    </select>
+    {% endif %}
+    <button class="edition-seule" style="width:100%;margin-bottom:4px" id="btn-nouvelle-page" title="{% t 'engine/templates/engine/ontologie.html:64:102' %}">{% t "engine/templates/engine/ontologie.html:64:139" %}</button>
+    {% if page_courante_id %}
+    <button class="edition-seule" style="width:100%;margin-bottom:4px;background:transparent;border:1px solid var(--danger);color:var(--danger);font-size:12px" id="btn-supprimer-page" title="{% t 'engine/templates/engine/ontologie.html:supprimer_page:titre' %}">{% t "engine/templates/engine/ontologie.html:supprimer_page:libelle" %}</button>
+    {% endif %}
+  </div>
+
+  <div id="config-inline" class="edition-seule">
+    <div style="border-top:1px solid var(--border);padding:8px 10px 4px;font-size:11px;color:var(--muted);text-transform:uppercase;letter-spacing:.06em">{% t "engine/templates/engine/ontologie.html:sb_creer_page" %}</div>
+    <div style="padding:6px 10px">
+      <input type="text" id="inp-page-nom" placeholder="{% t 'engine/templates/engine/ontologie.html:134:53' %}" style="width:100%;box-sizing:border-box;margin-bottom:4px">
+      <select id="sel-page-mode" style="width:100%;margin-bottom:4px"><option value="auto">{% t "engine/templates/engine/ontologie.html:135:51" %}</option><option value="manuel">{% t "engine/templates/engine/ontologie.html:135:94" %}</option></select>
+      <div id="tables-manuel-liste" style="display:none;margin-bottom:4px"></div>
+      <button class="petit" id="btn-page-creer" style="width:100%;margin-bottom:4px">{% t "engine/templates/engine/ontologie.html:137:45" %}</button>
+    </div>
+    <div style="border-top:1px solid var(--border);padding:8px 10px 4px;font-size:11px;color:var(--muted);text-transform:uppercase;letter-spacing:.06em">{% t "engine/templates/engine/ontologie.html:sb_ajouter_table" %}</div>
+    <div style="padding:6px 10px">
+      <select id="sel-table-ajouter" style="width:100%;margin-bottom:4px"><option value="">{% t "engine/templates/engine/ontologie.html:139:75" %}</option></select>
+      <button class="petit" id="btn-table-ajouter-go" style="width:100%;margin-bottom:4px">{% t "engine/templates/engine/ontologie.html:140:51" %}</button>
+    </div>
+    <div style="border-top:1px solid var(--border);padding:8px 10px 4px;font-size:11px;color:var(--muted);text-transform:uppercase;letter-spacing:.06em">{% t "engine/templates/engine/ontologie.html:142:52" %}</div>
+    <div style="padding:6px 10px">
+      <input type="text" id="inp-nom-relation" value="lien" style="width:100%;box-sizing:border-box;margin-bottom:4px">
+    </div>
+  </div>
+
+  <div style="border-top:1px solid var(--border);padding:8px 10px 4px;font-size:11px;color:var(--muted);text-transform:uppercase;letter-spacing:.06em">{% t "engine/templates/engine/ontologie.html:67:152" %}</div>
+  <div style="padding:6px 10px">
+    <button style="width:100%;margin-bottom:4px;background:transparent;border:1px solid var(--border);color:var(--muted);font-size:12px" id="btn-recalculer" title="{% t 'engine/templates/engine/ontologie.html:69:165' %}">{% t "engine/templates/engine/ontologie.html:69:202" %}</button>
+    <button style="width:100%;margin-bottom:4px;background:transparent;border:1px solid var(--border);color:var(--muted);font-size:12px" id="btn-centrer" title="{% t 'engine/templates/engine/ontologie.html:70:162' %}">{% t "engine/templates/engine/ontologie.html:70:184" %}</button>
+    <button style="width:100%;margin-bottom:4px;background:transparent;border:1px solid var(--border);color:var(--muted);font-size:12px actif" id="btn-explo-auto" title="{% t 'engine/templates/engine/ontologie.html:71:171' %}">{% t "engine/templates/engine/ontologie.html:71:311" %}</button>
+    <div style="display:flex;gap:4px;margin-bottom:4px">
+      <button style="flex:1;background:transparent;border:1px solid var(--border);color:var(--muted);font-size:12px" id="btn-zoom-plus">🔍+</button>
+      <button style="flex:1;background:transparent;border:1px solid var(--border);color:var(--muted);font-size:12px" id="btn-zoom-moins">🔍−</button>
+    </div>
+    <button style="width:100%;margin-bottom:4px;background:transparent;border:1px solid var(--border);color:var(--muted);font-size:12px actif" id="btn-etiquettes" title="{% t 'engine/templates/engine/ontologie.html:76:171' %}">{% t "engine/templates/engine/ontologie.html:76:204" %}</button>
+    <div style="display:flex;gap:4px;margin-bottom:4px"><input id="recherche-noeud" placeholder="{% t 'engine/templates/engine/ontologie.html:77:46' %}" style="flex:1;min-width:0;box-sizing:border-box"><button type="button" id="btn-recherche-noeud" style="flex:none;padding:0 8px"></button></div>
+    <select id="sel-filtre" style="width:100%;margin-bottom:4px">
+      <option value="">{% t "engine/templates/engine/ontologie.html:79:24" %}</option>
+    </select>
+  </div>
+
+  <div style="border-top:1px solid var(--border);padding:8px 10px 4px;font-size:11px;color:var(--muted);text-transform:uppercase;letter-spacing:.06em">{% t "engine/templates/engine/ontologie.html:83:152" %}</div>
+  <div style="padding:6px 10px">
+    <button style="width:100%;margin-bottom:4px;background:transparent;border:1px solid var(--border);color:var(--muted);font-size:12px" id="btn-config-aretes" title="{% t 'engine/templates/engine/ontologie.html:85:168' %}">{% t "engine/templates/engine/ontologie.html:85:212" %}</button>
+    <button style="width:100%;margin-bottom:4px;background:transparent;border:1px solid var(--border);color:var(--muted);font-size:12px" id="btn-explorer" title="{% t 'engine/templates/engine/ontologie.html:86:163' %}">{% t "engine/templates/engine/ontologie.html:86:207" %}</button>
+    <button class="edition-seule" style="width:100%;margin-bottom:4px;background:transparent;border:1px solid var(--border);color:var(--muted);font-size:12px" id="btn-couches" title="{% t 'engine/templates/engine/ontologie.html:87:184' %}">{% t "engine/templates/engine/ontologie.html:87:233" %}</button>
+    {% if not lecture_seule %}
+    <button style="width:100%;margin-bottom:4px;background:transparent;border:1px solid var(--border);color:var(--muted);font-size:12px" id="btn-decrire" title="{% t 'engine/templates/engine/ontologie.html:89:162' %}">{% t "engine/templates/engine/ontologie.html:89:234" %}</button>
+    <button style="width:100%;margin-bottom:4px;background:transparent;border:1px solid var(--border);color:var(--muted);font-size:12px" id="btn-colorier" title="{% t 'engine/templates/engine/ontologie.html:88:163' %}">{% t "engine/templates/engine/ontologie.html:88:281" %}</button>
+    {% endif %}
+    {% if page_courante_mode == "manuel" and not lecture_seule %}
+    <button style="width:100%;margin-bottom:4px;background:transparent;border:1px solid var(--border);color:var(--muted);font-size:12px" id="btn-manuel-relier" title="{% t 'engine/templates/engine/ontologie.html:92:168' %}">{% t "engine/templates/engine/ontologie.html:92:221" %}</button>
+    {% endif %}
+    <button style="width:100%;margin-bottom:4px;background:transparent;border:1px solid var(--border);color:var(--muted);font-size:12px" id="btn-export" title="{% t 'engine/templates/engine/ontologie.html:94:161' %}">{% t "engine/templates/engine/ontologie.html:94:189" %}</button>
+    <button style="width:100%;margin-bottom:4px;background:transparent;border:1px solid var(--border);color:var(--muted);font-size:12px" id="btn-plein-ecran" title="{% t 'engine/templates/engine/ontologie.html:95:166' %}">{% t "engine/templates/engine/ontologie.html:95:242" %}</button>
+    <label class="edition-seule" style="display:flex;align-items:center;gap:5px;cursor:pointer;font-size:12px;margin-top:4px" title="{% t 'engine/templates/engine/ontologie.html:96:134' %}">
+      <input type="checkbox" id="chk-page-visible-client" style="cursor:pointer"{% if not page_courante_id %} disabled{% endif %}> {% t "engine/templates/engine/ontologie.html:97:83" %}
+    </label>
+    {% if lecture_seule %}
+    <span style="display:block;margin-top:6px;font-size:11px;opacity:.7">{% t "engine/templates/engine/ontologie.html:100:74" %}</span>
+    {% endif %}
+  </div>
+
+  <div style="border-top:1px solid var(--border);padding:8px 10px;font-size:11px;color:var(--muted)">
+    <div class="metriques" style="display:flex;flex-direction:column;gap:3px">
+      <span><b id="m-noeuds"></b> {% t "engine/templates/engine/ontologie.html:106:35" %}</span>
+      <span><b id="m-aretes"></b> {% t "engine/templates/engine/ontologie.html:lbl_relations" %}</span>
+      <span>{% t "engine/templates/engine/ontologie.html:108:13" %} <b id="m-densite"></b></span>
+      <span>{% t "engine/templates/engine/ontologie.html:109:13" %} <b id="m-diametre"></b></span>
+      <span>{% t "engine/templates/engine/ontologie.html:110:13" %} <b id="m-communautes"></b></span>
+    </div>
+  </div>
+
+  {% include "engine/_retour_table.html" %}
+</div>
+
+<div id="principal">
+  <div id="entete">
+    <div class="entete-rangee-titre">
+      <div class="entete-gauche">
+        <button id="btn-toggle-sidebar" aria-label="{% t 'engine/templates/engine/ontologie.html:124:53' %}">☰</button>
+      </div>
+    </div>
+  </div>
+
+<button id="btn-quitter-plein-ecran" title="{% t 'engine/templates/engine/ontologie.html:148:45' %}">✕</button>
+<div id="scene">
+  <canvas id="cnv"></canvas>
+  <div id="infobulle"></div>
+  <div id="dock-haut" class="dock"></div>
+  <div id="dock-bas" class="dock"></div>
+  <div id="indicateur-explo" style="display:none;position:absolute;left:12px;bottom:12px;background:color-mix(in srgb,var(--fond-info,#0f172a) 85%,transparent);color:var(--texte-info,#7dd3fc);border:1px solid var(--bordure-info,#1e3a5f);border-radius:6px;padding:5px 10px;font-size:11px;pointer-events:none;z-index:50">{% t "engine/templates/engine/ontologie.html:152:241" %}</div>
+  <div id="modal-description-onto" class="modal-fond" style="display:none;position:fixed;inset:0;background:color-mix(in srgb,var(--voile,#000000) 75%,transparent);align-items:center;justify-content:center;z-index:2000;padding:16px">
+    <div class="modal" style="background:var(--panel);border:1px solid var(--border);border-radius:10px;padding:16px;width:400px;max-width:100%">
+      <h3 id="md-onto-titre" style="font-size:13px;font-weight:600;color:var(--accent);margin-bottom:8px">{% t "engine/templates/engine/ontologie.html:155:107" %}</h3>
+      <textarea id="md-onto-texte" rows="6" style="width:100%;font:inherit;background:var(--fond-noir,#000);color:var(--text);border:1px solid var(--border);border-radius:6px;padding:8px;resize:vertical"></textarea>
+      <div style="display:flex;justify-content:flex-end;gap:8px;margin-top:10px">
+        <button id="md-onto-annuler">{% t "engine/templates/engine/ontologie.html:158:38" %}</button>
+        <button class="principal" id="md-onto-enregistrer">{% t "engine/templates/engine/ontologie.html:159:60" %}</button>
+      </div>
+    </div>
+  </div>
+  <div id="panneau-explorer">
+    <h2>{% t "engine/templates/engine/ontologie.html:164:9" %}</h2>
+
+    <div class="explo-onglets" id="explo-onglets">
+      <button class="explo-ong actif" data-ong="recherche">{% t "engine/templates/engine/ontologie.html:167:60" %}</button>
+      <button class="explo-ong" data-ong="nosql">{% t "engine/templates/engine/ontologie.html:168:50" %}</button>
+      <button class="explo-ong" data-ong="voisins">{% t "engine/templates/engine/ontologie.html:169:52" %}</button>
+      <button class="explo-ong" data-ong="chemins">{% t "engine/templates/engine/ontologie.html:170:52" %}</button>
+      <button class="explo-ong" data-ong="recursion">{% t "engine/templates/engine/ontologie.html:171:54" %}</button>
+      <button class="explo-ong" data-ong="stats">{% t "engine/templates/engine/ontologie.html:172:50" %}</button>
+      <button class="explo-ong" data-ong="fiche">{% t "engine/templates/engine/ontologie.html:173:50" %}</button>
+      <button class="explo-ong" data-ong="globales">{% t "engine/templates/engine/ontologie.html:174:53" %}</button>
+    </div>
+
+    <!-- ── Recherche ── -->
+    <div class="explo-section" id="explo-recherche">
+      <label>{% t "engine/templates/engine/ontologie.html:179:14" %}</label>
+      <input type="text" id="explo-rech-texte" placeholder="{% t 'engine/templates/engine/ontologie.html:180:61' %}">
+      <div class="ligne-2col">
+        <div>
+          <label>{% t "engine/templates/engine/ontologie.html:183:18" %}</label>
+          <select id="explo-rech-types" multiple size="4"></select>
+        </div>
+        <div>
+          <label>{% t "engine/templates/engine/ontologie.html:187:18" %}</label>
+          <select id="explo-rech-relations" multiple size="4"></select>
+        </div>
+      </div>
+      <label>{% t "engine/templates/engine/ontologie.html:191:14" %}</label>
+      <select id="explo-rech-cible">
+        <option value="tout">{% t "engine/templates/engine/ontologie.html:193:30" %}</option>
+        <option value="noeuds">{% t "engine/templates/engine/ontologie.html:194:32" %}</option>
+        <option value="aretes">{% t "engine/templates/engine/ontologie.html:195:32" %}</option>
+      </select>
+      <div class="ligne-2col">
+        <div>
+          <label>{% t "engine/templates/engine/ontologie.html:199:18" %}</label>
+          <input type="text" id="explo-rech-attr" placeholder="{% t 'engine/templates/engine/ontologie.html:200:64' %}">
+        </div>
+        <div>
+          <label>{% t "engine/templates/engine/ontologie.html:203:18" %}</label>
+          <input type="text" id="explo-rech-val" placeholder="{% t 'engine/templates/engine/ontologie.html:204:63' %}">
+        </div>
+      </div>
+      <div class="ligne-2col">
+        <div>
+          <label>{% t "engine/templates/engine/ontologie.html:209:18" %}</label>
+          <input type="number" id="explo-rech-min" placeholder="0">
+        </div>
+        <div>
+          <label>{% t "engine/templates/engine/ontologie.html:213:18" %}</label>
+          <input type="number" id="explo-rech-max" placeholder="100">
+        </div>
+      </div>
+      <button class="petit principal" id="btn-explo-rechercher" style="margin-top:8px;width:100%">{% t "engine/templates/engine/ontologie.html:217:99" %}</button>
+    </div>
+
+    <!-- ── Recherche NoSQL ── -->
+    <!-- Complète l'onglet "Recherche" : celui-ci ne porte que sur le graphe
+         déjà en mémoire (label/slug/attributs des nœuds), qui ne contient
+         qu'un échantillon de lignes récentes SANS leur JSON complet. Cet
+         onglet interroge directement Enregistrement.valeurs_json en base
+         (voir api_ontologie_recherche_nosql) — utile pour retrouver une
+         ligne NoSQL par son contenu réel, même hors échantillon. -->
+    <div class="explo-section" id="explo-nosql" style="display:none">
+      <label>{% t "engine/templates/engine/ontologie.html:228:14" %} <span class="explo-hint">{% t "engine/templates/engine/ontologie.html:228:51" %}</span></label>
+      <input type="text" id="explo-nosql-texte" placeholder="{% t 'engine/templates/engine/ontologie.html:229:62' %}">
+      <div class="ligne-2col">
+        <div>
+          <label>{% t "engine/templates/engine/ontologie.html:232:18" %} <span class="explo-hint">{% t "engine/templates/engine/ontologie.html:232:55" %}</span></label>
+          <input type="text" id="explo-nosql-champ" placeholder="{% t 'engine/templates/engine/ontologie.html:233:66' %}">
+        </div>
+        <div>
+          <label>{% t "engine/templates/engine/ontologie.html:236:18" %}</label>
+          <input type="text" id="explo-nosql-valeur" placeholder="{% t 'engine/templates/engine/ontologie.html:237:67' %}">
+        </div>
+      </div>
+      <label>{% t "engine/templates/engine/ontologie.html:240:14" %} <span class="explo-hint">{% t "engine/templates/engine/ontologie.html:240:51" %}</span></label>
+      <input type="text" id="explo-nosql-table" placeholder="{% t 'engine/templates/engine/ontologie.html:241:62' %}">
+      <button class="petit principal" id="btn-explo-nosql" style="margin-top:8px;width:100%">{% t "engine/templates/engine/ontologie.html:242:94" %}</button>
+    </div>
+
+    <!-- ── Voisins ── -->
+    <div class="explo-section" id="explo-voisins" style="display:none">
+      <label>{% t "engine/templates/engine/ontologie.html:247:14" %} <span class="explo-hint">{% t "engine/templates/engine/ontologie.html:247:52" %}</span></label>
+      <input type="text" id="explo-vois-noeud" placeholder="{% t 'engine/templates/engine/ontologie.html:248:61' %}" readonly>
+      <div class="ligne-2col">
+        <div>
+          <label>{% t "engine/templates/engine/ontologie.html:251:18" %}</label>
+          <input type="number" id="explo-vois-prof" value="1" min="1" max="10">
+        </div>
+        <div>
+          <label>{% t "engine/templates/engine/ontologie.html:255:18" %}</label>
+          <select id="explo-vois-dir">
+            <option value="tout">{% t "engine/templates/engine/ontologie.html:257:34" %}</option>
+            <option value="sortant">{% t "engine/templates/engine/ontologie.html:258:37" %}</option>
+            <option value="entrant">{% t "engine/templates/engine/ontologie.html:259:37" %}</option>
+          </select>
+        </div>
+      </div>
+      <div class="ligne-2col">
+        <div>
+          <label>{% t "engine/templates/engine/ontologie.html:265:18" %}</label>
+          <input type="number" id="explo-vois-degmin" placeholder="—">
+        </div>
+        <div>
+          <label>{% t "engine/templates/engine/ontologie.html:269:18" %}</label>
+          <input type="number" id="explo-vois-degmax" placeholder="—">
+        </div>
+      </div>
+      <label>{% t "engine/templates/engine/ontologie.html:273:14" %}</label>
+      <select id="explo-vois-tri">
+        <option value="label">{% t "engine/templates/engine/ontologie.html:275:31" %}</option>
+        <option value="type">{% t "engine/templates/engine/ontologie.html:276:30" %}</option>
+        <option value="degre">{% t "engine/templates/engine/ontologie.html:277:31" %}</option>
+      </select>
+      <button class="petit principal" id="btn-explo-voisins" style="margin-top:8px;width:100%">{% t "engine/templates/engine/ontologie.html:279:96" %}</button>
+    </div>
+
+    <!-- ── Chemins ── -->
+    <div class="explo-section" id="explo-chemins" style="display:none">
+      <label>{% t "engine/templates/engine/ontologie.html:284:14" %} <span class="explo-hint">{% t "engine/templates/engine/ontologie.html:284:46" %}</span></label>
+      <input type="text" id="explo-ch-source" placeholder="{% t 'engine/templates/engine/ontologie.html:285:60' %}" readonly>
+      <label>{% t "engine/templates/engine/ontologie.html:286:14" %} <span class="explo-hint">{% t "engine/templates/engine/ontologie.html:286:51" %}</span></label>
+      <input type="text" id="explo-ch-cible" placeholder="{% t 'engine/templates/engine/ontologie.html:287:59' %}" readonly>
+      <div class="ligne-2col">
+        <div>
+          <label>{% t "engine/templates/engine/ontologie.html:290:18" %}</label>
+          <input type="number" id="explo-ch-prof" value="5" min="1" max="10">
+        </div>
+        <div>
+          <label>{% t "engine/templates/engine/ontologie.html:294:18" %}</label>
+          <input type="number" id="explo-ch-maxch" value="5" min="1" max="20">
+        </div>
+      </div>
+      <button class="petit principal" id="btn-explo-chemins" style="margin-top:8px;width:100%">{% t "engine/templates/engine/ontologie.html:298:96" %}</button>
+    </div>
+
+    <!-- ── Récursion ── -->
+    <div class="explo-section" id="explo-recursion" style="display:none">
+      <label>{% t "engine/templates/engine/ontologie.html:303:14" %} <span class="explo-hint">{% t "engine/templates/engine/ontologie.html:303:46" %}</span></label>
+      <input type="text" id="explo-rec-noeud" placeholder="{% t 'engine/templates/engine/ontologie.html:304:60' %}" readonly>
+      <div class="ligne-2col">
+        <div>
+          <label>{% t "engine/templates/engine/ontologie.html:307:18" %}</label>
+          <input type="number" id="explo-rec-prof" value="3" min="1" max="10">
+        </div>
+        <div>
+          <label>{% t "engine/templates/engine/ontologie.html:311:18" %}</label>
+          <select id="explo-rec-dir">
+            <option value="tout">{% t "engine/templates/engine/ontologie.html:313:34" %}</option>
+            <option value="sortant">{% t "engine/templates/engine/ontologie.html:314:37" %}</option>
+            <option value="entrant">{% t "engine/templates/engine/ontologie.html:315:37" %}</option>
+          </select>
+        </div>
+      </div>
+      <button class="petit principal" id="btn-explo-recursion" style="margin-top:8px;width:100%">{% t "engine/templates/engine/ontologie.html:319:98" %}</button>
+    </div>
+
+    <!-- ── Stats nœud ── -->
+    <div class="explo-section" id="explo-stats" style="display:none">
+      <label>{% t "engine/templates/engine/ontologie.html:324:14" %} <span class="explo-hint">{% t "engine/templates/engine/ontologie.html:324:44" %}</span></label>
+      <input type="text" id="explo-st-noeud" placeholder="{% t 'engine/templates/engine/ontologie.html:325:59' %}" readonly>
+      <div class="ligne-2col">
+        <div>
+          <label>{% t "engine/templates/engine/ontologie.html:328:18" %}</label>
+          <input type="number" id="explo-st-prof" value="2" min="1" max="6">
+        </div>
+        <div style="display:flex;align-items:flex-end">
+          <button class="petit principal" id="btn-explo-stats" style="width:100%">{% t "engine/templates/engine/ontologie.html:332:83" %}</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- ── Fiche objet ── -->
+    <!-- Phase 6 du cahier des charges Ontology ("Applications object-centric") :
+         un seul appel (api/ontologie/fiche/) au lieu d'assembler séparément
+         propriétés + relations + actions + documents pour un objet. -->
+    <div class="explo-section" id="explo-fiche" style="display:none">
+      <label>{% t "engine/templates/engine/ontologie.html:342:14" %} <span class="explo-hint">{% t "engine/templates/engine/ontologie.html:342:44" %}</span></label>
+      <input type="text" id="explo-fiche-noeud" placeholder="{% t 'engine/templates/engine/ontologie.html:343:62' %}" readonly>
+      <button class="petit principal" id="btn-explo-fiche" style="margin-top:8px;width:100%">{% t "engine/templates/engine/ontologie.html:344:94" %}</button>
+    </div>
+
+    <!-- ── Stats globales ── -->
+    <div class="explo-section" id="explo-globales" style="display:none">
+      <p style="font-size:12px;color:var(--muted);margin:0 0 8px">{% t "engine/templates/engine/ontologie.html:349:67" %}</p>
+      <button class="petit principal" id="btn-explo-globales" style="width:100%">{% t "engine/templates/engine/ontologie.html:350:82" %}</button>
+    </div>
+
+    <!-- ── Zone de résultats ── -->
+    <div id="explo-resultats"></div>
+  </div>
+
+  <div id="panneau-aretes">
+    <div id="section-relations"><h2>{% t "engine/templates/engine/ontologie.html:357:32" %}</h2><div id="liste-aretes"></div></div>
+    <div id="section-legende"><h2>{% t "engine/templates/engine/ontologie.html:legende-titre" %}</h2><div class="legende" id="legende"></div></div>
+  </div>
+  <div id="panneau-couches">
+    <h2>{% t "engine/templates/engine/ontologie.html:359:9" %}</h2>
+    <div class="aide">
+      {% t "engine/templates/engine/ontologie.html:360:7" %} :<br><br>
+      <code>{% t "engine/templates/engine/ontologie.html:364:13" %}<br>
+      &nbsp;&nbsp;graphe.add_node("mon_id", type="mon_type", label="…",<br>
+      &nbsp;&nbsp;&nbsp;&nbsp;couleur="#e74c3c", taille=18)<br>
+      &nbsp;&nbsp;graphe.add_edge("table:1", "mon_id",<br>
+      &nbsp;&nbsp;&nbsp;&nbsp;relation="ma_relation", couleur="#f59e0b")<br>
+      &nbsp;&nbsp;return graphe</code><br><br>
+      {% t "engine/templates/engine/ontologie.html:369:7" %} <code>{% t "engine/templates/engine/ontologie.html:370:61" %}</code>{% t "engine/templates/engine/ontologie.html:369:123" %}
+    </div>
+    <label>{% t "engine/templates/engine/ontologie.html:375:12" %}</label>
+    <input type="text" id="couche-nom" placeholder="{% t 'engine/templates/engine/ontologie.html:376:53' %}">
+    <label>{% t "engine/templates/engine/ontologie.html:377:12" %}</label>
+    <textarea id="couche-code" placeholder="def etendre(graphe):
+    return graphe"></textarea>
+    <div id="couche-import">
+      <label>{% t "engine/templates/engine/ontologie.html:381:14" %}</label>
+      <input type="file" id="couche-fichier" accept=".py,text/x-python,text/plain">
+    </div>
+    <div class="erreur-couche" id="couche-erreur"></div>
+    <button class="petit principal" id="btn-couche-enregistrer" style="margin-top:8px">{% t "engine/templates/engine/ontologie.html:385:88" %}</button>
+
+    <h3>{% t "engine/templates/engine/ontologie.html:387:9" %}</h3>
+    <div class="aide">
+      {% t "engine/templates/engine/ontologie.html:388:7" %}
+    </div>
+    <div class="ligne-2col">
+      <div>
+        <label>{% t "engine/templates/engine/ontologie.html:395:16" %}</label>
+        <select id="couche-ia-source"><option value="">{% t "engine/templates/engine/ontologie.html:396:56" %}</option></select>
+      </div>
+      <div>
+        <label>{% t "engine/templates/engine/ontologie.html:399:16" %}</label>
+        <select id="couche-ia-cible"><option value="">{% t "engine/templates/engine/ontologie.html:400:55" %}</option></select>
+      </div>
+    </div>
+    <label>{% t "engine/templates/engine/ontologie.html:403:12" %}</label>
+    <input type="text" id="couche-ia-relation" placeholder="{% t 'engine/templates/engine/ontologie.html:404:61' %}">
+    <label>{% t "engine/templates/engine/ontologie.html:405:12" %}</label>
+    <textarea id="couche-ia-description" style="height:90px" placeholder="{% t 'engine/templates/engine/ontologie.html:406:75' %}"></textarea>
+    <button class="petit" id="btn-couche-generer" style="margin-top:8px">{% t "engine/templates/engine/ontologie.html:407:74" %}</button>
+    <div id="couche-ia-statut">{% t "engine/templates/engine/ontologie.html:408:32" %}</div>
+
+    <h3>{% t "engine/templates/engine/ontologie.html:410:9" %}</h3>
+    <div class="aide">
+      {% t "engine/templates/engine/ontologie.html:411:7" %}
+    </div>
+    <div class="ligne-2col">
+      <div>
+        <label>{% t "engine/templates/engine/ontologie.html:422:16" %}</label>
+        <select id="nouveau-type-cible">
+          <option value="noeud">{% t "engine/templates/engine/ontologie.html:424:33" %}</option>
+          <option value="arete">{% t "engine/templates/engine/ontologie.html:425:33" %}</option>
+        </select>
+      </div>
+      <div>
+        <label>{% t "engine/templates/engine/ontologie.html:429:16" %}</label>
+        <input type="color" id="nouveau-type-couleur" value="#6bcfff" data-gy-var="--accent" data-gy-defaut="#6bcfff" style="width:100%;height:32px;padding:2px;cursor:pointer">
+      </div>
+    </div>
+    <label>{% t "engine/templates/engine/ontologie.html:433:12" %}</label>
+    <input type="text" id="nouveau-type-nom" placeholder="{% t 'engine/templates/engine/ontologie.html:434:59' %}">
+    <label>{% t "engine/templates/engine/ontologie.html:435:12" %}</label>
+    <input type="text" id="nouveau-type-description" placeholder="{% t 'engine/templates/engine/ontologie.html:436:67' %}">
+    <div class="erreur-couche" id="nouveau-type-erreur"></div>
+    <div id="nouveau-type-statut" style="font-size:11px;color:var(--muted);margin-top:6px;display:none"></div>
+    <button class="petit" id="btn-nouveau-type-enregistrer" style="margin-top:8px">{% t "engine/templates/engine/ontologie.html:439:84" %}</button>
+    <div id="liste-couleurs-perso" style="margin-top:8px;font-size:12px"></div>
+
+    <h3>{% t "engine/templates/engine/ontologie.html:442:9" %}</h3>
+    <div class="aide">
+      {% t "engine/templates/engine/ontologie.html:443:7" %}
+    </div>
+    <div class="ligne-2col">
+      <div>
+        <label>{% t "engine/templates/engine/ontologie.html:451:16" %}</label>
+        <select id="manuel-cible">
+          <option value="noeud">{% t "engine/templates/engine/ontologie.html:453:33" %}</option>
+          <option value="arete">{% t "engine/templates/engine/ontologie.html:454:33" %}</option>
+        </select>
+      </div>
+      <div id="manuel-type-wrap">
+        <label>{% t "engine/templates/engine/ontologie.html:458:16" %}</label>
+        <input type="text" id="manuel-noeud-type" placeholder="{% t 'engine/templates/engine/ontologie.html:459:64' %}">
+      </div>
+    </div>
+    <div id="manuel-noeud-champs">
+      <label>{% t "engine/templates/engine/ontologie.html:463:14" %}</label>
+      <input type="text" id="manuel-noeud-id" placeholder="{% t 'engine/templates/engine/ontologie.html:464:60' %}">
+      <label>{% t "engine/templates/engine/ontologie.html:465:14" %}</label>
+      <input type="text" id="manuel-noeud-label" placeholder="{% t 'engine/templates/engine/ontologie.html:466:63' %}">
+      <div class="ligne-2col">
+        <div>
+          <label>{% t "engine/templates/engine/ontologie.html:469:18" %}</label>
+          <input type="color" id="manuel-noeud-couleur" value="#6bcfff" data-gy-var="--accent" data-gy-defaut="#6bcfff" style="width:100%;height:32px;padding:2px;cursor:pointer">
+        </div>
+        <div>
+          <label>{% t "engine/templates/engine/ontologie.html:473:18" %}</label>
+          <input type="text" id="manuel-noeud-taille" inputmode="numeric" placeholder="18">
+        </div>
+      </div>
+    </div>
+    <div id="manuel-arete-champs" style="display:none">
+      <label>{% t "engine/templates/engine/ontologie.html:479:14" %}</label>
+      <input type="text" id="manuel-arete-source" placeholder="{% t 'engine/templates/engine/ontologie.html:480:64' %}">
+      <label>{% t "engine/templates/engine/ontologie.html:481:14" %}</label>
+      <input type="text" id="manuel-arete-cible" placeholder="{% t 'engine/templates/engine/ontologie.html:482:63' %}">
+      <label>{% t "engine/templates/engine/ontologie.html:483:14" %}</label>
+      <input type="text" id="manuel-arete-relation" placeholder="{% t 'engine/templates/engine/ontologie.html:484:66' %}">
+      <label>{% t "engine/templates/engine/ontologie.html:485:14" %}</label>
+      <input type="color" id="manuel-arete-couleur" value="#f59e0b" data-gy-var="--texte-orange" data-gy-defaut="#f59e0b" style="width:100%;height:32px;padding:2px;cursor:pointer">
+    </div>
+    <div class="erreur-couche" id="manuel-erreur"></div>
+    <button class="petit principal" id="btn-manuel-enregistrer" style="margin-top:8px">{% t "engine/templates/engine/ontologie.html:489:88" %}</button>
+
+    <h3>{% t "engine/templates/engine/ontologie.html:491:9" %}</h3>
+    <div class="aide">
+      {% t "engine/templates/engine/ontologie.html:492:7" %}
+    </div>
+    <div class="ligne-2col">
+      <div>
+        <label>{% t "engine/templates/engine/ontologie.html:500:16" %}</label>
+        <input type="text" id="limite-enregistrements" inputmode="numeric" placeholder="25">
+      </div>
+      <div style="display:flex;align-items:flex-end">
+        <button class="petit" id="btn-limite-enregistrements-enregistrer" style="width:100%">{% t "engine/templates/engine/ontologie.html:504:94" %}</button>
+      </div>
+    </div>
+    <div id="limite-enregistrements-statut" style="font-size:11px;color:var(--muted);margin-top:6px;display:none"></div>
+
+    <div class="liste-couches" id="liste-couches"></div>
+  </div>
+</div>
+
+{% i18n_js %}
+{# Pop-up « pas encore prête » : l'ontologie se construit en arrière-plan (comme le modèle fantôme) ; la page ne fait que consulter son état. #}
+<div id="onto-pas-prete" role="dialog" aria-modal="true" aria-labelledby="onto-pp-titre" style="display:none;position:fixed;inset:0;z-index:100000;background:rgba(0,0,0,.55);align-items:center;justify-content:center">
+  <div style="max-width:460px;margin:16px;padding:22px 24px;border-radius:12px;background:var(--panel,#1b2130);color:var(--text,#e8ecf4);border:1px solid var(--border,#2f3a52);box-shadow:0 12px 40px rgba(0,0,0,.5)">
+    <h3 id="onto-pp-titre" style="margin:0 0 10px;font-size:17px">{% t "engine/templates/engine/ontologie.html:pas_prete_titre" %}</h3>
+    <p style="margin:0 0 16px;line-height:1.5;font-size:14px">{% t "engine/templates/engine/ontologie.html:pas_prete_texte" %}</p>
+    <div style="text-align:right"><button type="button" id="onto-pp-ok">{% t "engine/templates/engine/ontologie.html:pas_prete_ok" %}</button></div>
+  </div>
+</div>
+<script>
+(function(){
+  const fenetre = document.getElementById("onto-pas-prete");
+  let sondage = null, recharger = false;
+  function urlEtat(){ const u = new URL(window.location.href); u.searchParams.delete("recalculer"); u.searchParams.set("etat", "1"); return u.toString(); }
+  function urlPage(){ const u = new URL(window.location.href); u.searchParams.delete("recalculer"); u.searchParams.delete("etat"); return u.toString(); }
+  function sonder(){
+    fetch(urlEtat(), {credentials: "same-origin", headers: {"X-Silencieux": "1", "Accept": "application/json"}})
+      .then(r => r.json()).then(d => {
+        if (d && d.pret){ sondage = null; if (recharger) window.location.replace(urlPage()); else fenetre.style.display = "none"; return; }
+        sondage = setTimeout(sonder, 3000);
+      }).catch(() => { sondage = setTimeout(sonder, 5000); });
+  }
+  // Appelée à l'ouverture (page vide : on recharge toute seule dès que l'état est prêt) ou par une requête de la page refusée « pas encore prête ».
+  window.afficherPasPrete = function(rechargerQuandPret){
+    if (rechargerQuandPret) recharger = true;
+    fenetre.style.display = "flex";
+    if (sondage === null) sondage = setTimeout(sonder, 1500);
+  };
+  document.getElementById("onto-pp-ok").addEventListener("click", () => { fenetre.style.display = "none"; });
+  // Toute requête de la page que le serveur refuse parce que l'ontologie n'est pas encore prête ouvre le même pop-up.
+  const fetchSuivant = window.fetch;
+  window.fetch = function(){
+    return fetchSuivant.apply(this, arguments).then(r => { if (r && r.status === 503 && r.headers.get("X-Ontologie") === "pas-prete") window.afficherPasPrete(false); return r; });
+  };
+  {% if not ontologie_prete %}window.afficherPasPrete(true);{% endif %}
+})();
+</script>
+<script src="{% static 'engine/js/plein_ecran.js' %}"></script>
+<script src="{% static 'engine/js/gy_couleur.js' %}"></script>
+<script>
+const DONNEES = {{ graphe_json|safe }};
+const PAGE_ID = {{ page_courante_id|default:"null" }};
+// Aperçu hiérarchique : la page ne reçoit que ≤ APERCU.limite nœuds/relations, à partir d'une racine (l'entreprise par défaut).
+const APERCU = {{ apercu_json|safe }};
+const TA = (cle, repli, vars) => { try { const v = typeof tj === "function" ? tj("engine/templates/engine/ontologie.html:js:apercu:" + cle, vars) : ""; return v && v !== "engine/templates/engine/ontologie.html:js:apercu:" + cle ? v : repli; } catch (e) { return repli; } };
+// `suite` = true : la TRACE CONTINUE. Le serveur garde alors les derniers nœuds de la trace dans le nouvel aperçu et la page la reprend toute seule.
+const SUITE = new URLSearchParams(window.location.search).get("suite") === "1";
+function allerRacine(id, suite){
+  const u = new URL(window.location.href);
+  if (id && id !== APERCU.entreprise) u.searchParams.set("racine", id); else u.searchParams.delete("racine");
+  if (suite) u.searchParams.set("suite", "1"); else u.searchParams.delete("suite");
+  u.searchParams.delete("recalculer"); u.searchParams.delete("etat");
+  window.location.href = u.toString();
+}
+// Le graphe est gardé quelques secondes côté serveur : tout rechargement qui suit une modification (ou « Recalculer ») le force à neuf.
+function rechargerFrais(){ const u = new URL(window.location.href); u.searchParams.set("recalculer", "1"); window.location.href = u.toString(); }
+document.getElementById("m-noeuds").textContent = "{{ metriques.noeuds }}" + (APERCU.tronque ? ` (${APERCU.noeuds_affiches} ${TA("affiches", "affichés")})` : "");
+document.getElementById("m-aretes").textContent = "{{ metriques.aretes }}" + (APERCU.tronque ? ` (${APERCU.aretes_affichees} ${TA("affiches", "affichés")})` : "");
+document.getElementById("m-densite").textContent = "{{ metriques.densite }}";
+document.getElementById("m-diametre").textContent = "{{ metriques.diametre }}";
+document.getElementById("m-communautes").textContent = "{{ metriques.communautes }}";
+
+const cnv = document.getElementById("cnv"), ctx = cnv.getContext("2d");
+const scene = document.getElementById("scene"), infobulle = document.getElementById("infobulle");
+// Range un utilitaire flottant dans le dock du haut ou du bas ; « ordre » fixe sa place dans la pile (les panneaux larges passent après les boutons).
+function dockAjouter(el, haut, ordre, panneau){
+  const dock = document.getElementById(haut ? "dock-haut" : "dock-bas");
+  el.style.order = ordre; if (panneau) el.classList.add("dock-panneau");
+  (dock || scene).appendChild(el);
+}
+let LARGEUR, HAUTEUR;
+function redimensionner(){ LARGEUR = cnv.width = scene.clientWidth; HAUTEUR = cnv.height = scene.clientHeight; }
+window.addEventListener("resize", redimensionner); redimensionner();
+// La scène change de taille sans que la fenêtre bouge (barre latérale, bandeau fusionné, plein écran) : sans cela le canevas garde l'ancienne taille.
+if (window.ResizeObserver) new ResizeObserver(() => { if (scene.clientWidth !== LARGEUR || scene.clientHeight !== HAUTEUR) redimensionner(); }).observe(scene);
+
+// ── Simulation à forces (répulsion + ressorts + centrage), sans dépendance externe ──
+// Étendue de départ proportionnelle à la racine du nombre de nœuds : serrés dans un carré fixe de 600, des milliers de nœuds
+// se repoussaient avec une force démesurée et étaient projetés hors de l'écran (ils « disparaissaient » après l'animation d'entrée).
+const ETENDUE_DEPART = 600 * Math.max(1, Math.sqrt(DONNEES.noeuds.length / 120));
+const noeuds = DONNEES.noeuds.map(n => ({...n, x: (Math.random()-0.5)*ETENDUE_DEPART, y: (Math.random()-0.5)*ETENDUE_DEPART, vx:0, vy:0}));
+const parIndex = Object.fromEntries(noeuds.map((n,i) => [n.id, i]));
+const aretes = DONNEES.aretes.filter(a => a.source in parIndex && a.cible in parIndex);
+let alpha = 1;
+// L'arbre (racine, branches, 200 nœuds max, focus, fil d'Ariane) vit côté serveur et dans la navigation : il ne change PAS l'allure du graphe.
+// Le rendu reste celui d'origine : simulation à forces libre, départ aléatoire, rappel vers le centre.
+
+const CASES_AVANT = [[1,-1],[1,0],[1,1],[0,1]];
+const VITESSE_MAX = 30, PORTEE_REPULSION = 140, SEUIL_GRILLE = 350;
+let ajusteALOuverture = false;   // la caméra cadre tout le graphe une fois, quand la disposition s'est calmée
+function repousser(a, b){
+  let dx=a.x-b.x, dy=a.y-b.y, d2=dx*dx+dy*dy;
+  if (d2 < 0.01){ dx = Math.random()-0.5; dy = Math.random()-0.5; d2 = dx*dx+dy*dy+0.01; }
+  const d=Math.sqrt(d2), force = 2600/Math.max(d2, 4);   // plancher : deux nœuds quasi confondus ne reçoivent plus une poussée énorme
+  dx/=d; dy/=d;
+  a.vx += dx*force; a.vy += dy*force; b.vx -= dx*force; b.vy -= dy*force;
+}
+function simuler(){
+  if (alpha <= 0.01) return;
+  if (noeuds.length <= SEUIL_GRILLE){
+    for (let i=0;i<noeuds.length;i++) for (let j=i+1;j<noeuds.length;j++) repousser(noeuds[i], noeuds[j]);
+  } else {
+    // Grande toile : la répulsion devient négligeable au-delà de PORTEE_REPULSION, on ne compare donc que les nœuds des cases voisines (≈ O(n) au lieu de O(n²)).
+    const cases = new Map();
+    for (let i=0;i<noeuds.length;i++){
+      const n = noeuds[i], cx = Math.floor(n.x/PORTEE_REPULSION), cy = Math.floor(n.y/PORTEE_REPULSION), k = cx*100003 + cy;
+      const l = cases.get(k); if (l) l.push(i); else cases.set(k, [i]);
+    }
+    for (const [k, liste] of cases){
+      const cx = Math.round(k/100003), cy = k - cx*100003;   // k = cx*100003 + cy, |cy| < 50001 : décodage exact
+      for (let a=0;a<liste.length;a++){
+        for (let b=a+1;b<liste.length;b++) repousser(noeuds[liste[a]], noeuds[liste[b]]);
+        for (const [ox, oy] of CASES_AVANT){   // 4 cases « avant » seulement : chaque paire de cases voisines est vue une fois
+          const voisine = cases.get((cx+ox)*100003 + (cy+oy));
+          if (voisine) for (const j of voisine) repousser(noeuds[liste[a]], noeuds[j]);
+        }
+      }
+    }
+  }
+  for (const a of aretes){
+    const s = noeuds[parIndex[a.source]], c = noeuds[parIndex[a.cible]];
+    let dx=c.x-s.x, dy=c.y-s.y, d=Math.sqrt(dx*dx+dy*dy)||0.01;
+    const cible = 140, force = (d-cible)*0.02;
+    dx/=d; dy/=d;
+    s.vx += dx*force; s.vy += dy*force; c.vx -= dx*force; c.vy -= dy*force;
+  }
+  const gravite = noeuds.length > SEUIL_GRILLE ? 0.02 : 0.01;   // grande toile : rappel plus ferme vers le centre
+  for (const n of noeuds){
+    if (n.fixe || n.epingle) { n.vx=0; n.vy=0; continue; }   // fixe = tenu par la souris ; epingle = déplacé à la main, il reste où on l'a posé
+    n.vx += -n.x*gravite; n.vy += -n.y*gravite;
+    // ── Vie ambiante : un léger souffle aléatoire perpétuel, pour que les
+    // éléments ne restent jamais parfaitement immobiles même une fois la
+    // disposition stabilisée (alpha proche de 0) — ils doivent avoir l'air d'exister.
+    n.vx += (Math.random()-0.5)*0.14; n.vy += (Math.random()-0.5)*0.14;
+    n.vx *= 0.85; n.vy *= 0.85;
+    const v = Math.hypot(n.vx, n.vy);
+    if (v > VITESSE_MAX){ n.vx *= VITESSE_MAX/v; n.vy *= VITESSE_MAX/v; }   // jamais de nœud projeté hors de la toile
+    n.x += n.vx*Math.max(alpha, 0.12); n.y += n.vy*Math.max(alpha, 0.12);
+    if (!Number.isFinite(n.x) || !Number.isFinite(n.y)){ n.x = (Math.random()-0.5)*300; n.y = (Math.random()-0.5)*300; n.vx = 0; n.vy = 0; }   // une valeur non finie rendrait toute la toile invisible
+  }
+  alpha *= noeuds.length > SEUIL_GRILLE ? 0.97 : 0.985;   // grande toile : la disposition se fige plus vite, donc moins d'images lourdes
+  if (!ajusteALOuverture && alpha < 0.25 && Date.now() - dernierInteraction > 1500){   // tout le graphe dans le cadre, sans geste de l'utilisateur
+    ajusteALOuverture = true; cadrer(noeuds.map(n => n.id));
+  }
+}
+
+// ── Caméra (pan/zoom) ──
+let cam = {x:0, y:0, zoom:1};
+function versEcran(n){ return { x: LARGEUR/2 + (n.x+cam.x)*cam.zoom, y: HAUTEUR/2 + (n.y+cam.y)*cam.zoom }; }
+function versMonde(px,py){ return { x: (px-LARGEUR/2)/cam.zoom - cam.x, y: (py-HAUTEUR/2)/cam.zoom - cam.y }; }
+
+// Libellés d'affichage (traduits côté serveur) des identifiants de relations et de types.
+const _libRel = {}, _libType = {};
+for (const a of aretes) if (a.relation) _libRel[a.relation] = a.libelle || a.relation;
+for (const n of noeuds) if (n.type) _libType[n.type] = n.type_libelle || n.type;
+const libRel = r => _libRel[r] || (r ? String(r).replace(/_/g, " ") : "");
+const libType = ty => _libType[ty] || (ty ? String(ty).replace(/_/g, " ") : "");
+// Config arêtes : couleur et visibilité par type de relation — construite à
+// partir des relations RÉELLEMENT présentes dans le graphe (couleurs
+// prédéfinies + couleurs personnalisées posées par vos couches).
+const configAretes = {};
+(function() {
+  for (const a of aretes) {
+    const rel = a.relation || "";
+    // Relations MASQUÉES par défaut (le graphe s'ouvre sur les seuls objets) ; elles apparaissent pour un objet au clic (focus),
+    // une sélection ou un chemin, ou en cochant leur type dans le panneau « Relations ».
+    if (!(rel in configAretes)) configAretes[rel] = {visible: false, couleur: a.couleur || gyCouleur("--texte-discret","#888888")};
+  }
+  const liste = document.getElementById("liste-aretes");
+  const cases = [];
+  const tout = document.createElement("div"); tout.className = "ligne-arete";
+  const caseTout = document.createElement("input"); caseTout.type = "checkbox"; caseTout.checked = false;
+  caseTout.onchange = () => { for (const [cb, cfg] of cases) { cb.checked = caseTout.checked; cfg.visible = caseTout.checked; } };
+  const lblTout = document.createElement("b"); lblTout.textContent = tj("engine/templates/engine/ontologie.html:js:586:71");
+  tout.append(caseTout, lblTout); liste.appendChild(tout);
+  for (const [rel, cfg] of Object.entries(configAretes)) {
+    const div = document.createElement("div"); div.className = "ligne-arete";
+    const cb = document.createElement("input"); cb.type = "checkbox"; cb.checked = cfg.visible; cases.push([cb, cfg]);
+    cb.onchange = () => { cfg.visible = cb.checked; caseTout.checked = cases.every(([c]) => c.checked); };
+    const picker = document.createElement("input"); picker.type = "color"; picker.value = cfg.couleur;
+    picker.oninput = () => { cfg.couleur = picker.value; };
+    picker.onchange = () => enregistrerCouleur("arete", rel, picker.value);
+    const lbl = document.createElement("span"); lbl.textContent = libRel(rel);
+    div.append(cb, picker, lbl); liste.appendChild(div);
+  }
+})();
+
+// Légende + filtre par type : construits à partir des types RÉELLEMENT
+// présents dans le graphe (types prédéfinis + types personnalisés).
+const couleurParType = {};
+(function() {
+  for (const n of noeuds) if (!(n.type in couleurParType)) couleurParType[n.type] = (n.couleur_propre ? DONNEES.couleurs[n.type] : n.couleur) || DONNEES.couleurs[n.type] || gyCouleur("--texte-discret","#888888");
+  const legende = document.getElementById("legende"), sel = document.getElementById("sel-filtre");
+  for (const [type, couleur] of Object.entries(couleurParType)) {
+    const span = document.createElement("span");
+    const picker = document.createElement("input"); picker.type = "color"; picker.value = couleur;
+    picker.style.cssText = "width:12px;height:12px;padding:0;border:none;vertical-align:middle;margin-right:4px;cursor:pointer";
+    picker.oninput = () => {
+      for (const n of noeuds) if (n.type === type && !n.couleur_propre) n.couleur = picker.value;
+    };
+    picker.onchange = () => enregistrerCouleur("noeud", type, picker.value);
+    span.append(picker, document.createTextNode(libType(type)));
+    legende.appendChild(span);
+    const opt = document.createElement("option"); opt.value = type; opt.textContent = libType(type);
+    sel.appendChild(opt);
+  }
+})();
+let filtreType = "", etiquettesVisibles = false;   // étiquettes des nœuds masquées par défaut (illisibles quand tout s'affiche) : comme les relations, elles n'apparaissent que pour l'objet en focus et ses voisins, une sélection ou une trace ; le bouton les force partout
+// Colonne droite : relations ET légende des types, chacune avec son bouton masquer / afficher (en bas à droite de la toile).
+// Les deux sections sont MASQUÉES par défaut ; la colonne n'est visible que si l'une des deux l'est.
+const PD = {rel: false, leg: false, maj: () => {}};
+(function() {
+  const colonne = document.getElementById("panneau-aretes"), sRel = document.getElementById("section-relations"), sLeg = document.getElementById("section-legende");
+  const bLeg = document.createElement("button"), bRel = document.createElement("button");
+  const style = "position:absolute;bottom:BASEpx;right:14px;z-index:41;background:color-mix(in srgb,var(--fond-info,#0f172a) 92%,transparent);border:1px solid var(--bordure-info,#1e3a5f);border-radius:6px;color:var(--texte-info,#7dd3fc);font-size:12px;padding:4px 10px;cursor:pointer";
+  bLeg.style.cssText = style.replace("BASE", "14"); bRel.style.cssText = style.replace("BASE", "48");
+  PD.maj = () => {
+    sRel.style.display = PD.rel ? "" : "none"; sLeg.style.display = PD.leg ? "" : "none";
+    colonne.style.display = PD.rel || PD.leg ? "block" : "none";
+    bLeg.textContent = PD.leg ? tj("engine/templates/engine/ontologie.html:js:626:99") : tj("engine/templates/engine/ontologie.html:js:626:75");
+    bRel.textContent = PD.rel ? tj("engine/templates/engine/ontologie.html:js:661:102") : tj("engine/templates/engine/ontologie.html:js:661:75");
+  };
+  bLeg.onclick = () => { PD.leg = !PD.leg; PD.maj(); };
+  bRel.onclick = () => { PD.rel = !PD.rel; PD.maj(); };
+  PD.maj();
+  const scene = document.getElementById("scene"); dockAjouter(bRel, false, 2); dockAjouter(bLeg, false, 3);
+})();
+
+// ── Recherche de chemin / connexions communes (façon Gotham "link analysis")
+// et recherche globale par mot-clé — tout en JS, sur les données déjà en mémoire.
+let rechercheTexte = "", selA = null, chemin = [], communs = new Set();
+const adj = {};
+for (const a of aretes){ (adj[a.source] ??= []).push(a.cible); (adj[a.cible] ??= []).push(a.source); }
+function cheminCourt(depart, arrivee){
+  const file = [[depart]], vus = new Set([depart]);
+  while (file.length){
+    const c = file.shift(), fin = c[c.length-1];
+    for (const v of (adj[fin]||[])){
+      if (v === arrivee) return [...c, v];
+      if (!vus.has(v)){ vus.add(v); file.push([...c, v]); }
+    }
+  }
+  return [];
+}
+
+// ── Focus sur un nœud (recherche ou clic) : la caméra s'y place et seuls ses liens directs
+// sont tracés ; cliquer un voisin (sur la toile ou dans la liste) le met à son tour au focus.
+const esc = s => String(s ?? "").replace(/[&<>"']/g, c => ({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"})[c]);
+let selection = null, aretesSel = null, centreSel = null, pointeId = null;
+let focusId = null, voisinsFocus = new Set(), correspondances = [], idxCorr = 0, minuteurRecherche = null;
+const panneauFocus = document.createElement("div");
+panneauFocus.style.cssText = "display:none;position:absolute;left:12px;top:46px;width:250px;max-height:60%;overflow:auto;background:color-mix(in srgb,var(--fond-info,#0f172a) 92%,transparent);border:1px solid var(--bordure-info,#1e3a5f);border-radius:8px;padding:8px;font-size:12px;z-index:40";
+dockAjouter(panneauFocus, true, 4, true);
+// Bouton masquer / réafficher le panneau des relations (le choix est conservé d'un nœud à l'autre).
+let panneauMasque = false;
+const boutonPanneau = document.createElement("button");
+boutonPanneau.style.cssText = "display:none;position:absolute;left:12px;top:12px;background:color-mix(in srgb,var(--fond-info,#0f172a) 92%,transparent);border:1px solid var(--bordure-info,#1e3a5f);border-radius:6px;color:var(--texte-info,#7dd3fc);font-size:12px;padding:4px 10px;cursor:pointer;z-index:41";
+function majBoutonPanneau(){ boutonPanneau.textContent = panneauMasque ? tj("engine/templates/engine/ontologie.html:js:661:75") : tj("engine/templates/engine/ontologie.html:js:661:102"); panneauFocus.style.display = focusId && !panneauMasque ? "block" : "none"; }
+boutonPanneau.onclick = () => { panneauMasque = !panneauMasque; majBoutonPanneau(); };
+dockAjouter(boutonPanneau, true, 2);
+// Mode trace (suivi d'enquête) : les nœuds cliqués successivement et les liens entre eux restent affichés ;
+// seul le voisinage du dernier nœud est temporaire. Vidé par Échap / Tout afficher / « Effacer la trace ».
+let modeTrace = true, piste = [], liensPiste = [], aretesPiste = new Set(), ensPiste = new Set();
+function recalculerPiste(){ ensPiste = new Set(piste); aretesPiste = new Set(liensPiste.map(l => l.arete).filter(Boolean)); }
+// Historique des traces : la trace en cours est mémorisée au fil de l'enquête (rien n'est perdu en quittant la page) et chaque trace effacée ou remplacée
+// part dans l'historique (voir « 🕘 Historique des traces » plus bas). Les appels serveur passent dans une file : jamais deux requêtes de trace en même temps.
+const traceState = {minuteur: null, file: Promise.resolve(), serveur: false, pendante: null, historique: [], panneauOuvert: false};
+// Part de la trace qui n'est plus dans l'aperçu (nœuds anciens, sans rendu) : mémorisée avec la trace, jamais perdue.
+let reserveTrace = {noeuds: [], liens: []}, navigationTrace = false;
+function viderPiste(){ archiverTraceCourante(); piste = []; liensPiste = []; reserveTrace = {noeuds: [], liens: []}; recalculerPiste(); }
+const boutonTrace = document.createElement("button");
+boutonTrace.style.cssText = "display:none;position:absolute;left:12px;top:12px;margin-left:170px;background:color-mix(in srgb,var(--fond-info,#0f172a) 92%,transparent);border:1px solid var(--warn,#f59e0b);border-radius:6px;color:var(--texte-orange,#f59e0b);font-size:12px;padding:4px 10px;cursor:pointer;z-index:41";
+function majBoutonTrace(){ boutonTrace.textContent = modeTrace ? tj("engine/templates/engine/ontologie.html:js:671:67", {v1: piste.length + reserveTrace.noeuds.length}) : tj("engine/templates/engine/ontologie.html:js:671:105"); boutonTrace.style.opacity = modeTrace ? 1 : 0.6; }
+boutonTrace.onclick = e => {
+  if (e.shiftKey || (modeTrace && piste.length > 1 && e.altKey)){ viderPiste(); }
+  else { modeTrace = !modeTrace; if (!modeTrace) viderPiste(); else if (focusId) { piste = [focusId]; recalculerPiste(); } }
+  majBoutonTrace();
+};
+boutonTrace.title = tj("engine/templates/engine/ontologie.html:js:677:22");
+dockAjouter(boutonTrace, true, 3);
+// Bandeau « résultats de l'Explorer » : les résultats restent affichés dans la toile jusqu'à ce qu'on les efface.
+const bandeauSel = document.createElement("div");
+bandeauSel.style.cssText = "display:none;position:absolute;left:50%;top:10px;transform:translateX(-50%);align-items:center;gap:10px;background:color-mix(in srgb,var(--fond-info,#0f172a) 92%,transparent);border:1px solid var(--warn,#fbbf24);border-radius:8px;padding:5px 10px;font-size:12px;color:var(--texte-orange,#fbbf24);z-index:45";
+const texteSel = document.createElement("span"), effacerSel = document.createElement("button");
+effacerSel.textContent = tj("engine/templates/engine/ontologie.html:js:683:27"); effacerSel.style.cssText = "background:transparent;border:1px solid var(--warn,#fbbf24);color:var(--texte-orange,#fbbf24);border-radius:5px;cursor:pointer;font-size:11px;padding:1px 6px";
+bandeauSel.append(texteSel, effacerSel); dockAjouter(bandeauSel, true, 0);
+function viderFocus(){
+  if (selection && chemin.length) chemin = [];
+  focusId = null; voisinsFocus = new Set(); aretesFocus = new Set(); histo = []; selection = null; aretesSel = null; centreSel = null;
+  panneauFocus.style.display = "none"; boutonPanneau.style.display = "none"; bandeauSel.style.display = "none";
+  viderPiste(); boutonTrace.style.display = "none";
+}
+effacerSel.onclick = viderFocus;
+// Cadre la caméra sur un ensemble de nœuds (en laissant libre la place du panneau Explorer s'il est ouvert).
+function cadrer(ids){
+  const ns = [...ids].map(i => noeuds[parIndex[i]]).filter(Boolean); if (!ns.length) return;
+  const xs = ns.map(n => n.x), ys = ns.map(n => n.y), x0 = Math.min(...xs), x1 = Math.max(...xs), y0 = Math.min(...ys), y1 = Math.max(...ys);
+  const reserve = explorerEstVisible() ? 360 : 0;
+  const zoom = Math.max(0.15, Math.min(2.2, (LARGEUR - reserve) / (x1 - x0 + 160), HAUTEUR / (y1 - y0 + 160)));
+  camAnim = {depart: {x:cam.x, y:cam.y, zoom:cam.zoom}, arrivee: {x: -(x0+x1)/2 - reserve/(2*zoom), y: -(y0+y1)/2, zoom}, debut: performance.now(), duree: 900};
+}
+// Affiche un résultat de l'Explorer dans la toile : seuls ces nœuds (et leurs liens) restent allumés, la caméra les cadre.
+function montrerResultats(ids, titre, opt = {}){
+  const vus = [...new Set(ids)].filter(i => i in parIndex), hors = new Set(ids).size - vus.length;
+  marquerInteraction(); viderFocus();
+  if (!vus.length){ return 0; }
+  selection = new Set(vus); centreSel = opt.centre || null;
+  aretesSel = opt.aretes ? new Set(opt.aretes.flatMap(a => [`${a.source}|${a.cible}`, `${a.cible}|${a.source}`])) : null;
+  if (opt.chemin) chemin = opt.chemin;
+  cadrer(selection);
+  texteSel.textContent = tj("engine/templates/engine/ontologie.html:js:709:27", {v1: titre, v2: vus.length}) + (hors ? " · " + tj("engine/templates/engine/ontologie.html:js:694:132", {v1: hors}) : "");
+  bandeauSel.style.display = "flex";
+  return vus.length;
+}
+let histo = [], filtreRel = "", filtreNom = "", etendu = false, aretesFocus = new Set(), listeFocus = null, titreFocus = null, boutonRetour = null;
+const autreBout = (a, id) => a.source === id ? a.cible : a.source;
+function mettreAuFocus(id, sansHisto, nouvelleTrace){
+  const n = noeuds[parIndex[id]]; if (!n) return;
+  const precedent = focusId;
+  window.FantomeOnto?.pasUtilisateur(id, precedent);   // modèle fantôme d'ontologie : observe le pas (ignoré s'il vient de lui-même)
+  marquerInteraction(); selection = null; aretesSel = null; centreSel = null; bandeauSel.style.display = "none";
+  // Trace : nouvelle trace (recherche) ou retour en arrière = on défait le dernier pas ; sinon on garde les liens précédents.
+  if (modeTrace){
+    if (nouvelleTrace || !precedent) viderPiste();
+    if (sansHisto && precedent && piste[piste.length - 1] === precedent && liensPiste.length) { liensPiste.pop(); piste.pop(); }
+    else if (precedent && precedent !== id && !nouvelleTrace){
+      const direct = aretes.filter(a => (a.source === precedent && a.cible === id) || (a.source === id && a.cible === precedent));
+      if (direct.length) for (const a of direct) liensPiste.push({de: precedent, vers: id, arete: a});
+      else liensPiste.push({de: precedent, vers: id, arete: null});   // pas de lien direct : trait virtuel en pointillé
+    }
+    if (!nouvelleTrace && precedent && !piste.includes(precedent)) piste.push(precedent);
+    if (!piste.includes(id)) piste.push(id);
+    recalculerPiste();
+    // TRACE CONTINUE : le nœud atteint devient la racine. La page est rechargée pour afficher le nouvel aperçu, la trace est reprise telle quelle.
+    const parFantome = !!(window.FantomeOnto && window.FantomeOnto.agit && window.FantomeOnto.agit());
+    if (precedent && precedent !== id && !sansHisto && !nouvelleTrace && !parFantome && id !== APERCU.racine){ continuerTrace(id); return; }
+  }
+  // Nœud dont des voisins (enfants) ne sont pas dans l'aperçu : il devient tout seul la racine et l'aperçu se renouvelle autour de lui.
+  const parFantomeRacine = !!(window.FantomeOnto && window.FantomeOnto.agit && window.FantomeOnto.agit());
+  if (n.nb_caches > 0 && id !== APERCU.racine && !sansHisto && !parFantomeRacine){
+    if (modeTrace) continuerTrace(id); else allerRacine(id);
+    return;
+  }
+  if (focusId && focusId !== id && !sansHisto) histo.push(focusId);
+  focusId = id; filtreRel = ""; filtreNom = ""; etendu = false;
+  viserCamera(n, 700);
+  panneauFocus.replaceChildren();
+  const bouton = (texte, clic, style) => { const b = document.createElement("button"); b.textContent = texte; b.onclick = clic; b.style.cssText = "display:block;width:100%;text-align:left;background:transparent;border:0;color:var(--texte-clair,#e8e8e8);padding:3px 4px;cursor:pointer;font-size:12px;" + (style||""); return b; };
+  titreFocus = document.createElement("div"); titreFocus.style.cssText = "font-weight:600;margin-bottom:4px;color:var(--texte-info,#7dd3fc)";
+  const barre = document.createElement("div"); barre.style.cssText = "display:flex;gap:4px;margin-bottom:4px";
+  boutonRetour = bouton(tj("engine/templates/engine/ontologie.html:js:739:26"), () => { if (histo.length) mettreAuFocus(histo.pop(), true); }, "border:1px solid var(--bordure-info,#1e3a5f);width:auto;text-align:center");
+  const boutonEtendre = bouton(tj("engine/templates/engine/ontologie.html:js:740:33"), () => { etendu = !etendu; boutonEtendre.style.color = etendu ? gyCouleur("--warn","#fbbf24") : gyCouleur("--texte-clair","#e8e8e8"); majFocus(); }, "border:1px solid var(--bordure-info,#1e3a5f);width:auto;text-align:center");
+  barre.append(boutonRetour, boutonEtendre);
+  const selRel = document.createElement("select"); selRel.style.cssText = "width:100%;margin-bottom:4px;font-size:12px";
+  selRelFocus = selRel; voisinsServeur.id = null;
+  majSelRel();
+  selRel.onchange = () => { filtreRel = selRel.value; majFocus(); };
+  const champNom = document.createElement("input"); champNom.placeholder = tj("engine/templates/engine/ontologie.html:js:748:77"); champNom.style.cssText = "width:100%;box-sizing:border-box;margin-bottom:4px;font-size:12px";
+  champNom.oninput = () => { filtreNom = champNom.value.trim().toLowerCase(); majFocus(); };
+  listeFocus = document.createElement("div");
+  panneauFocus.append(titreFocus, barre, selRel, champNom);
+  if (n.id.startsWith("table:") && n.slug) panneauFocus.append(bouton(tj("engine/templates/engine/ontologie.html:js:752:65"), () => { window.location.href = `/tables/${n.slug}/`; }, "color:var(--texte-orange,#fbbf24)"));
+  const [genre, numId] = n.id.split(":");   // ✎ : renommer un groupe (ses tables suivent) ou une table, y compris celles d'un groupe
+  if ((genre === "table" || genre === "groupe_tables") && /^\d+$/.test(numId)) panneauFocus.append(bouton(tj("decoupage.ui.renommer"), () => renommerNoeud(n, genre === "groupe_tables", numId), "color:var(--texte-info,#7dd3fc)"));
+  if (n.id !== APERCU.racine) panneauFocus.append(bouton(TA("devenir_racine", "🌳 Devenir la racine"), () => allerRacine(n.id), "color:var(--texte-info,#7dd3fc)"));
+  panneauFocus.append(bouton(tj("engine/templates/engine/ontologie.html:js:753:31"), viderFocus, "color:var(--muted)"), listeFocus);
+  majFocus();
+  chargerVoisinsServeur(id);   // options de navigation COMPLÈTES : les voisins hors aperçu sont lus côté serveur, sans rendu
+  boutonPanneau.style.display = "block"; majBoutonPanneau();
+  boutonTrace.style.display = "block"; majBoutonTrace();
+  planifierSauvegardeTrace();
+  champNom.addEventListener("keydown", e => e.stopPropagation());
+}
+// Mêmes API que le gestionnaire de données : le serveur renomme aussi les tables enfants d'un groupe et renvoie leurs nouveaux noms.
+async function renommerNoeud(n, groupe, numId){
+  const nom = await GY.demander(tj(groupe ? "engine/static/engine/js/index_7.js:144:53" : "decoupage.ui.prompt_renommer"), n.label);
+  if (!nom || !nom.trim() || nom.trim() === n.label) return;
+  const {ok, d} = groupe ? await appelTrace(`/api/groupes-tables/${numId}/`, "PATCH", {nom: nom.trim()}) : await appelTrace(`/api/tables/${numId}/renommer/`, "POST", {nom: nom.trim()});
+  if (!ok) { GY.alerter(d.erreur || tj("engine/templates/engine/ontologie.html:js:traces:erreur")); return; }
+  const maj = groupe ? [[n.id, d.groupe.nom], ...(d.tables_renommees || []).map(t => ["table:" + t.id, t.nom])] : [[n.id, d.table.nom]];
+  for (const [id, label] of maj) if (parIndex[id] !== undefined) noeuds[parIndex[id]].label = label;   // le graphe se redessine avec les nouveaux noms
+  majFocus();
+}
+// Voisins du focus : ceux de l'aperçu (déjà en mémoire) puis, dès que le serveur a répondu, TOUS ceux de l'ontologie complète — y compris les nœuds
+// qui ne sont pas dans l'aperçu (marqués ○) : ils sont lus en arrière-plan, sans rendu, et un clic en fait la racine du nouvel aperçu.
+const voisinsServeur = {id: null, liste: [], total: 0};
+let selRelFocus = null, jetonVoisins = 0;
+function voisinsDuFocus(id){
+  if (voisinsServeur.id === id) return voisinsServeur.liste.map(v => Object.assign({}, v, {hors: !(v.id in parIndex)}));
+  return aretes.filter(a => a.source === id || a.cible === id).map(a => {
+    const autre = noeuds[parIndex[autreBout(a, id)]];
+    return {id: autre.id, label: autre.label, type: autre.type, relation: a.relation || "", sens: a.source === id ? "out" : "in", hors: false, arete: a};
+  });
+}
+function majSelRel(){
+  if (!selRelFocus || !focusId) return;
+  const tous = voisinsDuFocus(focusId), rels = {};
+  for (const v of tous) rels[v.relation || ""] = (rels[v.relation || ""] || 0) + 1;
+  const total = voisinsServeur.id === focusId ? voisinsServeur.total : tous.length;
+  selRelFocus.replaceChildren();
+  selRelFocus.add(new Option(tj("engine/templates/engine/ontologie.html:js:745:26", {v1: total}), ""));
+  for (const [r, nb] of Object.entries(rels)) selRelFocus.add(new Option(`${libRel(r) || tj("engine/templates/engine/ontologie.html:js:746:78")} (${nb})`, r));
+  selRelFocus.value = rels[filtreRel] ? filtreRel : "";
+}
+async function chargerVoisinsServeur(id){
+  const n = noeuds[parIndex[id]], jeton = ++jetonVoisins;
+  if (!n || !(n.nb_caches > 0)) return;   // aucun voisin caché : la liste de l'aperçu est déjà complète
+  const {ok, d} = await appelTrace("/api/ontologie/apercu/voisins/", "POST", {noeud: id, page_id: PAGE_ID});
+  if (jeton !== jetonVoisins || focusId !== id || !ok || !Array.isArray(d.voisins)) return;
+  voisinsServeur.id = id; voisinsServeur.liste = d.voisins; voisinsServeur.total = d.total || d.voisins.length;
+  majSelRel(); majFocus();
+}
+// Clic sur un voisin : dans l'aperçu, il prend le focus (en trace, il devient la racine) ; hors aperçu, il devient directement la racine.
+function suivreVoisin(v){
+  if (v.id in parIndex){ mettreAuFocus(v.id); return; }
+  if (modeTrace && focusId){
+    continuerTrace(v.id, {de: focusId, vers: v.id, a: v.sens === "out" ? [focusId, v.id, v.relation || ""] : [v.id, focusId, v.relation || ""]});
+  } else allerRacine(v.id);
+}
+// TRACE CONTINUE : mémorise la trace (avec le nouveau pas) côté serveur, puis recharge la page sur le nouveau nœud devenu racine.
+// Le serveur garde les derniers nœuds de la trace dans le nouvel aperçu ; la page la reprend toute seule (voir chargerTraces).
+async function continuerTrace(id, lien){
+  if (navigationTrace) return;
+  navigationTrace = true;
+  clearTimeout(traceState.minuteur); traceState.minuteur = null;
+  try { await sauvegarderTraceCourante({noeud: id, lien: lien || null}); } catch (e) { /* on navigue quand même : la racine change */ }
+  allerRacine(id, true);
+}
+// Recalcule ce qui est affiché autour du focus (relation choisie, filtre de nom, élargissement d'un saut).
+function majFocus(){
+  const id = focusId, n = noeuds[parIndex[id]], rel = a => (a.relation || "") === filtreRel;
+  const toutes = voisinsDuFocus(id);
+  const entrees = toutes.filter(v => (!filtreRel || (v.relation || "") === filtreRel) && (!filtreNom || String(v.label).toLowerCase().includes(filtreNom)));
+  const liens = aretes.filter(a => (a.source === id || a.cible === id) && (!filtreRel || rel(a))
+    && (!filtreNom || String(noeuds[parIndex[autreBout(a, id)]].label).toLowerCase().includes(filtreNom)));
+  voisinsFocus = new Set(liens.map(a => autreBout(a, id))); aretesFocus = new Set(liens);
+  if (etendu){
+    const v1 = new Set(voisinsFocus);
+    for (const a of aretes) if ((v1.has(a.source) || v1.has(a.cible)) && (!filtreRel || rel(a))){ aretesFocus.add(a); voisinsFocus.add(a.source); voisinsFocus.add(a.cible); }
+  }
+  const complet = voisinsServeur.id === id;
+  const nbCaches = complet ? entrees.filter(v => v.hors).length : (n.nb_caches || 0);
+  titreFocus.textContent = `${n.label} (${libType(n.type)}) · ` + (nbCaches ? TA("caches", "+{v1} non affichés", {v1: nbCaches}).replace("{v1}", nbCaches) + " · " : "") + tj("engine/templates/engine/ontologie.html:a:754:liens", {v1: entrees.length}) + (etendu ? tj("engine/templates/engine/ontologie.html:js:769:92", {v1: voisinsFocus.size}) : "");
+  boutonRetour.style.opacity = histo.length ? 1 : 0.35;
+  listeFocus.replaceChildren();
+  for (const v of entrees){
+    const b = document.createElement("button");
+    b.textContent = `${v.sens === "out" ? "→" : "←"} ${v.hors ? "○ " : ""}${v.label} · ${libRel(v.relation)}`; b.onclick = () => suivreVoisin(v);
+    if (v.hors) b.title = TA("hors_apercu", "Hors aperçu : un clic en fait la racine du nouvel aperçu");
+    b.style.cssText = "display:block;width:100%;text-align:left;background:transparent;border:0;color:var(--texte-clair,#e8e8e8);padding:3px 4px;cursor:pointer;font-size:12px" + (v.hors ? ";opacity:.85" : "");
+    listeFocus.append(b);
+  }
+}
+// Recherche : lancée UNIQUEMENT par Entrée ou par le bouton 🔎, jamais pendant la frappe (aucune requête ni calcul à chaque touche).
+// 1) le nom est dans l'aperçu : la toile s'y place (Entrée de nouveau = correspondance suivante).
+// 2) sinon on le cherche dans TOUTE l'ontologie : l'aperçu est remplacé par un nouveau, dont l'élément trouvé est la racine.
+const champRecherche = document.getElementById("recherche-noeud"), boutonRecherche = document.getElementById("btn-recherche-noeud");
+boutonRecherche.textContent = "🔎"; boutonRecherche.title = TA("rechercher", "Rechercher");
+const listeServeur = document.createElement("div");
+listeServeur.style.cssText = "display:none;max-height:180px;overflow:auto;margin-bottom:4px;border:1px solid var(--border);border-radius:6px;font-size:12px";
+champRecherche.parentElement.insertAdjacentElement("afterend", listeServeur);
+const APERCU_COMPLET = !APERCU.tronque && APERCU.noeuds_affiches >= APERCU.total_noeuds;   // rien de caché : inutile d'interroger le serveur
+let jetonServeur = 0, dernierTexte = "";
+async function lancerRecherche(){
+  const t = champRecherche.value.trim().toLowerCase(); rechercheTexte = t;
+  jetonServeur++; listeServeur.replaceChildren(); listeServeur.style.display = "none"; champRecherche.style.outline = "";
+  if (!t){ correspondances = []; dernierTexte = ""; return; }
+  if (t === dernierTexte && correspondances.length > 1){ idxCorr = (idxCorr + 1) % correspondances.length; mettreAuFocus(correspondances[idxCorr].id, false, true); return; }
+  dernierTexte = t;
+  window.FantomeOnto?.recherche(t);   // modèle fantôme d'ontologie : mémorise ce que l'utilisateur cherche
+  const rang = n => { const l = String(n.label).toLowerCase(); return l === t ? 0 : l.startsWith(t) ? 1 : 2; };
+  correspondances = noeuds.filter(n => String(n.label).toLowerCase().includes(t)).sort((a, b) => rang(a) - rang(b)); idxCorr = 0;
+  // Seul le nom EXACT visible suffit quand l'ontologie est plus grande que l'aperçu : une occurrence partielle peut en cacher un meilleur.
+  // Les CELLULES sont des nœuds : chercher une valeur doit d'abord tomber sur la cellule (le serveur la renvoie en premier), pas sur la ligne
+  // qui porte ce libellé. On ne s'arrête donc en local que sur une cellule déjà affichée dont la valeur est exactement le texte cherché.
+  if (correspondances.length && correspondances[0].type === "cellule" && rang(correspondances[0]) === 0){ mettreAuFocus(correspondances[0].id, false, true); return; }
+  // Le serveur est interrogé si l'aperçu est tronqué, mais AUSSI quand rien n'a été trouvé même dans un aperçu complet : l'élément peut être
+  // plus récent que l'état affiché (le serveur recalcule alors l'état, comme « recharger », et l'aperçu repart de l'élément trouvé).
+  if (t.length >= 2){
+    const jeton = jetonServeur; boutonRecherche.disabled = true; boutonRecherche.textContent = "⏳"; champRecherche.style.opacity = 0.6;
+    const {ok, d} = await appelTrace("/api/ontologie/apercu/recherche/", "POST", {texte: t, page_id: PAGE_ID});
+    boutonRecherche.disabled = false; boutonRecherche.textContent = "🔎"; champRecherche.style.opacity = "";
+    if (jeton !== jetonServeur) return;   // une autre recherche a été lancée entre-temps
+    const r = ok && d.resultats ? d.resultats : [];
+    if (r.length && (r.length === 1 || String(r[0].label).toLowerCase() === t)){ allerRacine(r[0].id); return; }   // le résultat devient la racine du nouvel aperçu
+    for (const x of r){
+      const b = document.createElement("button"); b.textContent = `${x.label} · ${libType(x.type)}` + (x.detail ? ` · ${x.detail}` : "");   // detail : la cellule qui contient le texte cherché
+      b.style.cssText = "display:block;width:100%;text-align:left;background:transparent;border:0;color:var(--texte-clair,#e8e8e8);padding:3px 6px;cursor:pointer;font-size:12px";
+      b.onclick = () => allerRacine(x.id); listeServeur.append(b);
+    }
+    if (r.length){ listeServeur.style.display = "block"; return; }
+  }
+  if (correspondances.length) mettreAuFocus(correspondances[0].id, false, true);
+  else {
+    champRecherche.style.outline = "1px solid var(--texte-erreur,#f87171)";
+    const vide = document.createElement("div"); vide.textContent = TA("aucun_resultat", "Aucun résultat"); vide.style.cssText = "padding:3px 6px;color:var(--muted)";
+    listeServeur.append(vide); listeServeur.style.display = "block";
+  }
+}
+// Fil d'Ariane + état de l'aperçu : où l'on se trouve dans l'ontologie (entreprise › … › racine), chaque étape ramène à cette branche.
+(function filAriane(){
+  if (!APERCU.chemin || !APERCU.chemin.length) return;
+  const barre = document.createElement("div");
+  barre.style.cssText = "position:absolute;left:10px;top:10px;max-width:55%;z-index:45;display:flex;flex-direction:column;gap:3px;font-size:12px;pointer-events:none";
+  const ligne = document.createElement("div"); ligne.style.cssText = "display:flex;flex-wrap:wrap;align-items:center;gap:2px;pointer-events:auto;background:color-mix(in srgb,var(--fond-info,#0f172a) 88%,transparent);border:1px solid var(--bordure-info,#1e3a5f);border-radius:8px;padding:3px 6px";
+  APERCU.chemin.forEach((e, i) => {
+    if (i) { const sep = document.createElement("span"); sep.textContent = "›"; sep.style.color = "var(--muted)"; ligne.append(sep); }
+    const b = document.createElement("button"); b.textContent = e.label; b.title = libType(e.type);
+    const courant = i === APERCU.chemin.length - 1;
+    b.style.cssText = "background:transparent;border:0;padding:1px 4px;font-size:12px;cursor:" + (courant ? "default" : "pointer") + ";color:" + (courant ? "var(--texte-clair,#e8e8e8)" : "var(--texte-info,#7dd3fc)") + (courant ? ";font-weight:600" : "");
+    if (!courant) b.onclick = () => allerRacine(e.id);
+    ligne.append(b);
+  });
+  barre.append(ligne);
+  if (APERCU.tronque){
+    const info = document.createElement("div");
+    info.style.cssText = "align-self:flex-start;background:color-mix(in srgb,var(--fond-info,#0f172a) 88%,transparent);border:1px solid var(--bordure-info,#1e3a5f);border-radius:8px;padding:2px 8px;color:var(--muted);font-size:11px";
+    info.textContent = TA("apercu_info", "Aperçu : {v1} / {v2} nœuds · {v3} / {v4} relations", {v1: APERCU.noeuds_affiches, v2: APERCU.total_noeuds, v3: APERCU.aretes_affichees, v4: APERCU.total_aretes})
+      .replace("{v1}", APERCU.noeuds_affiches).replace("{v2}", APERCU.total_noeuds).replace("{v3}", APERCU.aretes_affichees).replace("{v4}", APERCU.total_aretes);
+    barre.append(info);
+  }
+  dockAjouter(barre, true, 1); barre.style.flexBasis = "100%";
+})();
+champRecherche.addEventListener("keydown", e => { if (e.key === "Enter"){ e.preventDefault(); lancerRecherche(); } });
+boutonRecherche.onclick = lancerRecherche;
+champRecherche.addEventListener("input", () => { if (!champRecherche.value.trim()){ rechercheTexte = ""; correspondances = []; dernierTexte = ""; listeServeur.style.display = "none"; } });   // champ vidé : fin de la mise en évidence
+document.addEventListener("keydown", e => {
+  if (e.key === "Escape") viderFocus();
+  else if (e.altKey && e.key === "ArrowLeft" && focusId && histo.length){ e.preventDefault(); mettreAuFocus(histo.pop(), true); }
+});
+
+// ── Historique des traces ───────────────────────────────────────────────────────────────────────────────────────────────────────
+// La trace en cours est réécrite sur le serveur ~1 s après chaque pas (et à la fermeture de la page) ; quand elle est effacée (Échap, « Effacer la trace »,
+// nouvelle recherche, résultats de l'Explorer…) elle passe dans l'historique, d'où on peut la reprendre, la nommer, l'épingler ou la supprimer.
+// Seuls des identifiants de nœuds et de relations partent au serveur, jamais le contenu des tables. L'historique est personnel, par page d'ontologie.
+function appelTrace(url, methode, corps){
+  return fetch(url, {
+    method: methode, headers: {"Content-Type": "application/json", "X-CSRFToken": cookie("gy_csrftoken"), "X-Silencieux": "1"},   // recherche et traces : jamais de cercle plein écran (la recherche a son ⏳)
+    body: corps ? JSON.stringify(corps) : undefined,
+  }).then(r => r.json().then(d => ({ok: r.ok, d})).catch(() => ({ok: r.ok, d: {}}))).catch(() => ({ok: false, d: {}}));
+}
+function enfilerTrace(fonction){ traceState.file = traceState.file.then(fonction).catch(() => {}); return traceState.file; }
+function payloadTrace(extra){
+  // Trace complète = la part hors aperçu (mémorisée) + la part affichée + le pas en cours s'il y en a un (`extra` : {noeud, lien?}).
+  const ids = [...new Set(reserveTrace.noeuds.concat(piste))];
+  if (extra && extra.noeud && !ids.includes(extra.noeud)) ids.push(extra.noeud);
+  const gardes = ids.slice(-500), vus = new Set(gardes);
+  const liens = reserveTrace.liens.concat(liensPiste.map(l => ({de: l.de, vers: l.vers, a: l.arete ? [l.arete.source, l.arete.cible, l.arete.relation || ""] : (l.a || null)})));
+  if (extra && extra.lien) liens.push(extra.lien);
+  return {
+    noeuds: gardes, focus: (extra && extra.noeud) || focusId || gardes[gardes.length - 1] || "",
+    liens: liens.filter(l => vus.has(l.de) && vus.has(l.vers)).slice(-1500),
+  };
+}
+function libelleNoeud(id){ const n = noeuds[parIndex[id]]; return n ? String(n.label) : ""; }
+function nomAutoTrace(ids){
+  ids = ids || piste;
+  if (ids.length >= 2) return (libelleNoeud(ids[0]) + " → " + libelleNoeud(ids[ids.length - 1])).slice(0, 140);
+  return tj("engine/templates/engine/ontologie.html:js:traces:sans_nom", {v1: new Date().toLocaleString()});
+}
+function planifierSauvegardeTrace(){
+  if (!modeTrace || piste.length < 2) return;   // une trace d'un seul nœud n'est pas une enquête : rien à mémoriser
+  clearTimeout(traceState.minuteur);
+  traceState.minuteur = setTimeout(sauvegarderTraceCourante, 900);
+}
+function sauvegarderTraceCourante(extra){
+  traceState.minuteur = null;
+  if (!modeTrace || (piste.length < 2 && !(extra && extra.noeud))) return Promise.resolve();
+  const corps = Object.assign({page_id: PAGE_ID, courante: true}, payloadTrace(extra && extra.noeud ? extra : undefined));
+  return enfilerTrace(async () => {
+    if (traceState.pendante){   // une trace précédente attendait d'être reprise : elle va dans l'historique, la nouvelle prend sa place
+      await appelTrace("/api/ontologie/traces/archiver/", "POST", {page_id: PAGE_ID});
+      traceState.pendante = null; masquerBandeauReprise(); await chargerTraces();
+    }
+    const r = await appelTrace("/api/ontologie/traces/", "POST", corps);
+    if (r.ok) traceState.serveur = true;
+  });
+}
+// La trace en cours passe dans l'historique (appelé par viderPiste : à chaque effacement ou remplacement de trace).
+function archiverTraceCourante(){
+  clearTimeout(traceState.minuteur); traceState.minuteur = null;
+  const corps = {page_id: PAGE_ID};
+  if (piste.length >= 2) Object.assign(corps, payloadTrace(), {nom: nomAutoTrace()});
+  enfilerTrace(async () => {
+    if (!corps.noeuds && !traceState.serveur) return;   // rien de mémorisé, rien à archiver
+    traceState.serveur = false; traceState.pendante = null; masquerBandeauReprise();
+    await appelTrace("/api/ontologie/traces/archiver/", "POST", corps);
+    await chargerTraces();
+  });
+}
+// Fermeture ou mise en arrière-plan de la page : on envoie tout de suite ce qui n'était pas encore parti.
+function envoyerTraceAvantDepart(){
+  if (traceState.minuteur === null) return;
+  clearTimeout(traceState.minuteur); traceState.minuteur = null;
+  if (!modeTrace || piste.length < 2) return;
+  try { fetch("/api/ontologie/traces/", {method: "POST", keepalive: true, headers: {"Content-Type": "application/json", "X-CSRFToken": cookie("gy_csrftoken"), "X-Silencieux": "1"},
+    body: JSON.stringify(Object.assign({page_id: PAGE_ID, courante: true}, payloadTrace()))}); } catch (e) {}
+}
+window.addEventListener("pagehide", envoyerTraceAvantDepart);
+document.addEventListener("visibilitychange", () => { if (document.visibilityState === "hidden") envoyerTraceAvantDepart(); });
+
+// Remet une trace dans la toile : les nœuds, l'ordre de l'enquête et les liens (ceux qui n'existent plus dans le graphe sont ignorés).
+function restaurerTrace(tr, opt){
+  opt = opt || {};
+  const tous = tr.noeuds || [], ids = tous.filter(i => i in parIndex);
+  if (!ids.length){ GY.alerter(tj("engine/templates/engine/ontologie.html:js:traces:introuvable")); return; }
+  const vus = new Set(ids), liens = [];
+  for (const l of (tr.liens || [])){
+    if (!vus.has(l.de) || !vus.has(l.vers)) continue;
+    const arete = l.a ? (aretes.find(x => x.source === l.a[0] && x.cible === l.a[1] && (x.relation || "") === l.a[2]) || null) : null;
+    liens.push({de: l.de, vers: l.vers, arete});
+  }
+  traceState.pendante = null; masquerBandeauReprise();
+  if (tr.courante) traceState.serveur = false;   // on la reprend : elle sera réécrite par la sauvegarde, pas archivée
+  modeTrace = true;
+  const dernier = ids[ids.length - 1];
+  mettreAuFocus(dernier, true, true);   // archive l'enquête en cours s'il y en avait une, place le focus et monte le panneau
+  piste = ids.slice(); liensPiste = liens; recalculerPiste();
+  histo = ids.slice(0, -1);             // « Retour » redéfait l'enquête pas à pas
+  if (opt.suite){   // trace poursuivie : la part qui n'est plus dans l'aperçu reste mémorisée (sans rendu) et repart avec la trace
+    reserveTrace = {noeuds: tous.filter(i => !(i in parIndex)),
+      liens: (tr.liens || []).filter(l => !(l.de in parIndex) || !(l.vers in parIndex))};
+    majBoutonTrace(); planifierSauvegardeTrace(); return;
+  }
+  majBoutonTrace(); cadrer(ids); planifierSauvegardeTrace();
+  if (ids.length < tous.length) GY.alerter(tj("engine/templates/engine/ontologie.html:js:traces:hors", {v1: tous.length - ids.length}));
+}
+
+// Bandeau « trace précédente » à l'ouverture de la page : la reprendre d'un clic, ou la garder simplement dans l'historique.
+const bandeauReprise = document.createElement("div");
+bandeauReprise.style.cssText = "display:none;position:absolute;left:50%;top:10px;transform:translateX(-50%);align-items:center;gap:10px;background:color-mix(in srgb,var(--fond-info,#0f172a) 92%,transparent);border:1px solid var(--warn,#f59e0b);border-radius:8px;padding:5px 10px;font-size:12px;color:var(--texte-orange,#f59e0b);z-index:46";
+const texteReprise = document.createElement("span"), boutonReprise = document.createElement("button"), boutonGarder = document.createElement("button");
+const styleBandeauBtn = "background:transparent;border:1px solid var(--warn,#f59e0b);color:var(--texte-orange,#f59e0b);border-radius:5px;cursor:pointer;font-size:11px;padding:1px 6px";
+boutonReprise.style.cssText = styleBandeauBtn; boutonGarder.style.cssText = styleBandeauBtn;
+boutonReprise.textContent = tj("engine/templates/engine/ontologie.html:js:traces:reprendre");
+boutonGarder.textContent = tj("engine/templates/engine/ontologie.html:js:traces:garder");
+boutonReprise.onclick = () => { const tr = traceState.pendante; if (tr) restaurerTrace(tr); };
+boutonGarder.onclick = () => archiverTraceCourante();
+bandeauReprise.append(texteReprise, boutonReprise, boutonGarder); dockAjouter(bandeauReprise, true, 0);
+function masquerBandeauReprise(){ bandeauReprise.style.display = "none"; }
+function montrerBandeauReprise(){
+  const tr = traceState.pendante;
+  if (!tr || focusId || piste.length) return;
+  texteReprise.textContent = tj("engine/templates/engine/ontologie.html:js:traces:bandeau", {v1: (tr.noeuds || []).length});
+  bandeauReprise.style.display = "flex";
+}
+
+// Panneau « Historique des traces ».
+const boutonHisto = document.createElement("button");
+boutonHisto.style.cssText = "position:absolute;left:12px;bottom:48px;background:color-mix(in srgb,var(--fond-info,#0f172a) 92%,transparent);border:1px solid var(--warn,#f59e0b);border-radius:6px;color:var(--texte-orange,#f59e0b);font-size:12px;padding:4px 10px;cursor:pointer;z-index:41";
+boutonHisto.textContent = tj("engine/templates/engine/ontologie.html:js:traces:bouton");
+const panneauHisto = document.createElement("div");
+panneauHisto.style.cssText = "display:none;position:absolute;left:12px;bottom:84px;width:330px;max-height:60%;overflow:auto;background:color-mix(in srgb,var(--fond-info,#0f172a) 96%,transparent);border:1px solid var(--bordure-info,#1e3a5f);border-radius:8px;padding:8px;font-size:12px;z-index:47";
+boutonHisto.onclick = () => {
+  traceState.panneauOuvert = !traceState.panneauOuvert;
+  panneauHisto.style.display = traceState.panneauOuvert ? "block" : "none";
+  if (traceState.panneauOuvert) chargerTraces();
+};
+dockAjouter(boutonHisto, false, 1); dockAjouter(panneauHisto, false, 4, true);
+
+async function chargerTraces(premiere){
+  const r = await appelTrace(`/api/ontologie/traces/?page=${PAGE_ID ?? ""}`, "GET");
+  if (!r.ok){ if (premiere && SUITE && APERCU.racine && noeuds[parIndex[APERCU.racine]]) mettreAuFocus(APERCU.racine, false, true); return; }
+  traceState.historique = r.d.historique || [];
+  if (premiere && SUITE){   // trace poursuivie (changement de racine) : reprise automatique, sans bandeau ; la racine est au focus
+    if (r.d.courante && (r.d.courante.noeuds || []).length && (r.d.courante.noeuds || []).some(i => i in parIndex)) restaurerTrace(r.d.courante, {suite: true});
+    else if (APERCU.racine && noeuds[parIndex[APERCU.racine]]) mettreAuFocus(APERCU.racine, false, true);
+    dessinerHistorique(); return;
+  }
+  if (premiere && r.d.courante){ traceState.serveur = true; traceState.pendante = r.d.courante; montrerBandeauReprise(); }
+  dessinerHistorique();
+}
+function dessinerHistorique(){
+  if (!traceState.panneauOuvert) return;
+  panneauHisto.replaceChildren();
+  const entete = document.createElement("div"); entete.style.cssText = "display:flex;justify-content:space-between;align-items:center;margin-bottom:6px";
+  const titre = document.createElement("b"); titre.style.color = "var(--texte-info,#7dd3fc)"; titre.textContent = tj("engine/templates/engine/ontologie.html:js:traces:titre");
+  const fermer = document.createElement("button"); fermer.textContent = "✕"; fermer.title = tj("engine/templates/engine/ontologie.html:js:traces:fermer");
+  fermer.style.cssText = "background:transparent;border:0;color:var(--muted);cursor:pointer;font-size:13px";
+  fermer.onclick = () => { traceState.panneauOuvert = false; panneauHisto.style.display = "none"; };
+  entete.append(titre, fermer); panneauHisto.appendChild(entete);
+  const enregistrer = document.createElement("button"); enregistrer.textContent = tj("engine/templates/engine/ontologie.html:js:traces:enregistrer");
+  enregistrer.style.cssText = "display:block;width:100%;text-align:left;background:transparent;border:1px solid var(--bordure-info,#1e3a5f);border-radius:5px;color:var(--texte-clair,#e8e8e8);padding:4px 6px;margin-bottom:6px;cursor:pointer;font-size:12px";
+  enregistrer.onclick = async () => {
+    if (piste.length < 2){ GY.alerter(tj("engine/templates/engine/ontologie.html:js:traces:trop_courte")); return; }
+    const nom = await GY.demander(tj("engine/templates/engine/ontologie.html:js:traces:nom_invite"), nomAutoTrace());
+    if (nom === null) return;
+    const corps = Object.assign({page_id: PAGE_ID, nom: String(nom).trim()}, payloadTrace());
+    await enfilerTrace(async () => {
+      const r = await appelTrace("/api/ontologie/traces/", "POST", corps);
+      if (!r.ok) GY.alerter(r.d.erreur || tj("engine/templates/engine/ontologie.html:js:traces:erreur"));
+    });
+    chargerTraces();
+  };
+  panneauHisto.appendChild(enregistrer);
+  if (!traceState.historique.length){
+    const vide = document.createElement("div"); vide.style.cssText = "color:var(--muted);padding:4px"; vide.textContent = tj("engine/templates/engine/ontologie.html:js:traces:vide");
+    panneauHisto.appendChild(vide); return;
+  }
+  const btn = (texte, titreBtn, clic, extra) => {
+    const b = document.createElement("button"); b.textContent = texte; b.title = titreBtn; b.onclick = clic;
+    b.style.cssText = "background:transparent;border:1px solid var(--bordure-info,#1e3a5f);border-radius:5px;color:var(--texte-clair,#e8e8e8);padding:2px 6px;cursor:pointer;font-size:12px;" + (extra || ""); return b;
+  };
+  for (const tr of traceState.historique){
+    const carte = document.createElement("div"); carte.style.cssText = "background:color-mix(in srgb,var(--voile-clair,#ffffff) 4%,transparent);border-radius:5px;padding:6px;margin-bottom:5px";
+    const nom = document.createElement("div"); nom.style.cssText = "font-weight:600;margin-bottom:2px;word-break:break-word";
+    nom.textContent = (tr.epinglee ? "📌 " : "") + (tr.nom || tj("engine/templates/engine/ontologie.html:js:traces:sans_nom", {v1: new Date(tr.cree_le).toLocaleString()}));
+    const resume = document.createElement("div"); resume.style.cssText = "color:var(--muted);font-size:11px;margin-bottom:4px";
+    resume.textContent = tj("engine/templates/engine/ontologie.html:js:traces:resume", {v1: (tr.noeuds || []).length, v2: new Date(tr.maj_le).toLocaleString()});
+    const actions = document.createElement("div"); actions.style.cssText = "display:flex;gap:4px;flex-wrap:wrap";
+    actions.append(
+      btn(tj("engine/templates/engine/ontologie.html:js:traces:reprendre"), tj("engine/templates/engine/ontologie.html:js:traces:reprendre"), () => restaurerTrace(tr), "color:var(--texte-orange,#fbbf24)"),
+      btn("📌", tr.epinglee ? tj("engine/templates/engine/ontologie.html:js:traces:desepingler") : tj("engine/templates/engine/ontologie.html:js:traces:epingler"), async () => {
+        const r = await appelTrace(`/api/ontologie/traces/${tr.id}/`, "PATCH", {epinglee: !tr.epinglee});
+        if (!r.ok) GY.alerter(r.d.erreur || tj("engine/templates/engine/ontologie.html:js:traces:erreur")); chargerTraces();
+      }, tr.epinglee ? "border-color:var(--warn,#f59e0b)" : ""),
+      btn("✎", tj("engine/templates/engine/ontologie.html:js:traces:renommer"), async () => {
+        const nouveau = await GY.demander(tj("engine/templates/engine/ontologie.html:js:traces:nom_invite"), tr.nom || "");
+        if (nouveau === null) return;
+        await appelTrace(`/api/ontologie/traces/${tr.id}/`, "PATCH", {nom: String(nouveau).trim()}); chargerTraces();
+      }),
+      btn("🗑", tj("engine/templates/engine/ontologie.html:js:traces:supprimer"), async () => {
+        if (!await GY.confirmer(tj("engine/templates/engine/ontologie.html:js:traces:confirmer_suppr"))) return;
+        await appelTrace(`/api/ontologie/traces/${tr.id}/`, "DELETE"); chargerTraces();
+      }, "margin-left:auto"),
+    );
+    carte.append(nom, resume, actions); panneauHisto.appendChild(carte);
+  }
+}
+traceState.file = chargerTraces(true).catch(() => {});
+
+// ── Pilotage automatique de la caméra (mode exploration) ───────────────────
+// Quand personne n'interagit avec le graphe pendant un moment, la caméra se
+// met à l'explorer toute seule : elle choisit un nœud de départ au hasard
+// ("focus aléatoire"), puis avance de proche en proche le long des relations
+// réellement existantes (parcours intelligent, pas un mouvement au hasard),
+// avant de sauter vers une autre zone du graphe pour continuer — et ainsi de
+// suite, indéfiniment, jusqu'à ce que l'utilisateur reprenne la main (clic,
+// glissement, molette, clavier, recherche…).
+const SEUIL_INACTIVITE_MS = 4500;
+let explorationAutoPermise = true;
+let dernierInteraction = Date.now();
+let camAnim = null;
+const pilotageAuto = { actif:false, noeudCourant:null, cibleAffichee:null, visites:new Set(), prochainPasA:0 };
+const indicateurExplo = document.getElementById("indicateur-explo");
+if (indicateurExplo) dockAjouter(indicateurExplo, false, 5);
+
+function afficherIndicateurExplo(visible){
+  if (indicateurExplo) indicateurExplo.style.display = visible ? "block" : "none";
+}
+function arreterPilotage(){
+  if (!pilotageAuto.actif) return;
+  pilotageAuto.actif = false; pilotageAuto.cibleAffichee = null; camAnim = null;
+  afficherIndicateurExplo(false);
+}
+function demarrerPilotage(){
+  pilotageAuto.actif = true; pilotageAuto.noeudCourant = null;
+  pilotageAuto.visites = new Set(); pilotageAuto.prochainPasA = 0;
+  afficherIndicateurExplo(true);
+}
+function marquerInteraction(){
+  dernierInteraction = Date.now();
+  arreterPilotage();
+}
+// Toute interaction réelle (souris, tactile, molette, clavier) coupe
+// immédiatement le pilote automatique et relance le minuteur d'inactivité.
+document.addEventListener("pointerdown", marquerInteraction, {capture:true});
+document.addEventListener("wheel", marquerInteraction, {capture:true, passive:true});
+document.addEventListener("keydown", marquerInteraction, {capture:true});
+
+// Réglage « animation automatique » : mémorisé dans le navigateur (survit au rechargement) et affiché sur le bouton (activé / désactivé).
+const CLE_AUTO = "onto_animation_auto";
+try { if (localStorage.getItem(CLE_AUTO) === "0") explorationAutoPermise = false; } catch (e) { /* stockage indisponible : défaut activé */ }
+const boutonAuto = document.getElementById("btn-explo-auto");
+function majBoutonAuto(){
+  if (!boutonAuto) return;
+  if (boutonAuto.dataset.base === undefined) boutonAuto.dataset.base = boutonAuto.textContent.trim();
+  const etat = explorationAutoPermise ? tj("engine/templates/engine/ontologie.html:js:auto:actif") : tj("engine/templates/engine/ontologie.html:js:auto:inactif");
+  boutonAuto.textContent = boutonAuto.dataset.base + " : " + etat;
+  boutonAuto.classList.toggle("actif", explorationAutoPermise);
+  boutonAuto.setAttribute("aria-pressed", explorationAutoPermise ? "true" : "false");
+}
+majBoutonAuto();
+boutonAuto?.addEventListener("click", () => {
+  explorationAutoPermise = !explorationAutoPermise;
+  try { localStorage.setItem(CLE_AUTO, explorationAutoPermise ? "1" : "0"); } catch (e) { /* non mémorisé */ }
+  majBoutonAuto();
+  if (!explorationAutoPermise) arreterPilotage(); else marquerInteraction();
+});
+
+function prochainNoeudPilotage(){
+  if (!noeuds.length) return null;
+  const actuel = pilotageAuto.noeudCourant;
+  if (actuel){
+    const voisins = (adj[actuel.id]||[]).filter(id => id in parIndex);
+    const voisinsNonVus = voisins.filter(id => !pilotageAuto.visites.has(id));
+    // 70% de chances de continuer le parcours le long d'une relation réelle
+    // (exploration "intelligente" du graphe) ; sinon on change de zone.
+    if (voisinsNonVus.length && Math.random() < 0.7){
+      const id = voisinsNonVus[Math.floor(Math.random()*voisinsNonVus.length)];
+      return noeuds[parIndex[id]];
+    }
+  }
+  let n, essais = 0;
+  do { n = noeuds[Math.floor(Math.random()*noeuds.length)]; essais++; }
+  while (actuel && n.id === actuel.id && essais < 8 && noeuds.length > 1);
+  pilotageAuto.visites = new Set();
+  return n;
+}
+
+function viserCamera(noeud, duree){
+  camAnim = {
+    depart: {x:cam.x, y:cam.y, zoom:cam.zoom},
+    arrivee: {x:-noeud.x, y:-noeud.y, zoom: Math.max(1.1, Math.min(1.8, cam.zoom))},
+    debut: performance.now(), duree,
+  };
+}
+function appliquerCamAnim(maintenant){
+  if (!camAnim) return;
+  let t = (maintenant - camAnim.debut) / camAnim.duree;
+  if (t >= 1) t = 1;
+  const p = t < 0.5 ? 4*t*t*t : 1 - Math.pow(-2*t+2, 3)/2; // ease-in-out cubique
+  cam.x = camAnim.depart.x + (camAnim.arrivee.x - camAnim.depart.x)*p;
+  cam.y = camAnim.depart.y + (camAnim.arrivee.y - camAnim.depart.y)*p;
+  cam.zoom = camAnim.depart.zoom + (camAnim.arrivee.zoom - camAnim.depart.zoom)*p;
+  if (!Number.isFinite(cam.x) || !Number.isFinite(cam.y) || !Number.isFinite(cam.zoom)){ cam = {x:0, y:0, zoom:1}; camAnim = null; return; }
+  if (t >= 1) camAnim = null;
+}
+function etapePilotage(maintenant){
+  if (maintenant < pilotageAuto.prochainPasA) return;
+  const n = prochainNoeudPilotage();
+  if (!n) return;
+  pilotageAuto.visites.add(n.id);
+  pilotageAuto.noeudCourant = n; pilotageAuto.cibleAffichee = n;
+  if (!Number.isFinite(n.x) || !Number.isFinite(n.y)){ pilotageAuto.prochainPasA = maintenant + 500; return; }
+  const distance = Math.hypot(n.x + cam.x, n.y + cam.y);
+  const duree = Math.max(900, Math.min(2600, distance*2.2 || 900));
+  viserCamera(n, duree);
+  pilotageAuto.prochainPasA = maintenant + duree + 1300 + Math.random()*900;
+}
+
+// Couleurs du thème lues une seule fois (la boucle de dessin les réutilise à chaque image).
+const COUL_ONTO = {chemin: gyCouleur("--forme-jaune-vif","#fbbf24"), piste: gyCouleur("--texte-orange","#f59e0b"), gris: gyCouleur("--forme-gris","#888888")};
+function dessiner(){
+  ctx.clearRect(0,0,LARGEUR,HAUTEUR);
+  for (const a of aretes){
+    const s = noeuds[parIndex[a.source]], c = noeuds[parIndex[a.cible]];
+    const ps = versEcran(s), pc = versEcran(c);
+    const rel = a.relation || ""; const cfg = configAretes[rel];
+    const surChemin = chemin.some((id,i) => i<chemin.length-1 &&
+      ((chemin[i]===a.source&&chemin[i+1]===a.cible)||(chemin[i]===a.cible&&chemin[i+1]===a.source)));
+    if (cfg && !cfg.visible && !focusId && !selection && !surChemin) continue;   // type masqué : visible seulement pour un objet en focus, une sélection ou un chemin
+    const surPiste = modeTrace && aretesPiste.has(a);
+    if (focusId && !aretesFocus.has(a) && !surPiste) continue;
+    if (selection && !(aretesSel ? aretesSel.has(`${a.source}|${a.cible}`) : selection.has(a.source) && selection.has(a.cible))) continue;
+    ctx.strokeStyle = surChemin ? COUL_ONTO.chemin : surPiste ? COUL_ONTO.piste : (cfg ? cfg.couleur : (a.couleur || COUL_ONTO.gris));
+    ctx.lineWidth = surChemin ? 3 : surPiste ? 4 : (focusId || selection) ? 2.5 : Math.min(4, 0.6 + Math.log10((a.poids||1)+1));
+    ctx.globalAlpha = filtreType && a.source in parIndex && noeuds[parIndex[a.source]].type !== filtreType && noeuds[parIndex[a.cible]]?.type !== filtreType ? 0.08 : 0.9;
+    ctx.beginPath(); ctx.moveTo(ps.x,ps.y); ctx.lineTo(pc.x,pc.y); ctx.stroke(); ctx.globalAlpha = 1;
+    if (focusId && (aretesFocus.size <= 40 || surPiste) && rel){   // relation écrite sur le lien, avec son sens
+      ctx.fillStyle = (getComputedStyle(document.body).getPropertyValue("--texte-clair").trim() || "#cbd5e1"); ctx.font = "10px ui-monospace,monospace"; ctx.textAlign = "center";
+      const txtRel = a.source === focusId ? libRel(rel) + " →" : a.cible === focusId ? "← " + libRel(rel) : libRel(rel);
+      ctx.lineJoin = "round"; ctx.lineWidth = 3; ctx.strokeStyle = gyCouleur("--fond-noir", "#000000", .85); ctx.strokeText(txtRel, (ps.x+pc.x)/2, (ps.y+pc.y)/2 - 3);
+      ctx.fillStyle = (getComputedStyle(document.body).getPropertyValue("--texte-clair").trim() || "#cbd5e1"); ctx.fillText(txtRel, (ps.x+pc.x)/2, (ps.y+pc.y)/2 - 3);
+    }
+  }
+  if (focusId && modeTrace){   // pas de la trace sans lien direct : pointillés
+    ctx.save(); ctx.setLineDash([6, 5]); ctx.strokeStyle = gyCouleur("--forme-orange", "#f59e0b"); ctx.lineWidth = 2.5;
+    for (const l of liensPiste){
+      if (l.arete) continue;
+      const s = noeuds[parIndex[l.de]], c = noeuds[parIndex[l.vers]]; if (!s || !c) continue;
+      const ps = versEcran(s), pc = versEcran(c);
+      ctx.beginPath(); ctx.moveTo(ps.x, ps.y); ctx.lineTo(pc.x, pc.y); ctx.stroke();
+    }
+    ctx.restore();
+  }
+  const texteClair = getComputedStyle(document.body).getPropertyValue("--texte-clair").trim() || "#e8e8e8";   // lu une fois par image, pas une fois par nœud
+  for (const n of noeuds){
+    const p = versEcran(n);
+    if (!Number.isFinite(p.x) || !Number.isFinite(p.y)) continue;
+    if (p.x < -60 || p.x > LARGEUR + 60 || p.y < -60 || p.y > HAUTEUR + 60) continue;   // hors cadre : rien à tracer
+    const correspond = rechercheTexte && String(n.label).toLowerCase().includes(rechercheTexte);
+    const attenue = focusId ? !(n.id === focusId || voisinsFocus.has(n.id) || (modeTrace && ensPiste.has(n.id))) : selection ? !selection.has(n.id) : (filtreType && n.type !== filtreType && n.type !== "entreprise") || (rechercheTexte && !correspond);
+    ctx.globalAlpha = attenue ? ((focusId || selection) ? 0.07 : 0.15) : 1;
+    ctx.fillStyle = n.couleur || DONNEES.couleurs[n.type] || gyCouleur("--texte-discret","#888888");
+    ctx.beginPath(); ctx.arc(p.x, p.y, n.taille*cam.zoom*0.5, 0, 7); ctx.fill();
+    if (n.systeme){   // table système : anneau en pointillés, distincte d'une table métier de même teinte
+      ctx.save(); ctx.strokeStyle = gyCouleur("--forme-clair", "#ffffff", .7); ctx.lineWidth = 1.5; ctx.setLineDash([3, 3]);
+      ctx.beginPath(); ctx.arc(p.x, p.y, n.taille*cam.zoom*0.5 + 2.5, 0, 7); ctx.stroke(); ctx.restore();
+    }
+    if (n.epingle){ ctx.strokeStyle = gyCouleur("--forme-clair", "#ffffff", .55); ctx.lineWidth = 1; ctx.beginPath(); ctx.arc(p.x, p.y, n.taille*cam.zoom*0.5 + 2, 0, 7); ctx.stroke(); }   // nœud épinglé
+    if ((communs.has(n.id) || chemin.includes(n.id) || correspond) && !attenue){
+      ctx.strokeStyle = gyCouleur("--forme-jaune", "#fbbf24"); ctx.lineWidth = 2;
+      ctx.beginPath(); ctx.arc(p.x, p.y, n.taille*cam.zoom*0.5+3, 0, 7); ctx.stroke();
+    }
+    if (selection && !attenue && !chemin.includes(n.id)){
+      ctx.strokeStyle = n.id === centreSel ? gyCouleur("--accent","#38bdf8") : gyCouleur("--warn","#fbbf24"); ctx.lineWidth = n.id === centreSel ? 3 : 2;
+      ctx.beginPath(); ctx.arc(p.x, p.y, n.taille*cam.zoom*0.5 + 3, 0, 7); ctx.stroke();
+    }
+    if (n.id === pointeId){
+      ctx.strokeStyle = gyCouleur("--forme-rouge", "#f87171"); ctx.lineWidth = 3;
+      ctx.beginPath(); ctx.arc(p.x, p.y, n.taille*cam.zoom*0.5 + 7 + 3*Math.sin(performance.now()/180), 0, 7); ctx.stroke();
+    }
+    if (focusId && modeTrace && ensPiste.has(n.id) && n.id !== focusId){
+      ctx.strokeStyle = gyCouleur("--forme-orange", "#f59e0b"); ctx.lineWidth = 3;
+      ctx.beginPath(); ctx.arc(p.x, p.y, n.taille*cam.zoom*0.5 + 4, 0, 7); ctx.stroke();
+      ctx.fillStyle = (getComputedStyle(document.body).getPropertyValue("--texte-orange").trim() || "#f59e0b"); ctx.font = "bold 11px ui-monospace,monospace"; ctx.textAlign = "center";
+      ctx.fillText(String(piste.indexOf(n.id) + 1), p.x, p.y - n.taille*cam.zoom*0.5 - 8);
+      ctx.fillStyle = n.couleur || DONNEES.couleurs[n.type] || gyCouleur("--texte-discret","#888888");
+    }
+    if (n.id === focusId){
+      ctx.strokeStyle = gyCouleur("--forme-bleu", "#38bdf8"); ctx.lineWidth = 3;
+      ctx.beginPath(); ctx.arc(p.x, p.y, n.taille*cam.zoom*0.5 + 5, 0, 7); ctx.stroke();
+    }
+    if (pilotageAuto.actif && pilotageAuto.cibleAffichee && pilotageAuto.cibleAffichee.id === n.id){
+      const pouls = 4 + 3*Math.sin(performance.now()/220);
+      ctx.strokeStyle = gyCouleur("--forme-bleu", "#38bdf8"); ctx.lineWidth = 2;
+      ctx.beginPath(); ctx.arc(p.x, p.y, n.taille*cam.zoom*0.5 + pouls, 0, 7); ctx.stroke();
+    }
+    const voisinEcrit = focusId && (n.id === focusId || voisinsFocus.has(n.id)) && voisinsFocus.size <= 40;   // même règle que les relations : au plus 40 voisins écrits
+    if ((etiquettesVisibles || selection || voisinEcrit || (focusId && modeTrace && ensPiste.has(n.id))) && !attenue){
+      ctx.font = "11px ui-monospace,monospace"; ctx.textAlign = "center";
+      const x = p.x, y = p.y + n.taille*cam.zoom*0.5 + 12, txt = String(n.label).slice(0,16);
+      ctx.lineJoin = "round"; ctx.lineWidth = 3; ctx.strokeStyle = gyCouleur("--fond-noir", "#000000", .85); ctx.strokeText(txt, x, y);   // liseré sombre : lisible sur les liens et les autres nœuds
+      ctx.fillStyle = texteClair; ctx.fillText(txt, x, y);
+    }
+    ctx.globalAlpha = 1;
+  }
+}
+function boucle(){
+  const maintenant = performance.now();
+  simuler();
+  // En phase « assistance », le modèle fantôme d'ontologie (fantome_ontologie.js) mène l'animation à la place de ce pilote générique.
+  if (explorationAutoPermise && !focusId && !selection && !pilotageAuto.actif && Date.now() - dernierInteraction > SEUIL_INACTIVITE_MS && !window.FantomeOnto?.enAssistance()){
+    demarrerPilotage();
+  }
+  if (pilotageAuto.actif) etapePilotage(maintenant);
+  if (camAnim && focusId){ const f = noeuds[parIndex[focusId]]; camAnim.arrivee.x = -f.x; camAnim.arrivee.y = -f.y; }
+  appliquerCamAnim(maintenant);
+  dessiner();
+  requestAnimationFrame(boucle);
+}
+boucle();
+
+// ── Interactions souris/tactile : pan, pincement-zoom, glisser un nœud,
+// clic pour naviguer — Pointer Events unifie souris/doigt/stylet ──
+let glisseCam = null, glisseNoeud = null, departSouris = null, aBouge = false;
+const ptrsActifs = new Map();
+let pincementDist0 = null, pincementZoom0 = null;
+// Nœud estompé par le focus, la sélection, le filtre ou la recherche : quasi invisible à l'écran, donc jamais pris au clic (même règle que dessiner()).
+function estAttenue(n){
+  const correspond = rechercheTexte && String(n.label).toLowerCase().includes(rechercheTexte);
+  return focusId ? !(n.id === focusId || voisinsFocus.has(n.id) || (modeTrace && ensPiste.has(n.id)))
+    : selection ? !selection.has(n.id)
+    : !!((filtreType && n.type !== filtreType && n.type !== "entreprise") || (rechercheTexte && !correspond));
+}
+// Nœud sous le pointeur : d'abord celui dont le disque, tel que dessiné, contient le point (le plus au-dessus d'abord) ; à défaut le plus proche à
+// 3 px d'écran près. L'ancienne marge fixe de 4 unités monde couvrait presque tout le canevas d'un graphe dense : un autre nœud était pris, et le
+// fond ne pouvait plus être saisi pour déplacer le graphe.
+function noeudSous(px,py){
+  const m = versMonde(px,py), tol = 3/cam.zoom;
+  let proche = null, ecartMin = Infinity;
+  for (let i=noeuds.length-1;i>=0;i--){
+    const n = noeuds[i], d = Math.hypot(m.x-n.x, m.y-n.y), r = n.taille*0.5;
+    if (d > r + tol || estAttenue(n)) continue;
+    if (d <= r) return n;
+    if (d - r < ecartMin){ ecartMin = d - r; proche = n; }
+  }
+  if (proche) return proche;
+  // Trace en cours : un nœud estompé (hors voisinage du focus) reste cliquable, à même le disque dessiné, pour poursuivre l'enquête
+  // (trait plein si voisin direct, pointillé sinon). Sans cela le clic tombait sur le fond et vidait toute la trace.
+  if (focusId && modeTrace){
+    for (let i=noeuds.length-1;i>=0;i--){
+      const n = noeuds[i];
+      if (Math.hypot(m.x-n.x, m.y-n.y) <= n.taille*0.5) return n;
+    }
+  }
+  return null;
+}
+// Relation réellement dessinée à l'écran (mêmes règles de masquage que dessiner()) : une relation masquée ou estompée ne se prend jamais au clic.
+function areteAffichee(a){
+  const cfg = configAretes[a.relation || ""];
+  const surChemin = chemin.some((id,i) => i<chemin.length-1 &&
+    ((chemin[i]===a.source&&chemin[i+1]===a.cible)||(chemin[i]===a.cible&&chemin[i+1]===a.source)));
+  if (cfg && !cfg.visible && !focusId && !selection && !surChemin) return false;
+  if (focusId && !aretesFocus.has(a) && !(modeTrace && aretesPiste.has(a))) return false;
+  if (selection && !(aretesSel ? aretesSel.has(`${a.source}|${a.cible}`) : selection.has(a.source) && selection.has(a.cible))) return false;
+  return true;
+}
+// La relation la PLUS PROCHE (6 px d'écran au plus), et non la première trouvée dans la liste.
+function areteSous(px,py){
+  const m = versMonde(px,py), tol = 6/cam.zoom;
+  let meilleure = null, ecartMin = Infinity;
+  for (const a of aretes){
+    const s = noeuds[parIndex[a.source]], c = noeuds[parIndex[a.cible]];
+    if (!s || !c) continue;
+    const dx=c.x-s.x, dy=c.y-s.y, len2 = dx*dx+dy*dy || 0.01;
+    let t = ((m.x-s.x)*dx + (m.y-s.y)*dy) / len2;
+    t = Math.max(0, Math.min(1, t));
+    const ecart = Math.hypot(m.x-(s.x + t*dx), m.y-(s.y + t*dy));
+    if (ecart <= tol && ecart < ecartMin && areteAffichee(a)){ ecartMin = ecart; meilleure = a; }
+  }
+  return meilleure;
+}
+// Infobulle d'un nœud : au survol (souris) ou au toucher (écran tactile, qui n'a pas de survol).
+function afficherInfobulle(n, px, py, dx, dy){
+  infobulle.style.display="block"; infobulle.style.left=px+dx+"px"; infobulle.style.top=py+dy+"px";
+      const poidsMax = Math.max(0, ...aretes.filter(a=>a.source===n.id||a.cible===n.id).map(a=>a.poids||0));
+      infobulle.textContent = `${n.label} (${libType(n.type)})${n.est_table_membres ? ' 🪪' : ''}${poidsMax ? ' · ' + tj("engine/templates/engine/ontologie.html:a:1021:force", {v1: poidsMax}) : ''}${n.description ? ' · 📝 '+n.description.slice(0,60) : ''}`;
+}
+// Écran tactile ou souris sans clavier : Maj+clic (chemin entre deux nœuds) et Alt+clic (libérer un nœud épinglé) deviennent deux boutons
+// à effet unique, comme « Étendre / Ligne / Colonne » dans la grille : le bouton armé sert au PROCHAIN toucher d'un nœud.
+let armeTactile = null;
+const barreGestes = document.createElement("div");
+barreGestes.style.cssText = "position:absolute;left:12px;bottom:12px;display:flex;gap:6px;z-index:41";
+function majBarreGestes(){ barreGestes.querySelectorAll("button").forEach(b => { const on = b.dataset.mode === armeTactile; b.style.background = on ? gyCouleur("--accent","#38bdf8") : "color-mix(in srgb,var(--fond-info,#0f172a) 92%,transparent)"; b.style.color = on ? gyCouleur("--texte-accent","#000") : gyCouleur("--texte-info","#7dd3fc"); }); }
+[["chemin", tj("engine/templates/engine/ontologie.html:js:gestes:chemin")], ["liberer", tj("engine/templates/engine/ontologie.html:js:gestes:liberer")]].forEach(([mode, texte]) => {
+  const b = document.createElement("button"); b.type = "button"; b.dataset.mode = mode; b.textContent = texte;
+  b.style.cssText = "border:1px solid var(--bordure-info,#1e3a5f);border-radius:6px;font-size:12px;padding:6px 12px;min-height:34px;cursor:pointer";
+  b.onclick = () => { armeTactile = armeTactile === mode ? null : mode; majBarreGestes(); };
+  barreGestes.append(b);
+});
+majBarreGestes(); dockAjouter(barreGestes, false, 0);
+function prendreGeste(mode){ if (armeTactile !== mode) return false; armeTactile = null; majBarreGestes(); return true; }
+cnv.addEventListener("pointerdown", e => {
+  cnv.setPointerCapture(e.pointerId);
+  ptrsActifs.set(e.pointerId, {x:e.clientX, y:e.clientY});
+  if (ptrsActifs.size === 2){
+    // Un 2e doigt se pose : on passe en pincement, on annule le pan/glisser en cours.
+    if (glisseNoeud) glisseNoeud.fixe = false;
+    glisseNoeud = null; glisseCam = null; cnv.classList.remove("saisi");
+    const [a,b] = [...ptrsActifs.values()];
+    pincementDist0 = Math.hypot(a.x-b.x, a.y-b.y); pincementZoom0 = cam.zoom;
+    return;
+  }
+  if (ptrsActifs.size > 1) return;
+  const rect = cnv.getBoundingClientRect(), px=e.clientX-rect.left, py=e.clientY-rect.top;
+  const n = noeudSous(px,py);
+  departSouris = {x:px,y:py}; aBouge = false;
+  if (n && (e.altKey || prendreGeste("liberer"))) n.epingle = false;   // Alt+clic (ou bouton « Libérer ») : le nœud est rendu à la simulation
+  if (e.pointerType !== "mouse"){ if (n) afficherInfobulle(n, px, py, 12, -48); else infobulle.style.display = "none"; }   // pas de survol au toucher : l'infobulle suit le toucher
+  if (n){ glisseNoeud = n; n.fixe = true; } else { glisseCam = {x:cam.x,y:cam.y,px,py}; cnv.classList.add("saisi"); }
+});
+window.addEventListener("pointermove", e => {
+  if (ptrsActifs.has(e.pointerId)) ptrsActifs.set(e.pointerId, {x:e.clientX, y:e.clientY});
+  if (ptrsActifs.size === 2 && pincementDist0){
+    const [a,b] = [...ptrsActifs.values()];
+    cam.zoom = Math.max(0.15, Math.min(4, pincementZoom0 * (Math.hypot(a.x-b.x,a.y-b.y)/pincementDist0)));
+    return;
+  }
+  const rect = cnv.getBoundingClientRect(), px=e.clientX-rect.left, py=e.clientY-rect.top;
+  if (departSouris && (Math.abs(px-departSouris.x)>3 || Math.abs(py-departSouris.y)>3)) aBouge = true;
+  if (glisseNoeud){ const m = versMonde(px,py); glisseNoeud.x=m.x; glisseNoeud.y=m.y; alpha=Math.max(alpha,0.3); }
+  else if (glisseCam){ cam.x = glisseCam.x + (px-glisseCam.px)/cam.zoom; cam.y = glisseCam.y + (py-glisseCam.py)/cam.zoom; }
+  else {
+    const n = noeudSous(px,py);
+    if (n) afficherInfobulle(n, px, py, 12, 12);
+    else infobulle.style.display = "none";
+  }
+});
+window.addEventListener("pointerup", async e => {
+  ptrsActifs.delete(e.pointerId);
+  if (ptrsActifs.size < 2) pincementDist0 = null;
+  if (ptrsActifs.size > 0) return; // un doigt reste posé : ne pas conclure le geste
+  if (glisseNoeud && !aBouge && modeColorierActif){
+    colorierNoeud(glisseNoeud);
+  } else if (glisseNoeud && !aBouge && modeDecrireActif){
+    ouvrirModalDescriptionOnto("noeud", glisseNoeud.id, glisseNoeud.label);
+  } else if (!glisseNoeud && !aBouge && modeDecrireActif){
+    const rect = cnv.getBoundingClientRect();
+    const a = areteSous(e.clientX-rect.left, e.clientY-rect.top);
+    if (a) ouvrirModalDescriptionOnto("relation", a.cle, `${a.source} → ${a.cible} (${libRel(a.relation)})`);
+  } else if (glisseNoeud && !aBouge && modeRelierActif){
+    if (!premierNoeudRelie){ premierNoeudRelie = glisseNoeud.id; }
+    else if (premierNoeudRelie !== glisseNoeud.id){
+      const nom = document.getElementById("inp-nom-relation").value.trim() || "lien";
+      const rep = await fetch(`/api/ontologie/pages/${PAGE_ID}/manuel/relations/`, {
+        method: "POST", headers: {"Content-Type": "application/json", "X-CSRFToken": cookie("gy_csrftoken")},
+        body: JSON.stringify({source: premierNoeudRelie, cible: glisseNoeud.id, relation: nom}),
+      });
+      if (rep.ok) rechargerFrais();
+      else GY.alerter(tj("engine/templates/engine/ontologie.html:js:1061:19"));
+      premierNoeudRelie = null;
+    }
+  } else if (glisseNoeud && !aBouge && (e.shiftKey || prendreGeste("chemin"))){
+    if (!selA){ selA = glisseNoeud.id; chemin = []; communs = new Set(); }
+    else {
+      chemin = cheminCourt(selA, glisseNoeud.id);
+      communs = new Set((adj[selA]||[]).filter(x => (adj[glisseNoeud.id]||[]).includes(x)));
+      selA = null;
+    }
+  } else if (glisseNoeud && !aBouge){
+    mettreAuFocus(glisseNoeud.id);
+  } else if (departSouris && !glisseNoeud && !aBouge && (focusId || selection)){
+    viderFocus();
+  }
+  if (glisseNoeud){ if (aBouge) glisseNoeud.epingle = true; glisseNoeud.fixe = false; }   // un nœud réellement déplacé n'est plus rappelé par les ressorts
+  glisseNoeud = null; glisseCam = null; departSouris = null; cnv.classList.remove("saisi");
+});
+// Geste interrompu par le système (appel, notification, changement d'appli) : sans cela le glisser restait collé au pointeur.
+window.addEventListener("pointercancel", e => {
+  ptrsActifs.delete(e.pointerId);
+  if (ptrsActifs.size < 2) pincementDist0 = null;
+  if (ptrsActifs.size > 0) return;
+  if (glisseNoeud) glisseNoeud.fixe = false;
+  glisseNoeud = null; glisseCam = null; departSouris = null; cnv.classList.remove("saisi");
+});
+cnv.addEventListener("wheel", e => {
+  e.preventDefault();
+  cam.zoom = Math.max(0.15, Math.min(4, cam.zoom * (e.deltaY < 0 ? 1.12 : 0.89)));
+}, {passive:false});
+
+document.getElementById("btn-recalculer").onclick = () => rechargerFrais();
+
+const selPageMode = document.getElementById("sel-page-mode");
+const listeManuel = document.getElementById("tables-manuel-liste");
+selPageMode?.addEventListener("change", async () => {
+  if (selPageMode.value !== "manuel") { listeManuel.style.display = "none"; return; }
+  const {tables} = await (await fetch("/api/tables/?systeme=1")).json();
+  listeManuel.innerHTML = tables.map(t => `<label><input type="checkbox" value="${t.id}"> ${esc(t.nom)}</label>`).join("");
+  listeManuel.style.display = "flex";
+});
+document.getElementById("btn-page-creer")?.addEventListener("click", async () => {
+  const nom = document.getElementById("inp-page-nom").value.trim();
+  if (!nom) { GY.alerter(tj("engine/templates/engine/ontologie.html:js:1096:22")); return; }
+  const manuel = selPageMode.value === "manuel";
+  const corps = {nom, mode: manuel ? "manuel" : "auto"};
+  if (manuel) {
+    corps.tables = [...listeManuel.querySelectorAll("input:checked")].map(c => parseInt(c.value, 10));
+    if (!corps.tables.length) { GY.alerter(tj("engine/templates/engine/ontologie.html:js:1101:40")); return; }
+  }
+  const rep = await fetch("/api/ontologie/pages/", {
+    method: "POST", headers: {"Content-Type": "application/json", "X-CSRFToken": cookie("gy_csrftoken")},
+    body: JSON.stringify(corps),
+  });
+  const donnees = await rep.json();
+  if (!rep.ok) { GY.alerter(donnees.erreur || tj("engine/templates/engine/ontologie.html:js:1108:43")); return; }
+  window.location.href = `?page=${donnees.page_ontologie.id}`;
+});
+
+// Supprimer la page d'ontologie courante (auto ou manuelle). La « page principale » n'est pas un objet en base : pas de bouton.
+document.getElementById("btn-supprimer-page")?.addEventListener("click", async () => {
+  if (!PAGE_ID) return;
+  const selPage = document.getElementById("sel-page-ontologie");
+  const nomPage = selPage ? (selPage.options[selPage.selectedIndex]?.textContent || "").trim() : "";
+  if (!await GY.confirmer(tj("engine/templates/engine/ontologie.html:js:supprimer_page:confirmer", {v1: nomPage}))) return;
+  const rep = await fetch(`/api/ontologie/pages/${PAGE_ID}/`, {method: "DELETE", headers: {"X-CSRFToken": cookie("gy_csrftoken")}});
+  if (!rep.ok) { const d = await rep.json().catch(() => ({})); GY.alerter(d.erreur || tj("engine/templates/engine/ontologie.html:js:supprimer_page:echec")); return; }
+  window.location.href = window.location.pathname;   // sans ?page= : première page restante, ou graphe complet s'il n'en reste aucune
+});
+
+const selTableAjouter = document.getElementById("sel-table-ajouter");
+(async () => {
+  if (!selTableAjouter) return;
+  const {tables} = await (await fetch("/api/tables/?systeme=1")).json();
+  const dispo = tables.filter(t => !noeuds.some(n => n.id === `table:${t.id}`));
+  selTableAjouter.innerHTML = tj("engine/templates/engine/ontologie.html:js:1117:32")
+    + dispo.map(t => `<option value="${t.id}">${esc(t.nom)}</option>`).join("");
+})();
+document.getElementById("btn-table-ajouter-go")?.addEventListener("click", async () => {
+  if (!selTableAjouter.value) return;
+  const rep2 = await fetch(`/api/ontologie/pages/${PAGE_ID}/manuel/tables/`, {
+    method: "POST", headers: {"Content-Type": "application/json", "X-CSRFToken": cookie("gy_csrftoken")},
+    body: JSON.stringify({table_id: parseInt(selTableAjouter.value, 10)}),
+  });
+  if (rep2.ok) rechargerFrais();
+  else GY.alerter(tj("engine/templates/engine/ontologie.html:js:1127:15"));
+});
+
+let modeRelierActif = false, premierNoeudRelie = null;
+document.getElementById("btn-manuel-relier")?.addEventListener("click", (ev) => {
+  modeRelierActif = !modeRelierActif; premierNoeudRelie = null;
+  ev.target.classList.toggle("actif", modeRelierActif);
+  cnv.style.cursor = modeRelierActif ? "crosshair" : "grab";
+});
+
+// Couleur d'UN nœud précis (prioritaire sur la couleur de son type) : POST /api/ontologie/noeud-couleur/, vide = retour à la couleur du type.
+let modeColorierActif = false;
+document.getElementById("btn-colorier")?.addEventListener("click", (ev) => {
+  modeColorierActif = !modeColorierActif;
+  ev.currentTarget.classList.toggle("actif", modeColorierActif);
+  cnv.style.cursor = modeColorierActif ? "crosshair" : "grab";
+});
+async function colorierNoeud(n){
+  const couleur = await GYCouleur.choisir({titre: tj("engine/templates/engine/ontologie.html:js:1145:52") + (n.label || n.id) + " »", valeur: n.couleur_propre ? n.couleur : "", apercu: n.label || n.id});
+  if (couleur === null) return;
+  const rep = await fetch("/api/ontologie/noeud-couleur/", {
+    method: "POST", headers: {"Content-Type": "application/json", "X-CSRFToken": cookie("gy_csrftoken")},
+    body: JSON.stringify({noeud: n.id, couleur}),
+  });
+  if (!rep.ok){ const d = await rep.json().catch(() => ({})); GY.alerter(d.erreur || tj("engine/templates/engine/ontologie.html:js:1151:82")); return; }
+  n.couleur_propre = !!couleur;
+  n.couleur = couleur || couleurParType[n.type] || DONNEES.couleurs[n.type] || gyCouleur("--texte-discret","#888888");
+}
+
+let modeDecrireActif = false;
+document.getElementById("btn-decrire")?.addEventListener("click", (ev) => {
+  modeDecrireActif = !modeDecrireActif;
+  ev.target.classList.toggle("actif", modeDecrireActif);
+  cnv.style.cursor = modeDecrireActif ? "help" : "grab";
+});
+
+let DECRIRE_EN_EDITION = null; // {type, cle}
+function ouvrirModalDescriptionOnto(type, cle, label){
+  DECRIRE_EN_EDITION = {type, cle};
+  document.getElementById("md-onto-titre").textContent = tj("engine/templates/engine/ontologie.html:js:lbl_description_noeud", {v1: label});
+  const source = type === "noeud" ? noeuds[parIndex[cle]] : aretes.find(a => a.cle === cle);
+  document.getElementById("md-onto-texte").value = (source && source.description) || "";
+  document.getElementById("modal-description-onto").style.display = "flex";
+}
+document.getElementById("md-onto-annuler").onclick = () => {
+  document.getElementById("modal-description-onto").style.display = "none";
+};
+document.getElementById("md-onto-enregistrer").onclick = async () => {
+  const texte = document.getElementById("md-onto-texte").value.trim();
+  const rep = await fetch(`/api/ontologie/pages/${PAGE_ID}/description/`, {
+    method: "POST", headers: {"Content-Type": "application/json", "X-CSRFToken": cookie("gy_csrftoken")},
+    body: JSON.stringify({type: DECRIRE_EN_EDITION.type, cle: DECRIRE_EN_EDITION.cle, texte}),
+  });
+  if (rep.ok){
+    const source = DECRIRE_EN_EDITION.type === "noeud" ? noeuds[parIndex[DECRIRE_EN_EDITION.cle]] : aretes.find(a => a.cle === DECRIRE_EN_EDITION.cle);
+    if (source) source.description = texte;
+    document.getElementById("modal-description-onto").style.display = "none";
+  } else {
+    GY.alerter(tj("engine/templates/engine/ontologie.html:js:1185:12"));
+  }
+};
+document.getElementById("btn-config-aretes").onclick = () => { PD.rel = !PD.rel; PD.maj(); };
+document.getElementById("btn-couches").onclick = () => {
+  const p = document.getElementById("panneau-couches");
+  const ouverture = p.style.display !== "block";
+  p.style.display = ouverture ? "block" : "none";
+  if (ouverture) { chargerCouches(); chargerLimiteEnregistrements(); }
+  else {
+    coucheEnEdition = null;
+    document.getElementById("btn-couche-enregistrer").textContent = tj("engine/templates/engine/ontologie.html:js:1196:70");
+    document.getElementById("couche-nom").value = ""; document.getElementById("couche-code").value = "";
+  }
+};
+
+async function chargerLimiteEnregistrements(){
+  const rep = await fetch("/api/ontologie/limite-enregistrements/");
+  const donnees = await rep.json();
+  document.getElementById("limite-enregistrements").value = donnees.limite_enregistrements_ontologie;
+}
+
+document.getElementById("btn-limite-enregistrements-enregistrer").onclick = async () => {
+  const brut = document.getElementById("limite-enregistrements").value.trim();
+  const statut = document.getElementById("limite-enregistrements-statut");
+  const rep = await fetch("/api/ontologie/limite-enregistrements/sauvegarder/", {
+    method: "POST", headers: {"Content-Type": "application/json", "X-CSRFToken": cookie("gy_csrftoken")},
+    body: JSON.stringify({limite_enregistrements_ontologie: parseInt(brut, 10)}),
+  });
+  const donnees = await rep.json();
+  statut.style.display = "block";
+  if (!rep.ok) { statut.textContent = donnees.erreur || tj("engine/templates/engine/ontologie.html:js:1216:58"); return; }
+  document.getElementById("limite-enregistrements").value = donnees.limite_enregistrements_ontologie;
+  statut.textContent = tj("engine/templates/engine/ontologie.html:js:1218:25");
+  setTimeout(() => { statut.style.display = "none"; }, 4000);
+};
+
+function cookie(nom){ const m = document.cookie.match("(^|;)\\s*" + nom + "\\s*=\\s*([^;]+)"); return m ? m.pop() : ""; }
+
+// ── Couleurs personnalisées (voir models.CouleurOntologie) : persistées par
+// entreprise, aussi bien pour repeindre un type/relation déjà connu que pour
+// déclarer un tout nouveau type — même endpoint (upsert sur cible+cle). ──
+async function enregistrerCouleur(cible, cle, couleur, label, description){
+  await fetch("/api/ontologie/couleurs/", {
+    method: "POST", headers: {"Content-Type": "application/json", "X-CSRFToken": cookie("gy_csrftoken")},
+    body: JSON.stringify({cible, cle, couleur, label: label || "", description: description || ""}),
+  });
+}
+
+document.getElementById("btn-nouveau-type-enregistrer")?.addEventListener("click", async () => {
+  const cible = document.getElementById("nouveau-type-cible").value;
+  const cle = document.getElementById("nouveau-type-nom").value.trim();
+  const couleur = document.getElementById("nouveau-type-couleur").value;
+  const description = document.getElementById("nouveau-type-description").value.trim();
+  const erreur = document.getElementById("nouveau-type-erreur");
+  erreur.style.display = "none";
+  if (!cle) { erreur.textContent = tj("engine/templates/engine/ontologie.html:js:1241:37"); erreur.style.display = "block"; return; }
+  await enregistrerCouleur(cible, cle, couleur, cle, description);
+  document.getElementById("nouveau-type-nom").value = "";
+  document.getElementById("nouveau-type-description").value = "";
+  await chargerTypesEvenements();
+  chargerCouleursPerso();
+  const statut = document.getElementById("nouveau-type-statut");
+  statut.style.display = "block"; statut.textContent = tj("engine/templates/engine/ontologie.html:js:1248:57");
+  setTimeout(() => { statut.style.display = "none"; }, 4000);
+});
+
+// Couleurs personnalisées de l'entreprise, avec suppression (le type prédéfini retombe sur sa couleur par défaut).
+async function chargerCouleursPerso(){
+  const zone = document.getElementById("liste-couleurs-perso");
+  if (!zone) return;
+  try {
+    const {couleurs} = await (await fetch("/api/ontologie/couleurs/")).json();
+    zone.textContent = "";
+    for (const c of couleurs || []) {
+      const ligne = document.createElement("div");
+      ligne.style.cssText = "display:flex;align-items:center;gap:6px;margin-top:4px";
+      const pastille = document.createElement("span");
+      pastille.style.cssText = "width:12px;height:12px;border-radius:50%;background:" + c.couleur;
+      const texte = document.createElement("span");
+      texte.style.flex = "1"; texte.textContent = c.cible + " · " + (c.label || c.cle);
+      const bouton = document.createElement("button");
+      bouton.className = "petit"; bouton.textContent = tj("engine/templates/engine/ontologie.html:js:1267:57"); bouton.title = tj("engine/templates/engine/ontologie.html:js:1267:85");
+      bouton.onclick = async () => {
+        await fetch("/api/ontologie/couleurs/" + c.id + "/", {method: "DELETE", headers: {"X-CSRFToken": cookie("gy_csrftoken")}});
+        chargerCouleursPerso(); chargerTypesEvenements();
+      };
+      ligne.append(pastille, texte, bouton);
+      zone.appendChild(ligne);
+    }
+  } catch (e) { /* liste indisponible : le formulaire reste utilisable */ }
+}
+chargerCouleursPerso();
+
+async function chargerCouches(){
+  const rep = await fetch("/api/ontologie/couches/");
+  const donnees = await rep.json();
+  const liste = document.getElementById("liste-couches");
+  liste.innerHTML = "";
+  for (const c of donnees.couches || []) {
+    const div = document.createElement("div"); div.className = "item-couche";
+    div.innerHTML = `<span class="nom">${esc(c.nom)}</span><span>${c.actif ? tj("engine/templates/engine/ontologie.html:js:actif") : tj("engine/templates/engine/ontologie.html:js:desactive")}</span>`;
+    const btnExport = document.createElement("button"); btnExport.textContent = "⬇️";
+    btnExport.title = tj("engine/templates/engine/ontologie.html:js:1288:24");
+    btnExport.onclick = () => exporterCouche(c);
+    div.append(btnExport);
+    if (c.entreprise) {
+      const btnEditer = document.createElement("button"); btnEditer.textContent = "✎";
+      btnEditer.title = tj("engine/templates/engine/ontologie.html:js:1293:26");
+      btnEditer.onclick = () => editerCouche(c);
+      const btnBasc = document.createElement("button"); btnBasc.textContent = c.actif ? tj("engine/templates/engine/ontologie.html:js:1295:90") : tj("engine/templates/engine/ontologie.html:js:1295:105");
+      btnBasc.onclick = () => basculerCouche(c.id, !c.actif);
+      const btnSupp = document.createElement("button"); btnSupp.textContent = "🗑";
+      btnSupp.onclick = () => supprimerCouche(c.id);
+      div.append(btnEditer, btnBasc, btnSupp);
+    }
+    liste.appendChild(div);
+  }
+}
+
+// null = création d'une nouvelle couche ; sinon id de la couche en édition.
+let coucheEnEdition = null;
+
+function editerCouche(c){
+  coucheEnEdition = c.id;
+  document.getElementById("couche-nom").value = c.nom;
+  document.getElementById("couche-code").value = c.code;
+  document.getElementById("btn-couche-enregistrer").textContent = tj("engine/templates/engine/ontologie.html:js:1312:68");
+  document.getElementById("couche-nom").scrollIntoView({behavior: "smooth", block: "center"});
+}
+
+function exporterCouche(c){
+  const lien = document.createElement("a");
+  const blob = new Blob([c.code || ""], {type: "text/x-python"});
+  lien.href = URL.createObjectURL(blob);
+  lien.download = `${c.slug || "couche"}.py`;
+  lien.click();
+  URL.revokeObjectURL(lien.href);
+}
+
+document.getElementById("couche-fichier").addEventListener("change", async e => {
+  const fichier = e.target.files[0];
+  if (!fichier) return;
+  const texte = await fichier.text();
+  document.getElementById("couche-code").value = texte;
+  if (!document.getElementById("couche-nom").value.trim()) {
+    document.getElementById("couche-nom").value = fichier.name.replace(/\.py$/i, "");
+  }
+});
+
+async function basculerCouche(id, actif){
+  await fetch(`/api/ontologie/couches/${id}/`, {
+    method: "PATCH", headers: {"Content-Type": "application/json", "X-CSRFToken": cookie("gy_csrftoken")},
+    body: JSON.stringify({actif}),
+  });
+  chargerCouches();
+}
+
+async function supprimerCouche(id){
+  await fetch(`/api/ontologie/couches/${id}/`, {method: "DELETE", headers: {"X-CSRFToken": cookie("gy_csrftoken")}});
+  chargerCouches();
+}
+
+document.getElementById("btn-couche-enregistrer").onclick = async () => {
+  const nom = document.getElementById("couche-nom").value.trim();
+  const code = document.getElementById("couche-code").value;
+  const erreur = document.getElementById("couche-erreur");
+  erreur.style.display = "none";
+  const rep = coucheEnEdition
+    ? await fetch(`/api/ontologie/couches/${coucheEnEdition}/`, {
+        method: "PATCH", headers: {"Content-Type": "application/json", "X-CSRFToken": cookie("gy_csrftoken")},
+        body: JSON.stringify({nom, code}),
+      })
+    : await fetch("/api/ontologie/couches/", {
+        method: "POST", headers: {"Content-Type": "application/json", "X-CSRFToken": cookie("gy_csrftoken")},
+        body: JSON.stringify({nom, code}),
+      });
+  const donnees = await rep.json();
+  if (!rep.ok) { erreur.textContent = donnees.erreur || tj("engine/templates/engine/ontologie.html:js:1363:58"); erreur.style.display = "block"; return; }
+  coucheEnEdition = null;
+  document.getElementById("btn-couche-enregistrer").textContent = tj("engine/templates/engine/ontologie.html:js:1365:68");
+  document.getElementById("couche-nom").value = ""; document.getElementById("couche-code").value = "";
+  await chargerCouches();
+  rechargerFrais();
+};
+
+// ── Nœud/relation manuel(le) : pas de script à écrire — on compose le
+// mini-script `def etendre(graphe): ...` nous-mêmes côté client à partir
+// des champs saisis, et on l'enregistre via le même endpoint que les
+// couches (une couche = un add_node ou un add_edge fixe, sans dépendre des
+// données ni être recalculée). ──
+function pyLit(v){ return JSON.stringify(String(v)); }
+
+document.getElementById("manuel-cible").addEventListener("change", (e) => {
+  const estArete = e.target.value === "arete";
+  document.getElementById("manuel-type-wrap").style.display = estArete ? "none" : "block";
+  document.getElementById("manuel-noeud-champs").style.display = estArete ? "none" : "block";
+  document.getElementById("manuel-arete-champs").style.display = estArete ? "block" : "none";
+});
+
+document.getElementById("btn-manuel-enregistrer").onclick = async () => {
+  const cible = document.getElementById("manuel-cible").value;
+  const erreur = document.getElementById("manuel-erreur");
+  erreur.style.display = "none";
+  let nom, code;
+
+  if (cible === "noeud") {
+    const id = document.getElementById("manuel-noeud-id").value.trim();
+    const type = document.getElementById("manuel-noeud-type").value.trim();
+    const label = document.getElementById("manuel-noeud-label").value.trim();
+    const couleur = document.getElementById("manuel-noeud-couleur").value;
+    const taille = document.getElementById("manuel-noeud-taille").value.trim();
+    if (!id || !type || !label) {
+      erreur.textContent = tj("engine/templates/engine/ontologie.html:js:1398:29");
+      erreur.style.display = "block"; return;
+    }
+    nom = tj("engine/templates/engine/ontologie.html:js:1401:12", {v1: label});
+    code = `def etendre(graphe):\n    graphe.add_node(${pyLit(id)}, type=${pyLit(type)}, label=${pyLit(label)}, couleur=${pyLit(couleur)}${taille ? `, taille=${parseInt(taille, 10)}` : ""})\n    return graphe`;
+  } else {
+    const source = document.getElementById("manuel-arete-source").value.trim();
+    const dest = document.getElementById("manuel-arete-cible").value.trim();
+    const relation = document.getElementById("manuel-arete-relation").value.trim();
+    const couleur = document.getElementById("manuel-arete-couleur").value;
+    if (!source || !dest || !relation) {
+      erreur.textContent = tj("engine/templates/engine/ontologie.html:js:1409:29");
+      erreur.style.display = "block"; return;
+    }
+    nom = `Relation manuelle : ${relation}`;
+    code = `def etendre(graphe):\n    graphe.add_edge(${pyLit(source)}, ${pyLit(dest)}, relation=${pyLit(relation)}, couleur=${pyLit(couleur)})\n    return graphe`;
+  }
+
+  const rep = await fetch("/api/ontologie/couches/", {
+    method: "POST", headers: {"Content-Type": "application/json", "X-CSRFToken": cookie("gy_csrftoken")},
+    body: JSON.stringify({nom, code}),
+  });
+  const donnees = await rep.json();
+  if (!rep.ok) { erreur.textContent = donnees.erreur || tj("engine/templates/engine/ontologie.html:js:1421:58"); erreur.style.display = "block"; return; }
+  rechargerFrais();
+};
+
+// ── Générer via IA : les sélecteurs "entité source"/"entité cible" sont
+// peuplés depuis le catalogue complet de la plateforme (tous les types de
+// nœuds/relations déjà connus, pas seulement ceux présents dans CE graphe —
+// voir ontologie.lister_types_evenements), pour composer une description
+// sans avoir à deviner ce qui existe déjà. ──
+async function chargerTypesEvenements(){
+  try {
+    const rep = await fetch("/api/ontologie/types-evenements/");
+    const donnees = await rep.json();
+    const selSrc = document.getElementById("couche-ia-source"), selDst = document.getElementById("couche-ia-cible");
+    selSrc.innerHTML = tj("engine/templates/engine/ontologie.html:js:1435:25");
+    selDst.innerHTML = tj("engine/templates/engine/ontologie.html:js:1436:25");
+    for (const t of donnees.types || []) {
+      const suffixe = t.personnalise ? " (perso)" : "";
+      const optS = document.createElement("option"); optS.value = t.type; optS.textContent = `${t.type} — ${t.description}${suffixe}`;
+      const optD = optS.cloneNode(true);
+      selSrc.appendChild(optS); selDst.appendChild(optD);
+    }
+  } catch (e) { /* catalogue indisponible : les champs restent en saisie libre via la description */ }
+}
+chargerTypesEvenements();
+
+document.getElementById("btn-couche-generer").onclick = async () => {
+  const source = document.getElementById("couche-ia-source").value;
+  const cible = document.getElementById("couche-ia-cible").value;
+  const relation = document.getElementById("couche-ia-relation").value.trim();
+  const consigne = document.getElementById("couche-ia-description").value.trim();
+  const statut = document.getElementById("couche-ia-statut");
+  const erreur = document.getElementById("couche-erreur");
+  erreur.style.display = "none";
+  if (!consigne) { erreur.textContent = tj("engine/templates/engine/ontologie.html:js:1455:42"); erreur.style.display = "block"; return; }
+
+  let description = consigne;
+  if (source) description += tj("engine/templates/engine/ontologie.html:js:1458:31", {v1: source});
+  if (cible) description += tj("engine/templates/engine/ontologie.html:js:1459:30", {v1: cible});
+  if (relation) description += tj("engine/templates/engine/ontologie.html:js:1460:33", {v1: relation});
+
+  statut.style.display = "block"; statut.textContent = tj("engine/templates/engine/ontologie.html:js:1462:57");
+  const btn = document.getElementById("btn-couche-generer"); btn.disabled = true;
+  try {
+    const rep = await fetch("/api/ontologie/couches/generer/", {
+      method: "POST", headers: {"Content-Type": "application/json", "X-CSRFToken": cookie("gy_csrftoken")},
+      body: JSON.stringify({description}),
+    });
+    const donnees = await rep.json();
+    if (!rep.ok) { erreur.textContent = donnees.erreur || tj("engine/templates/engine/ontologie.html:js:1470:60"); erreur.style.display = "block"; return; }
+    await attendreGenerationCouche(donnees.generation_id);
+  } finally {
+    btn.disabled = false; statut.style.display = "none";
+  }
+};
+
+async function attendreGenerationCouche(id){
+  const erreur = document.getElementById("couche-erreur");
+  for (let tentative = 0; tentative < 60; tentative++) {
+    await new Promise(r => setTimeout(r, 2000));
+    const rep = await fetch(`/api/ontologie/couches/generer/${id}/statut/`);
+    const donnees = await rep.json();
+    if (donnees.fini) {
+      if (donnees.generation.statut === "pret") {
+        document.getElementById("couche-code").value = donnees.generation.code;
+        if (!document.getElementById("couche-nom").value.trim()) {
+          const relation = document.getElementById("couche-ia-relation").value.trim();
+          document.getElementById("couche-nom").value = relation || tj("engine/templates/engine/ontologie.html:js:1488:70");
+        }
+      } else {
+        erreur.textContent = donnees.generation.erreur || tj("engine/templates/engine/ontologie.html:js:1491:60");
+        erreur.style.display = "block";
+      }
+      return;
+    }
+  }
+  erreur.textContent = tj("engine/templates/engine/ontologie.html:js:1497:25");
+  erreur.style.display = "block";
+}
+
+document.getElementById("btn-centrer").onclick = () => { cam = {x:0,y:0,zoom:1}; alpha = 0.6; };
+document.getElementById("btn-zoom-plus").onclick = () => { cam.zoom = Math.min(4, cam.zoom*1.2); };
+document.getElementById("btn-zoom-moins").onclick = () => { cam.zoom = Math.max(0.15, cam.zoom*0.8); };
+document.getElementById("btn-etiquettes").onclick = e => { etiquettesVisibles = !etiquettesVisibles; e.target.classList.toggle("actif", etiquettesVisibles); };
+document.getElementById("sel-filtre").onchange = e => { filtreType = e.target.value; };
+document.getElementById("btn-export").onclick = () => {
+  const lien = document.createElement("a");
+  lien.download = "ontologie.png"; lien.href = cnv.toDataURL("image/png"); lien.click();
+};
+GYPleinEcran.init(document.getElementById("scene"), document.getElementById("btn-quitter-plein-ecran"), redimensionner);   // plein écran = la scène seule
+document.getElementById("btn-plein-ecran").onclick = GYPleinEcran.basculer;
+
+// ── Toggle visible_client de la page d'ontologie courante ─────────────────
+const _chkPageVis = document.getElementById("chk-page-visible-client");
+if(_chkPageVis){
+  // Initialiser depuis le contexte Django
+  // Récupérer visible_client depuis la liste des pages déjà sérialisées
+  const _pagesCourantes = {{ pages_ontologie_json|safe }};
+  const _pageCourante = _pagesCourantes.find(p => p.id === {{ page_courante_id|default:"null" }});
+  _chkPageVis.checked = _pageCourante ? !!_pageCourante.visible_client : false;
+  // Les pages d'analyse sont FERMÉES aux clients par défaut (page Paiements › pages ouvertes aux clients) : une page cochée « visible client »
+  // restait donc introuvable pour eux. Cocher la case ouvre aussi la catégorie « ontologie » (administrateur) ; sinon un message l'explique.
+  const _hintClient = document.createElement("span");
+  _hintClient.style.cssText = "display:none;margin-top:4px;font-size:11px;color:var(--texte-orange,#f59e0b)";
+  _chkPageVis.closest("label")?.after(_hintClient);
+  async function _categorieOntologieFermee(){
+    try { const r = await fetch("/api/paiement/pages-client"); const d = await r.json(); return r.ok && (d.fermees || []).includes("ontologie") ? d : null; }
+    catch(e){ return null; }
+  }
+  async function _ouvrirOntologieAuxClients(){   // "ouverte" = on vient de l'ouvrir ; true = déjà ouverte ; false = impossible (pas administrateur)
+    const d = await _categorieOntologieFermee(); if(!d) return true;
+    try {
+      const r = await fetch("/api/paiement/pages-client", {method: "POST", headers: {"Content-Type": "application/json", "X-CSRFToken": cookie("gy_csrftoken")},
+        body: JSON.stringify({fermees: d.fermees.filter(c => c !== "ontologie")})});
+      return r.ok ? "ouverte" : false;
+    } catch(e){ return false; }
+  }
+  async function _majHintClient(){
+    _hintClient.style.display = "none";
+    if(!_chkPageVis.checked || document.body.classList.contains("lecture-seule")) return;
+    if(await _categorieOntologieFermee()){ _hintClient.textContent = tj("engine/templates/engine/ontologie.html:js:client:fermee"); _hintClient.style.display = "block"; }
+  }
+  _majHintClient();
+  _chkPageVis.onchange = async (ev) => {
+    const pageId = {{ page_courante_id|default:"null" }};
+    if(!pageId){ ev.target.checked = !ev.target.checked; return; }
+    const csrf = document.cookie.match(/gy_csrftoken=([^;]+)/)?.[1] || "";
+    try {
+      const r = await fetch(`/api/ontologie/pages/${pageId}/`, {
+        method: "PATCH",
+        headers: {"Content-Type": "application/json", "X-CSRFToken": csrf},
+        body: JSON.stringify({visible_client: ev.target.checked}),
+      });
+      if(!r.ok){ throw new Error(); }
+      // Cocher = vouloir que les clients la voient : on ouvre aussi la catégorie « ontologie » si elle est fermée (voir plus haut).
+      const categorieOuverte = ev.target.checked ? await _ouvrirOntologieAuxClients() : false;
+      _majHintClient();
+      // toast-style notification (fallback: console)
+      const msg = ev.target.checked ? tj(categorieOuverte === "ouverte" ? "engine/templates/engine/ontologie.html:js:client:ouverte" : "engine/templates/engine/ontologie.html:js:1538:40") : tj("engine/templates/engine/ontologie.html:js:1538:71");
+      const t = document.createElement("div");
+      t.textContent = msg;
+      Object.assign(t.style, {position:"fixed",bottom:"18px",left:"50%",transform:"translateX(-50%)",
+        background:gyCouleur("--fond-succes","#1a2e1a"),color:gyCouleur("--texte-succes","#7fd99a"),border:"1px solid var(--bordure-succes,#2e4e2e)",
+        padding:"7px 16px",borderRadius:"6px",fontSize:"12px",zIndex:9999,pointerEvents:"none"});
+      document.body.appendChild(t);
+      setTimeout(() => t.remove(), 2500);
+    } catch(e){ ev.target.checked = !ev.target.checked; }
+  };
+}
+
+// ════════════════════════════════════════════════════════════════════════
+// PANNEAU EXPLORER — branchement sur /api/ontologie/recherche/ et /explorer/
+// ════════════════════════════════════════════════════════════════════════
+
+// Ouverture / fermeture / masquage du panneau. Fermer (✕, Échap, bouton de la barre latérale) = fermé.
+// Masquer (—) = le panneau reste ouvert (onglet, saisies, mode « cliquer un nœud ») mais disparaît de la toile ; un bouton le réaffiche.
+function explorerOuvrir(ouvrir) {
+  const p = document.getElementById("panneau-explorer");
+  p.style.display = ouvrir ? "block" : "none";
+  p.classList.remove("masque");
+  document.getElementById("btn-explorer").classList.toggle("actif", ouvrir);
+  explorerMajReaffichage();
+  if (ouvrir) { explorerRemplirSelects(); }
+}
+function explorerEstOuvert() { return document.getElementById("panneau-explorer").style.display === "block"; }
+function explorerEstMasque() { return document.getElementById("panneau-explorer").classList.contains("masque"); }
+function explorerEstVisible() { return explorerEstOuvert() && !explorerEstMasque(); }
+function explorerMasquer(masquer) {
+  if (!explorerEstOuvert()) return;
+  document.getElementById("panneau-explorer").classList.toggle("masque", masquer);
+  explorerMajReaffichage();
+}
+function explorerMajReaffichage() {
+  document.getElementById("btn-explorer-reafficher").style.display = explorerEstOuvert() && explorerEstMasque() ? "block" : "none";
+}
+// Le bouton de la barre latérale : masqué → il réaffiche ; visible → il ferme ; fermé → il ouvre.
+document.getElementById("btn-explorer").onclick = () => {
+  if (explorerEstOuvert() && explorerEstMasque()) explorerMasquer(false); else explorerOuvrir(!explorerEstOuvert());
+};
+(function () {   // boutons créés ici (hauteur nulle, collés en haut du panneau) : le gabarit et ses clés de traduction ne changent pas
+  const p = document.getElementById("panneau-explorer");
+  const style = "position:absolute;top:-4px;width:26px;height:26px;padding:0;line-height:1;background:var(--panel);border:1px solid var(--border);color:var(--muted);border-radius:6px;cursor:pointer;font-size:13px";
+  const croix = document.createElement("button");
+  croix.type = "button"; croix.textContent = "✕"; croix.title = tj("engine/templates/engine/ontologie.html:js:1583:66"); croix.setAttribute("aria-label", tj("engine/templates/engine/ontologie.html:js:1583:131"));
+  croix.style.cssText = style + ";right:0";
+  croix.onclick = () => explorerOuvrir(false);
+  const masquer = document.createElement("button");
+  masquer.type = "button"; masquer.textContent = "—"; masquer.title = tj("engine/templates/engine/ontologie.html:js:1587:72"); masquer.setAttribute("aria-label", tj("engine/templates/engine/ontologie.html:js:1587:149"));
+  masquer.style.cssText = style + ";right:32px";
+  masquer.onclick = () => explorerMasquer(true);
+  const ancre = document.createElement("div");
+  ancre.style.cssText = "position:sticky;top:0;height:0;z-index:2;overflow:visible";
+  ancre.append(masquer, croix);
+  p.prepend(ancre);
+  // Bouton de réaffichage, à la place du panneau, visible seulement quand l'explorateur est ouvert mais masqué.
+  const re = document.createElement("button");
+  re.id = "btn-explorer-reafficher"; re.type = "button"; re.textContent = tj("engine/templates/engine/ontologie.html:js:1596:76");
+  re.style.cssText = "display:none;position:absolute;top:50px;right:10px;z-index:200;background:color-mix(in srgb,var(--fond-info,#0f172a) 92%,transparent);border:1px solid var(--bordure-info,#1e3a5f);border-radius:6px;color:var(--texte-info,#7dd3fc);font-size:12px;padding:4px 10px;cursor:pointer";
+  re.onclick = () => explorerMasquer(false);
+  p.parentNode.appendChild(re);
+})();
+// Échap : referme d'abord l'explorateur s'il est visible (phase de capture, avant le « tout afficher » de la toile) ; masqué, il laisse Échap à la toile.
+document.addEventListener("keydown", e => {
+  if (e.key === "Escape" && explorerEstVisible()) { explorerOuvrir(false); e.stopPropagation(); }
+}, true);
+
+// ── Remplir les selects multi depuis les types/relations du graphe ─────
+function explorerRemplirSelects() {
+  const selT = document.getElementById("explo-rech-types");
+  const selR = document.getElementById("explo-rech-relations");
+  if (selT && !selT.options.length) {
+    for (const t of Object.keys(couleurParType)) {
+      const o = document.createElement("option"); o.value = t; o.textContent = libType(t); selT.appendChild(o);
+    }
+  }
+  if (selR && !selR.options.length) {
+    for (const r of Object.keys(configAretes)) {
+      const o = document.createElement("option"); o.value = r; o.textContent = libRel(r); selR.appendChild(o);
+    }
+  }
+}
+
+// ── Onglets ────────────────────────────────────────────────────────────
+document.querySelectorAll(".explo-ong").forEach(btn => {
+  btn.addEventListener("click", () => {
+    document.querySelectorAll(".explo-ong").forEach(b => b.classList.remove("actif"));
+    document.querySelectorAll(".explo-section").forEach(s => s.style.display = "none");
+    btn.classList.add("actif");
+    document.getElementById("explo-" + btn.dataset.ong).style.display = "block";
+  });
+});
+
+// ── Capture du nœud cliqué pour les modes qui l'attendent ─────────────
+// On écoute les clics sur le canvas et on remplit les champs "readonly"
+// des onglets Voisins, Chemins, Récursion, Stats selon leur logique propre.
+let explorerModeClick = null; // null | "voisins" | "chemins-source" | "chemins-cible" | "recursion" | "stats"
+
+cnv.addEventListener("pointerup", e => {
+  if (aBouge || !explorerModeClick) return;
+  const rect = cnv.getBoundingClientRect();
+  const n = noeudSous(e.clientX - rect.left, e.clientY - rect.top);
+  if (!n) return;
+
+  if (explorerModeClick === "voisins") {
+    document.getElementById("explo-vois-noeud").value = n.id;
+    explorerModeClick = null;
+  } else if (explorerModeClick === "chemins-source") {
+    document.getElementById("explo-ch-source").value = n.id;
+    explorerModeClick = "chemins-cible";
+  } else if (explorerModeClick === "chemins-cible") {
+    document.getElementById("explo-ch-cible").value = n.id;
+    explorerModeClick = null;
+  } else if (explorerModeClick === "recursion") {
+    document.getElementById("explo-rec-noeud").value = n.id;
+    explorerModeClick = null;
+  } else if (explorerModeClick === "stats") {
+    document.getElementById("explo-st-noeud").value = n.id;
+    explorerModeClick = null;
+  } else if (explorerModeClick === "fiche") {
+    document.getElementById("explo-fiche-noeud").value = n.id;
+    explorerModeClick = null;
+  }
+}, true); // capture pour court-circuiter le handler existant
+
+// Activer la capture au focus sur chaque champ readonly
+["explo-vois-noeud", "explo-rec-noeud", "explo-st-noeud", "explo-fiche-noeud"].forEach(id => {
+  const inp = document.getElementById(id);
+  const mode = id === "explo-vois-noeud" ? "voisins" : id === "explo-rec-noeud" ? "recursion"
+    : id === "explo-fiche-noeud" ? "fiche" : "stats";
+  inp.addEventListener("focus", () => { explorerModeClick = mode; inp.placeholder = tj("engine/templates/engine/ontologie.html:js:1669:86"); });
+  inp.addEventListener("blur", () => { if (explorerModeClick === mode) explorerModeClick = null; inp.placeholder = inp.placeholder.replace(tj("engine/templates/engine/ontologie.html:js:1670:141"), tj("engine/templates/engine/ontologie.html:js:1670:163")); });
+});
+document.getElementById("explo-ch-source").addEventListener("focus", () => {
+  explorerModeClick = "chemins-source";
+  document.getElementById("explo-ch-source").placeholder = tj("engine/templates/engine/ontologie.html:js:1674:61");
+});
+
+// ── Helpers rendu résultats ─────────────────────────────────────────────
+function explorerClearRes(texte) {
+  const z = document.getElementById("explo-resultats");
+  z.innerHTML = texte ? `<div style="color:var(--muted);font-size:11px;padding:4px">${texte}</div>` : "";
+  return z;
+}
+
+function explorerPutRes(html) {
+  document.getElementById("explo-resultats").innerHTML = html;
+}
+
+function explorerNoeudHTML(n, badge) {
+  const pastille = `<span class="explo-pastille" style="background:${n.couleur||gyCouleur("--forme-gris","#888888")}"></span>`;
+  const dist = badge != null ? `<span class="explo-dist">${badge}</span>` : "";
+  return `<div class="explo-res-noeud" onclick="explorerFocusNoeud(${JSON.stringify(n.id)})">
+    ${pastille}<span class="explo-res-label" title="${esc(n.id)}">${esc(n.label||n.id)}</span>
+    <span class="explo-res-type">${libType(n.type)}</span>${dist}</div>`;
+}
+
+function explorerAreteHTML(a) {
+  return `<div class="explo-res-arete">
+    <span class="explo-res-label" style="color:var(--muted)" title="${a.source}→${a.cible}">
+      ${a.source} <span style="color:${a.couleur||gyCouleur("--texte-discret","#888")}">${libRel(a.relation)}</span> ${a.cible}
+    </span></div>`;
+}
+
+function explorerBarHTML(cle, val, max) {
+  const pct = max > 0 ? Math.round(val / max * 100) : 0;
+  return `<div class="explo-bar-wrap">
+    <span class="explo-bar-label" title="${cle}">${cle}</span>
+    <div class="explo-bar" style="width:${Math.max(pct, 2)}px"></div>
+    <span class="explo-bar-val">${val}</span></div>`;
+}
+
+// Centrer la caméra sur un nœud et le mettre en surbrillance brièvement
+function explorerFocusNoeud(id) {
+  const n = noeuds[parIndex[id]];
+  if (!n) return;
+  if (!selection){ mettreAuFocus(id); return; }
+  if (!selection.has(id)) return;
+  marquerInteraction(); viserCamera(n, 700); pointeId = id; setTimeout(() => { if (pointeId === id) pointeId = null; }, 3000);
+}
+
+// ── Appel API générique ─────────────────────────────────────────────────
+async function explorerAPI(endpoint, corps) {
+  const rep = await fetch(endpoint, {
+    method: "POST",
+    headers: {"Content-Type": "application/json", "X-CSRFToken": cookie("gy_csrftoken")},
+    body: JSON.stringify({...corps, page_id: PAGE_ID || undefined}),
+  });
+  if (!rep.ok) {
+    const d = await rep.json().catch(() => ({}));
+    return {erreur: d.erreur || tj("engine/templates/engine/ontologie.html:js:1729:34") + rep.status};
+  }
+  return rep.json();
+}
+
+// ── Recherche ──────────────────────────────────────────────────────────
+document.getElementById("btn-explo-rechercher").onclick = async () => {
+  const z = explorerClearRes(tj("engine/templates/engine/ontologie.html:js:1736:31"));
+  const corps = {
+    texte: document.getElementById("explo-rech-texte").value.trim() || undefined,
+    types: [...document.getElementById("explo-rech-types").selectedOptions].map(o => o.value),
+    relations: [...document.getElementById("explo-rech-relations").selectedOptions].map(o => o.value),
+    cible: document.getElementById("explo-rech-cible").value,
+    attribut: document.getElementById("explo-rech-attr").value.trim() || undefined,
+    valeur: document.getElementById("explo-rech-val").value.trim() || undefined,
+    valeur_min: document.getElementById("explo-rech-min").value.trim() || undefined,
+    valeur_max: document.getElementById("explo-rech-max").value.trim() || undefined,
+    limit: 100,
+  };
+  if (!corps.types.length) delete corps.types;
+  if (!corps.relations.length) delete corps.relations;
+
+  const d = await explorerAPI("/api/ontologie/recherche/", corps);
+  if (d.erreur) { z.innerHTML = `<div style="color:var(--erreur)">${d.erreur}</div>`; return; }
+
+  let html = "";
+  if (d.noeuds.length) {
+    html += `<div class="explo-res-titre">${tj("engine/templates/engine/ontologie.html:js:1756:44")}${d.total_noeuds})</div>`;
+    html += d.noeuds.map(n => explorerNoeudHTML(n)).join("");
+  }
+  if (d.aretes.length) {
+    html += `<div class="explo-res-titre">${tj("engine/templates/engine/ontologie.html:js:2095:43", {v1: d.total_aretes})}</div>`;
+    html += d.aretes.map(a => explorerAreteHTML(a)).join("");
+  }
+  if (!html) html = `<div style="color:var(--muted);font-size:11px;padding:4px">${tj("engine/templates/engine/ontologie.html:js:1763:82")}</div>`;
+  explorerPutRes(html);
+  const ids = [...d.noeuds.map(n => n.id), ...d.aretes.flatMap(a => [a.source, a.cible])];
+  if (!ids.length) return;
+  const nb = montrerResultats(ids, tj("engine/templates/engine/ontologie.html:js:1767:37"), {aretes: d.aretes.length ? d.aretes : null});
+  if (!nb) explorerPutRes(`<div style="color:var(--muted);font-size:11px;padding:4px">${tj("engine/templates/engine/ontologie.html:js:1768:88")}</div>` + html);
+};
+
+// ── Résultat NoSQL : focus si le nœud existe déjà dans le graphe
+// échantillonné (voir ontologie.LIMITE_ENREGISTREMENTS_GRAPHE), sinon
+// simple lien vers la table (la ligne n'est pas représentée graphiquement).
+function explorerResultatNosqlHTML(r) {
+  const titre = `${r.matricule ? r.matricule + " — " : ""}${r.extrait || ""}`;
+  const sousTitre = `${r.table_nom}${r.dans_graphe ? "" : tj("engine/templates/engine/ontologie.html:js:1776:60")}`;
+  if (r.dans_graphe) {
+    return `<div class="explo-res-noeud" onclick="explorerFocusNoeud(${JSON.stringify(r.noeud_id)})">
+      <span class="explo-pastille" style="background:var(--ok,#22c55e)"></span>
+      <span class="explo-res-label" title="${r.noeud_id}">${titre}</span>
+      <span class="explo-res-type">${sousTitre}</span></div>`;
+  }
+  return `<div class="explo-res-noeud" onclick="window.open(${JSON.stringify(r.lien_table)}, '_blank')">
+    <span class="explo-pastille" style="background:var(--fond-releve,#888)"></span>
+    <span class="explo-res-label" title="${r.lien_table}">${titre}</span>
+    <span class="explo-res-type">${sousTitre} ↗</span></div>`;
+}
+
+// ── Recherche NoSQL ─────────────────────────────────────────────────────
+document.getElementById("btn-explo-nosql").onclick = async () => {
+  const texte = document.getElementById("explo-nosql-texte").value.trim();
+  const champSlug = document.getElementById("explo-nosql-champ").value.trim();
+  const valeur = document.getElementById("explo-nosql-valeur").value.trim();
+  const tableId = document.getElementById("explo-nosql-table").value.trim();
+  if (!texte && !(champSlug && valeur)) {
+    explorerClearRes(tj("engine/templates/engine/ontologie.html:js:1796:23"));
+    return;
+  }
+  const z = explorerClearRes(tj("engine/templates/engine/ontologie.html:js:1799:31"));
+  const corps = {
+    texte: texte || undefined,
+    champ_slug: champSlug || undefined,
+    valeur: valeur || undefined,
+    table_id: tableId ? parseInt(tableId) : undefined,
+    limit: 100,
+  };
+  const d = await explorerAPI("/api/ontologie/recherche-nosql/", corps);
+  if (d.erreur) { z.innerHTML = `<div style="color:var(--erreur)">${d.erreur}</div>`; return; }
+
+  let html = "";
+  if (d.resultats && d.resultats.length) {
+    html += `<div class="explo-res-titre">${tj("engine/templates/engine/ontologie.html:js:1812:44")}${d.total}${d.tronque ? tj("engine/templates/engine/ontologie.html:js:1812:79") : ""})</div>`;
+    html += d.resultats.map(explorerResultatNosqlHTML).join("");
+  } else {
+    html = `<div style="color:var(--muted);font-size:11px;padding:4px">${tj("engine/templates/engine/ontologie.html:js:1815:73")}</div>`;
+  }
+  explorerPutRes(html);
+  const dansToile = (d.resultats || []).filter(r => r.dans_graphe).map(r => r.noeud_id);
+  if (dansToile.length) montrerResultats(dansToile, tj("engine/templates/engine/ontologie.html:js:1819:54"), {});
+  else viderFocus();
+};
+
+// Exploration dont le résultat n'est pas (tout) dans l'aperçu : comme la recherche, l'aperçu repart du nœud de départ (il devient la racine, donc
+// ses voisins sont affichés d'abord), puis la même exploration est relancée à l'identique au rechargement. Sans effet si le nœud de départ est
+// déjà la racine (pas de boucle) ou si tout le résultat est déjà affiché. Le graphe complet n'est jamais modifié.
+function exploHorsApercu(depart, ids, boutonId){
+  if (!depart || depart === APERCU.racine) return false;
+  if (!ids.some(i => !(i in parIndex))) return false;
+  try {
+    const champs = {};
+    document.querySelectorAll("#panneau-explorer input, #panneau-explorer select").forEach(el => { if (el.id) champs[el.id] = el.value; });
+    const onglet = document.querySelector(".explo-ong.actif");
+    sessionStorage.setItem("onto_explo_relance", JSON.stringify({bouton: boutonId, champs, racine: depart, onglet: onglet ? onglet.dataset.ong : null}));
+  } catch (e) { return false; }
+  allerRacine(depart);
+  return true;
+}
+
+// ── Voisins ───────────────────────────────────────────────────────────
+document.getElementById("btn-explo-voisins").onclick = async () => {
+  const nid = document.getElementById("explo-vois-noeud").value.trim();
+  if (!nid) { explorerClearRes(tj("engine/templates/engine/ontologie.html:js:1826:33")); return; }
+  explorerClearRes("⏳ " + tj("engine/templates/engine/ontologie.html:js:calcul_en_cours"));
+  const minD = document.getElementById("explo-vois-degmin").value;
+  const maxD = document.getElementById("explo-vois-degmax").value;
+  const d = await explorerAPI("/api/ontologie/explorer/", {
+    noeud_id: nid, mode: "voisins",
+    profondeur: parseInt(document.getElementById("explo-vois-prof").value) || 1,
+    direction: document.getElementById("explo-vois-dir").value,
+    tri: document.getElementById("explo-vois-tri").value,
+    min_degre: minD ? parseInt(minD) : undefined,
+    max_degre: maxD ? parseInt(maxD) : undefined,
+    limit: 150,
+  });
+  if (d.erreur) { explorerPutRes(`<div style="color:var(--erreur)">${d.erreur}</div>`); return; }
+  if (exploHorsApercu(nid, [nid, ...d.noeuds.map(n => n.id)], "btn-explo-voisins")) return;
+  let html = `<div class="explo-res-titre">🎯 ${d.noeud_central?.label} — ${d.total} ${tj("engine/templates/engine/ontologie.html:js:1840:86")} ${d.profondeur_reelle}</div>`;
+  html += d.noeuds.map(n => explorerNoeudHTML(n, `s${n.distance} d${n.degre}`)).join("");
+  explorerPutRes(html);
+  montrerResultats([nid, ...d.noeuds.map(n => n.id)], tj("engine/templates/engine/ontologie.html:js:lbl_voisins"), {centre: nid});
+};
+
+// ── Chemins ───────────────────────────────────────────────────────────
+document.getElementById("btn-explo-chemins").onclick = async () => {
+  const src = document.getElementById("explo-ch-source").value.trim();
+  const dst = document.getElementById("explo-ch-cible").value.trim();
+  if (!src || !dst) { explorerClearRes(tj("engine/templates/engine/ontologie.html:js:1850:41")); return; }
+  explorerClearRes(tj("engine/templates/engine/ontologie.html:js:1851:21"));
+  const d = await explorerAPI("/api/ontologie/explorer/", {
+    noeud_id: src, mode: "chemins", cible_id: dst,
+    profondeur: parseInt(document.getElementById("explo-ch-prof").value) || 5,
+    max_chemins: parseInt(document.getElementById("explo-ch-maxch").value) || 5,
+  });
+  if (d.erreur) { explorerPutRes(`<div style="color:var(--erreur)">${d.erreur}</div>`); return; }
+  if (exploHorsApercu(src, d.chemins.flatMap(ch => ch.noeuds.map(n => n.id)), "btn-explo-chemins")) return;
+  let html = `<div class="explo-res-titre">${d.total} ${tj("engine/templates/engine/ontologie.html:js:1858:56")} ${d.plus_court != null ? d.plus_court + " saut(s)" : "n/a"}</div>`;
+  for (const [i, ch] of d.chemins.entries()) {
+    html += `<div class="explo-chemin-item"><div style="font-size:10px;color:var(--muted);margin-bottom:3px">${tj("engine/templates/engine/ontologie.html:js:2195:110", {v1: i+1, v2: ch.longueur})}</div>`;
+    html += `<div class="explo-chemin-noeuds">`;
+    ch.noeuds.forEach((n, j) => {
+      if (j) html += `<span style="color:var(--muted);font-size:10px;align-self:center">→</span>`;
+      html += `<span class="explo-cn" onclick="explorerFocusNoeud(${JSON.stringify(n.id)})" title="${n.id}" style="border-left:3px solid ${n.couleur||gyCouleur("--texte-discret","#888")}">${n.label||n.id}</span>`;
+    });
+    html += `</div></div>`;
+  }
+  if (!d.total) html += `<div style="color:var(--muted);font-size:11px;padding:4px">${tj("engine/templates/engine/ontologie.html:js:1868:86")}</div>`;
+  explorerPutRes(html);
+  if (d.chemins.length){
+    const paires = d.chemins.flatMap(ch => ch.noeuds.slice(1).map((n, i) => ({source: ch.noeuds[i].id, cible: n.id})));
+    montrerResultats(d.chemins.flatMap(ch => ch.noeuds.map(n => n.id)), tj("engine/templates/engine/ontologie.html:js:lbl_chemins"), {aretes: paires, chemin: d.chemins[0].noeuds.map(n => n.id)});
+  } else viderFocus();
+};
+
+// ── Récursion ─────────────────────────────────────────────────────────
+document.getElementById("btn-explo-recursion").onclick = async () => {
+  const nid = document.getElementById("explo-rec-noeud").value.trim();
+  if (!nid) { explorerClearRes(tj("engine/templates/engine/ontologie.html:js:1879:33")); return; }
+  explorerClearRes(tj("engine/templates/engine/ontologie.html:js:1880:21"));
+  const d = await explorerAPI("/api/ontologie/explorer/", {
+    noeud_id: nid, mode: "recursion",
+    profondeur: parseInt(document.getElementById("explo-rec-prof").value) || 3,
+    direction: document.getElementById("explo-rec-dir").value,
+    limit: 200,
+  });
+  if (d.erreur) { explorerPutRes(`<div style="color:var(--erreur)">${d.erreur}</div>`); return; }
+  if (exploHorsApercu(nid, [nid, ...d.noeuds.map(n => n.id)], "btn-explo-recursion")) return;
+  let html = `<div class="explo-res-titre">🌳 ${d.noeud_racine?.label} — ${d.total} ${tj("engine/templates/engine/ontologie.html:js:1888:85")}${d.tronque ? " (" + tj("engine/templates/engine/ontologie.html:js:tronque") + ")" : ""}</div>`;
+  // Grouper par profondeur
+  const parProf = {};
+  for (const n of d.noeuds) { (parProf[n.profondeur] ??= []).push(n); }
+  for (const [prof, liste] of Object.entries(parProf).sort((a, b) => a[0] - b[0])) {
+    if (prof == 0) continue;
+    html += `<div style="font-size:10px;color:var(--muted);margin:5px 0 2px">${tj("engine/templates/engine/ontologie.html:js:2229:78", {v1: prof, v2: liste.length})}</div>`;
+    html += liste.map(n => explorerNoeudHTML(n)).join("");
+  }
+  explorerPutRes(html);
+  montrerResultats([nid, ...d.noeuds.map(n => n.id)], tj("engine/templates/engine/ontologie.html:js:1898:56"), {centre: nid});
+};
+
+// ── Stats nœud ────────────────────────────────────────────────────────
+document.getElementById("btn-explo-stats").onclick = async () => {
+  const nid = document.getElementById("explo-st-noeud").value.trim();
+  if (!nid) { explorerClearRes(tj("engine/templates/engine/ontologie.html:js:1904:33")); return; }
+  explorerClearRes(tj("engine/templates/engine/ontologie.html:js:1905:21"));
+  const d = await explorerAPI("/api/ontologie/explorer/", {
+    noeud_id: nid, mode: "stats",
+    profondeur: parseInt(document.getElementById("explo-st-prof").value) || 2,
+  });
+  if (d.erreur) { explorerPutRes(`<div style="color:var(--erreur)">${d.erreur}</div>`); return; }
+  const n = d.noeud;
+  let html = `<div class="explo-res-titre">📊 ${n.label} <span style="color:var(--muted)">(${libType(n.type)})</span></div>`;
+  // Degrés
+  html += `<div class="explo-stat-ligne"><span class="explo-stat-cle">${tj("engine/templates/engine/ontologie.html:js:1914:72")}</span><b>${d.degre_total}</b></div>`;
+  html += `<div class="explo-stat-ligne"><span class="explo-stat-cle">${tj("engine/templates/engine/ontologie.html:js:2250:71")}</span><b>${d.degre_sortant} / ${d.degre_entrant}</b></div>`;
+  html += `<div class="explo-stat-ligne"><span class="explo-stat-cle">${tj("engine/templates/engine/ontologie.html:js:2251:71")}</span><b>${d.taille_composante}</b></div>`;
+  // Centralités
+  if (d.centralite && Object.keys(d.centralite).length) {
+    html += `<div class="explo-res-titre">${tj("engine/templates/engine/ontologie.html:js:1919:44")}</div>`;
+    for (const [k, v] of Object.entries(d.centralite)) {
+      html += `<div class="explo-stat-ligne"><span class="explo-stat-cle">${k}</span><b>${v}</b></div>`;
+    }
+  }
+  // Voisins par saut
+  if (d.voisins_par_saut && Object.keys(d.voisins_par_saut).length) {
+    html += `<div class="explo-res-titre">${tj("engine/templates/engine/ontologie.html:js:1926:44")}</div>`;
+    for (const [s, nb] of Object.entries(d.voisins_par_saut)) {
+      html += `<div class="explo-stat-ligne"><span class="explo-stat-cle">${tj("engine/templates/engine/ontologie.html:js:2263:75", {v1: s})}</span><b>${nb}</b></div>`;
+    }
+  }
+  // Types des voisins (barres)
+  if (d.types_voisins && Object.keys(d.types_voisins).length) {
+    html += `<div class="explo-res-titre">${tj("engine/templates/engine/ontologie.html:js:1933:44")}</div>`;
+    const maxV = Math.max(...Object.values(d.types_voisins));
+    for (const [t, nb] of Object.entries(d.types_voisins)) html += explorerBarHTML(t, nb, maxV * 1.2);
+  }
+  // Relations
+  for (const [titre, src] of [[tj("engine/templates/engine/ontologie.html:js:lbl_relations_sortantes"), d.relations_sortantes], [tj("engine/templates/engine/ontologie.html:js:lbl_relations_entrantes"), d.relations_entrantes]]) {
+    if (!src || !Object.keys(src).length) continue;
+    html += `<div class="explo-res-titre">${titre}</div>`;
+    const mx = Math.max(...Object.values(src));
+    for (const [r, nb] of Object.entries(src)) html += explorerBarHTML(r, nb, mx * 1.2);
+  }
+  explorerPutRes(html);
+  if (nid in parIndex) mettreAuFocus(nid);
+};
+
+// ── Fiche objet (Phase 6 — Applications object-centric) ────────────────
+// Délègue au widget partagé fiche_objet.js (modal autonome, styles inline).
+document.getElementById("btn-explo-fiche").onclick = () => {
+  const nid = document.getElementById("explo-fiche-noeud").value.trim();
+  if (!nid) { explorerClearRes(tj("engine/templates/engine/ontologie.html:js:1952:33")); return; }
+  ouvrirFicheObjet(nid);
+};
+
+// ── Stats globales ────────────────────────────────────────────────────
+document.getElementById("btn-explo-globales").onclick = async () => {
+  explorerClearRes(tj("engine/templates/engine/ontologie.html:js:1958:21"));
+  // On passe par /explorer/ avec stats_globales:true sur le nœud entreprise s'il existe,
+  // sinon on le demande via la recherche du 1er nœud entreprise.
+  let noeudRef = noeuds.find(n => n.type === "entreprise")?.id || noeuds[0]?.id;
+  if (!noeudRef) { explorerPutRes(`<div style="color:var(--muted)">${tj("engine/templates/engine/ontologie.html:js:1962:69")}</div>`); return; }
+  const d = await explorerAPI("/api/ontologie/explorer/", {
+    noeud_id: noeudRef, mode: "stats", profondeur: 1, stats_globales: true,
+  });
+  if (d.erreur) { explorerPutRes(`<div style="color:var(--erreur)">${d.erreur}</div>`); return; }
+  const sg = d.stats_globales;
+  let html = `<div class="explo-res-titre">${tj("engine/templates/engine/ontologie.html:js:2303:44", {v1: sg.noeuds, v2: tj("engine/templates/engine/ontologie.html:js:1968:67"), v3: sg.aretes, v4: tj("engine/templates/engine/ontologie.html:js:1968:88")})}</div>`;
+  html += `<div class="explo-stat-ligne"><span class="explo-stat-cle">${tj("engine/templates/engine/ontologie.html:js:1969:72")}</span><b>${sg.densite}</b></div>`;
+  if (sg.diametre != null) html += `<div class="explo-stat-ligne"><span class="explo-stat-cle">${tj("engine/templates/engine/ontologie.html:js:1970:97")}</span><b>${sg.diametre}</b></div>`;
+  html += `<div class="explo-stat-ligne"><span class="explo-stat-cle">${tj("engine/templates/engine/ontologie.html:js:2306:71")}</span><b>${sg.nb_composantes}</b></div>`;
+  // Types nœuds (barres)
+  html += `<div class="explo-res-titre">${tj("engine/templates/engine/ontologie.html:js:1973:42")}</div>`;
+  const mxT = Math.max(...Object.values(sg.types_noeuds));
+  for (const [t, nb] of Object.entries(sg.types_noeuds)) html += explorerBarHTML(t, nb, mxT * 1.2);
+  // Types relations
+  html += `<div class="explo-res-titre">${tj("engine/templates/engine/ontologie.html:js:1977:42")}</div>`;
+  const mxR = Math.max(...Object.values(sg.types_relations));
+  for (const [r, nb] of Object.entries(sg.types_relations)) html += explorerBarHTML(r, nb, mxR * 1.2);
+  // Top nœuds
+  html += `<div class="explo-res-titre">${tj("engine/templates/engine/ontologie.html:js:1981:42")}</div>`;
+  html += sg.top_noeuds_par_degre.map(n => explorerNoeudHTML(
+    {...n, couleur: couleurParType[n.type] || gyCouleur("--texte-discret","#888")}, `d${n.degre}`
+  )).join("");
+  explorerPutRes(html);
+  montrerResultats(sg.top_noeuds_par_degre.map(n => n.id), tj("engine/templates/engine/ontologie.html:js:1986:61"), {});
+};
+
+</script>
+<script src="{% static 'engine/js/fantome_ontologie.js' %}"></script>
+<script src="{% static 'engine/js/selecteur_couleur.js' %}"></script>
+<script src="{% static 'engine/js/icones.js' %}"></script>
+<script src="{% static 'engine/js/fiche_objet.js' %}"></script>
+<script>
+// Portail de navigation : double-clic sur un nœud => fiche objet avec la section « Aller à »
+// (table, dashboards/graphiques, KPI, modèles IA... liés à cette donnée). Arrivée par lien
+// (?noeud=table:5) => la fiche de ce nœud s'ouvre directement. Aucune nouvelle page.
+try {
+  cnv.addEventListener("dblclick", e => {
+    const rect = cnv.getBoundingClientRect();
+    const n = noeudSous(e.clientX - rect.left, e.clientY - rect.top);
+    if (n) ouvrirFicheObjet(n.id);
+  });
+  const noeudDemande = new URLSearchParams(window.location.search).get("noeud");
+  if (noeudDemande) ouvrirFicheObjet(noeudDemande);
+  // patch:recherche_hors_apercu : arrivée par ?racine=<id> — la racine devient le focus, la fiche et ses voisins s'affichent tout de suite.
+  else if (!SUITE && APERCU.racine && APERCU.racine !== APERCU.entreprise && noeuds[parIndex[APERCU.racine]]) mettreAuFocus(APERCU.racine, false, true);   // en trace poursuivie, chargerTraces reprend la trace et place le focus
+  // Exploration relancée après un changement de racine (voir exploHorsApercu) : mêmes champs, même onglet, même bouton.
+  (function relancerExploration(){
+    let r = null;
+    try { r = JSON.parse(sessionStorage.getItem("onto_explo_relance") || "null"); sessionStorage.removeItem("onto_explo_relance"); } catch (e) { r = null; }
+    if (!r || r.racine !== APERCU.racine || !noeuds[parIndex[r.racine]]) return;
+    explorerOuvrir(true);
+    if (r.onglet){ const ong = document.querySelector('.explo-ong[data-ong="' + r.onglet + '"]'); if (ong) ong.click(); }
+    for (const [id, v] of Object.entries(r.champs || {})){ const el = document.getElementById(id); if (el) el.value = v; }
+    const bouton = document.getElementById(r.bouton);
+    if (bouton) bouton.click();
+  })();
+} catch (e) { /* page sans canvas prêt : le portail reste accessible via l'onglet Fiche */ }
+</script>
+
+<script src="{% static 'engine/js/sidebar_toggle.js' %}"></script>
+
+</div><!-- #principal -->
+</div><!-- #app -->
+</body>
+</html>

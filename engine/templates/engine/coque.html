@@ -1,0 +1,41 @@
+{% load i18n_extras %}
+{% load static %}<!DOCTYPE html>
+<html lang="{{ langue_html|default:'fr' }}">
+<head><link rel="stylesheet" href="{% static 'engine/css/app.css' %}"><link rel="stylesheet" href="{% url 'engine:marque_css' %}"><script src="{% static 'engine/js/marque.js' %}" defer></script><script src="{% static 'engine/js/gestes_tactiles.js' %}" defer></script><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover"><title>{% t "engine/templates/engine/coque.html:4:385" %}</title><script src="{% static 'engine/js/dialogues.js' %}"></script>
+</head>
+<body class="page-coque">
+<iframe id="coque-cadre" src="{{ cible }}" allow="camera *; microphone *; display-capture *; geolocation *; fullscreen *; clipboard-read *; clipboard-write *; autoplay *"></iframe>
+<div id="coque-avis" hidden></div>
+<div id="appel-entrant" hidden><b id="appel-entrant-nom"></b><span id="appel-entrant-type"></span>
+  <button type="button" class="principal" id="appel-entrant-oui">{% t "engine/templates/engine/coque.html:8:66" %}</button>
+  <button type="button" class="petit" id="appel-entrant-non">{% t "engine/templates/engine/coque.html:9:62" %}</button></div>
+<div id="appel" hidden>
+  <div id="appel-titre"><span id="appel-titre-texte"></span></div>
+  <div id="appel-grille"></div>
+  <div id="appel-barre">
+    <button type="button" id="appel-micro" title="{% t 'engine/templates/engine/coque.html:titre_micro' %}">🎙</button>
+    <button type="button" id="appel-cam" title="{% t 'engine/templates/engine/coque.html:15:49' %}">🎥</button>
+    <button type="button" id="appel-ecran" title="{% t 'engine/templates/engine/coque.html:16:51' %}">🖥</button>
+    <button type="button" id="appel-reduire" title="{% t 'engine/templates/engine/coque.html:17:53' %}">⤡</button>
+    <button type="button" id="appel-fin" title="{% t 'engine/templates/engine/coque.html:titre_raccrocher' %}">⏻</button>
+  </div>
+</div>
+{% i18n_js %}
+<script src="{% static 'engine/js/notifications_navigateur.js' %}"></script>
+<script src="{% static 'engine/js/appel_global.js' %}"></script>
+<script>
+// La coque suit la page affichée (adresse + titre) ; un appel en cours est réduit automatiquement quand on change de page.
+(function(){
+  const cadre = document.getElementById("coque-cadre");
+  cadre.addEventListener("load", () => {
+    try {
+      const w = cadre.contentWindow, l = w.location;
+      document.title = w.document.title || "Agentgy";
+      history.replaceState(null, "", "{% url 'engine:coque' %}?p=" + encodeURIComponent(l.pathname + l.search + l.hash));
+    } catch(e){}
+    if (window.Appel && window.Appel.etat().enCours) window.Appel.reduire(true);
+  });
+})();
+</script>
+</body>
+</html>

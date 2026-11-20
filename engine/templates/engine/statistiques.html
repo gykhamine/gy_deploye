@@ -1,0 +1,120 @@
+{% load static %}<!DOCTYPE html>
+{% load i18n_extras %}
+<html lang="{{ langue_html|default:'fr' }}">
+<head>
+<link rel="stylesheet" href="{% static 'engine/css/app.css' %}"><link rel="stylesheet" href="{% url 'engine:marque_css' %}"><script src="{% static 'engine/js/marque.js' %}" defer></script><script src="{% static 'engine/js/gestes_tactiles.js' %}" defer></script>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>{% t "engine/templates/engine/statistiques.html:titre_page" %} — {{ table.nom }}</title>
+<script src="{% static 'engine/js/dialogues.js' %}"></script>
+</head>
+<body class="page-statistiques page-series_temporelles page-dashboard_bi{% if lecture_seule %} lecture-seule-partage{% endif %}">
+{# Même châssis que Séries temporelles (sidebar + en-tête) : les classes geo-* de la sidebar sont partagées. #}
+<div id="sidebar-overlay"></div>
+<div id="app">
+
+<div id="sidebar">
+  <div id="marque"><img class="logo-gy" src="{% static 'engine/img/logo_agent_gy.png' %}" alt="{% t 'engine/templates/engine/statistiques.html:17:96' %}"> {% t "engine/templates/engine/statistiques.html:17:107" %}</div>
+
+  <div class="geo-section">{% t "engine/templates/engine/statistiques.html:17:28" %}</div>
+  <div class="geo-bloc">
+    <div class="geo-note">{{ message_structure }}</div>
+    <div id="sx-tables"></div>
+    <div class="geo-note" id="sx-memoire"></div>
+  </div>
+
+  <div class="geo-section">{% t "engine/templates/engine/statistiques.html:24:28" %}</div>
+  <div class="geo-bloc">
+    <div class="geo-note">{% t "engine/templates/engine/statistiques.html:26:27" %}</div>
+    <label class="geo-champ">{% t "engine/templates/engine/statistiques.html:28:30" %}
+      <select id="e-methode"><option value="">{% t "engine/templates/engine/statistiques.html:28:47" %}</option></select></label>
+    <label class="geo-champ">{% t "engine/templates/engine/statistiques.html:30:30" %}
+      <input type="number" id="e-taille" min="1" max="100000" step="1" value="100"></label>
+    <label class="geo-champ">{% t "engine/templates/engine/statistiques.html:32:30" %}
+      <select id="e-strate"></select></label>
+    <label class="geo-champ" title="{% t 'engine/templates/engine/statistiques.html:33:37' %}">{% t "engine/templates/engine/statistiques.html:34:96" %}
+      <input type="number" id="e-graine" min="0" step="1" value="1"></label>
+    <label class="geo-case"><input type="checkbox" id="e-remise"> {% t "engine/templates/engine/statistiques.html:35:67" %}</label>
+  </div>
+
+  <div class="geo-section">{% t "engine/templates/engine/statistiques.html:38:28" %}</div>
+  <div class="geo-bloc">
+    <div class="geo-note"><b>{% t "engine/templates/engine/statistiques.html:40:30" %}</b> {% t "engine/templates/engine/statistiques.html:40:53" %}</div>
+    <div class="geo-note"><b>{% t "engine/templates/engine/statistiques.html:41:30" %}</b> {% t "engine/templates/engine/statistiques.html:41:59" %} <b>{% t "engine/templates/engine/statistiques.html:41:169" %}</b> {% t "engine/templates/engine/statistiques.html:41:192" %}</div>
+  </div>
+
+  <div style="border-top:1px solid var(--border);padding:8px 10px 4px;font-size:11px;color:var(--muted)">
+    <a class="retour" href="/tables/{{ table.slug }}/?retour=1" style="font-size:12px">{% tf "engine/templates/engine/statistiques.html:46:79" v1=table.nom %}</a>
+  </div>
+</div>
+
+<div id="principal">
+  <div id="entete">
+    <div class="entete-rangee-titre">
+      <div class="entete-gauche">
+        <button id="btn-toggle-sidebar" aria-label="{% t 'engine/templates/engine/statistiques.html:53:53' %}">☰</button>
+      </div>
+    </div>
+    <div class="onglets-vue sx-onglets">
+      <button class="onglet-vue actif" data-partie="desc">{% t "engine/templates/engine/statistiques.html:59:59" %}</button>
+      <button class="onglet-vue" data-partie="inf">{% t "engine/templates/engine/statistiques.html:60:52" %}</button>
+      <button class="onglet-vue" data-partie="prob">{% t "engine/templates/engine/statistiques.html:61:53" %}</button>
+    </div>
+  </div>
+
+  <div id="zone-series">
+    <div id="sx-desc" class="sx-partie">
+      <div class="sx-barre">
+        <label class="geo-champ" style="max-width:260px">{% t "engine/templates/engine/statistiques.html:69:58" %}
+          <select id="d-par"><option value="">{% t "engine/templates/engine/statistiques.html:69:47" %}</option></select></label>
+        <button class="geo-btn principal" id="d-lancer" style="max-width:200px">{% t "engine/templates/engine/statistiques.html:70:81" %}</button>
+      </div>
+      <div id="d-res"></div>
+    </div>
+
+    <div id="sx-inf" class="sx-partie" style="display:none">
+      <div class="sx-barre">
+        <label class="geo-champ" style="min-width:min(320px,100%)">{% t "engine/templates/engine/statistiques.html:77:68" %}
+          <select id="i-test"></select></label>
+      </div>
+      <div class="geo-note" id="i-aide" style="margin-bottom:8px"></div>
+      <div class="sx-formulaire" id="i-roles"></div>
+      <div class="sx-formulaire" id="i-params"></div>
+      <button class="geo-btn principal" id="i-lancer" style="max-width:200px">{% t "engine/templates/engine/statistiques.html:83:79" %}</button>
+      <div id="i-res"></div>
+    </div>
+
+    <div id="sx-prob" class="sx-partie" style="display:none">
+      <div class="sx-barre">
+        <label class="geo-champ" style="min-width:min(280px,100%)">{% t "engine/templates/engine/statistiques.html:89:68" %}
+          <select id="p-type">
+            <option value="loi">{% t "engine/templates/engine/statistiques.html:91:33" %}</option>
+            <option value="evenements">{% t "engine/templates/engine/statistiques.html:92:40" %}</option>
+            <option value="bayes">{% t "engine/templates/engine/statistiques.html:93:35" %}</option>
+            <option value="combinatoire">{% t "engine/templates/engine/statistiques.html:94:42" %}</option>
+            <option value="ajustement">{% t "engine/templates/engine/statistiques.html:95:40" %}</option>
+          </select></label>
+      </div>
+      <div class="sx-formulaire" id="p-formulaire"></div>
+      <button class="geo-btn principal" id="p-lancer" style="max-width:200px">{% t "engine/templates/engine/statistiques.html:99:79" %}</button>
+      <div id="p-res"></div>
+    </div>
+  </div>
+</div>
+</div>
+
+<div id="toast"></div>
+{{ tables_disponibles|json_script:"sx-donnees-tables" }}
+{{ catalogue|json_script:"sx-donnees-catalogue" }}
+{% i18n_js %}
+<script>
+window.STATS = {tableId: {{ table.id }}, lectureSeule: {{ lecture_seule|yesno:"true,false" }}, tableCompatible: {{ table_compatible|yesno:"true,false" }}};
+</script>
+<script src="{% static 'engine/js/contexte_page.js' %}"></script>
+<script src="{% static 'engine/js/gy_couleur.js' %}"></script>
+<script src="{% static 'engine/js/filtre_table_liste.js' %}"></script>
+<script src="{% static 'engine/js/statistiques.js' %}"></script>
+<script src="{% static 'engine/js/sidebar_toggle.js' %}"></script>
+<script src="{% static 'engine/js/selecteur_table_page.js' %}" defer></script>
+</body>
+</html>

@@ -1,0 +1,478 @@
+{% extends "engine/page_simple.html" %}
+{% load i18n_extras %}{% load static %}
+{% block classe_page %}page-messagerie{% endblock %}
+{% block titre %}Messagerie{% endblock %}
+{% block contenu %}
+<div id="msg">
+  <aside id="msg-gauche" data-colonne-laterale data-colonne-tiroir data-libelle="{% t 'engine/templates/engine/messagerie.html:colonne_bascule' %}">
+    <input id="msg-q" type="search" autocomplete="off" placeholder="{% t 'engine/templates/engine/messagerie.html:7:69' %}" oninput="chercher()" onfocus="chercher(true)">
+    <div id="msg-nouveaux"><button type="button" class="petit principal" onclick="nouvelleDiscussion(false)" title="{% t 'engine/templates/engine/messagerie.html:10:112' %}">{% t "engine/templates/engine/messagerie.html:10:112" %}</button>
+      <button type="button" class="petit principal" onclick="nouvelleDiscussion(true)" title="{% t 'engine/templates/engine/messagerie.html:11:88' %}">{% t "engine/templates/engine/messagerie.html:11:88" %}</button></div>
+    <div id="msg-resultats" hidden></div>
+    <nav id="msg-boite">
+      <div id="msg-onglets" role="tablist">
+        <button type="button" role="tab" class="msg-onglet" data-onglet="clients" onclick="choisirOnglet('clients')"><span>{% t "engine/templates/engine/messagerie.html:onglet_clients" %}</span><i class="msg-compte" hidden></i></button>
+        <button type="button" role="tab" class="msg-onglet" data-onglet="equipe" onclick="choisirOnglet('equipe')"><span>{% t "engine/templates/engine/messagerie.html:onglet_equipe" %}</span><i class="msg-compte" hidden></i></button>
+        <button type="button" role="tab" class="msg-onglet" data-onglet="autres" onclick="choisirOnglet('autres')"><span>{% t "engine/templates/engine/messagerie.html:onglet_autres" %}</span><i class="msg-compte" hidden></i></button>
+      </div>
+      <div id="msg-groupes"></div>
+      <div id="msg-outils" hidden><button type="button" class="petit" onclick="afficherFavoris()">{% t "engine/templates/engine/messagerie.html:btn_favoris" %}</button>
+        <button type="button" class="petit" onclick="afficherSourdines()">{% t "engine/templates/engine/messagerie.html:btn_sourdines" %}</button></div>
+      <div id="msg-liste"></div>
+    </nav>
+    {% include "engine/_retour_table.html" with auto=1 %}
+  </aside>
+  <section id="msg-droite">
+    <div id="msg-entete"><div id="msg-titre">{% t "engine/templates/engine/messagerie.html:13:25" %}</div>
+      <button type="button" class="petit" id="msg-sourdine-conv" onclick="sourdineConversation()" hidden></button>
+      <button type="button" class="petit" id="msg-participants" title="{% t 'engine/templates/engine/messagerie.html:22:72' %}" onclick="afficherParticipants()" hidden>{% t "engine/templates/engine/messagerie.html:22:126" %}</button>
+      <button type="button" class="petit principal" id="msg-appel-audio" title="{% t 'engine/templates/engine/messagerie.html:21:81' %}" onclick="lancerAppel(false)" hidden>{% t "engine/templates/engine/messagerie.html:23:174" %}</button>
+      <button type="button" class="petit principal" id="msg-appel-video" title="{% t 'engine/templates/engine/messagerie.html:22:81' %}" onclick="lancerAppel(true)" hidden>{% t "engine/templates/engine/messagerie.html:22:202" %}</button></div>
+    <div id="msg-fil"><p class="guide-hint">{% if est_client %}{% t "engine/templates/engine/messagerie.html:14:64" %}{% else %}{% t "engine/templates/engine/messagerie.html:14:143" %}{% endif %}</p></div>
+    <form id="msg-saisie" hidden onsubmit="return envoyer(event)">
+      <div id="msg-contexte" hidden></div>
+      <button type="button" class="petit" title="{% t 'engine/templates/engine/messagerie.html:16:50' %}" onclick="$('msg-fichier').click()">📎</button>
+      <button type="button" class="petit" title="{% t 'engine/templates/engine/messagerie.html:17:50' %}" onclick="$('msg-camera').click()">📷</button>
+      <button type="button" class="petit" title="{% t 'engine/templates/engine/messagerie.html:18:50' %}" onclick="choisirFiche()">🔗</button>
+      {% if not est_client %}<button type="button" class="petit" id="msg-structure" title="{% t 'engine/templates/engine/messagerie.html:19:92' %}" onclick="choisirStructure()" hidden>🏗</button>{% endif %}
+      <button type="button" class="petit" id="msg-micro" title="{% t 'engine/templates/engine/messagerie.html:20:65' %}" onclick="vocal()">🎙</button>
+      <textarea id="msg-texte" rows="1" maxlength="5000" placeholder="{% t 'engine/templates/engine/messagerie.html:a:31:70' %}" onkeydown="touche(event)"></textarea>
+      <button class="principal" type="submit">{% t "engine/templates/engine/messagerie.html:22:47" %}</button>
+      <input id="msg-fichier" type="file" hidden onchange="joindre(this)">
+      <input id="msg-camera" type="file" accept="image/*,video/*" capture="environment" hidden onchange="joindre(this)">
+      <div id="msg-piece" hidden></div>
+      <div id="msg-fiche" hidden></div>
+    </form>
+    <div id="msg-nouveau" hidden></div>
+    <div id="msg-fiches" hidden></div>
+    <div id="msg-transfert" hidden></div>
+    <div id="msg-structure-zone" hidden></div>
+  </section>
+</div>
+{% endblock %}
+{% block script %}{% i18n_js %}<script src="{% static 'engine/js/colonne_toggle.js' %}"></script>
+<script>
+// État unique de la page (jamais de variable locale partagée entre fonctions).
+const S = {conv: null, type: null, dernier: 0, moi: null, minuteur: null, liste: null, piece: null, rec: null, debounce: null,
+  msgs: {}, reponse: null, edition: null, tick: 0, empreinte: "", sourdine: false};
+const EMOJIS = ["👍", "❤️", "😂", "😮", "😢", "🙏"];
+const heure = iso => new Date(iso).toLocaleTimeString([], {hour: "2-digit", minute: "2-digit"});
+const jour = iso => new Date(iso).toLocaleDateString([], {weekday: "long", day: "numeric", month: "long"});
+const U_MO = "{% t 'engine/templates/engine/messagerie.html:unite_mo' %}", U_KO = "{% t 'engine/templates/engine/messagerie.html:unite_ko' %}";
+const taille = n => n > 1048576 ? U_MO.replace("{v1}", (n / 1048576).toFixed(1)) : U_KO.replace("{v1}", Math.max(1, Math.round(n / 1024)));
+
+const ONGLETS = ["clients", "equipe", "autres"];
+function ongletValide(nom){ return ONGLETS.includes(nom) && !(nom === "clients" && S.moi && S.moi.role === "lecteur") ? nom : "equipe"; }
+function teinte(texte){ let h = 0; for (const c of texte) h = (h * 31 + c.codePointAt(0)) % 360; return h; }
+function ligneConv(c){
+  const lettre = (Array.from((c.titre || "?").trim())[0] || "?").toUpperCase();
+  return `<div class="msg-conv avec-avatar ${c.id === S.conv ? "actif" : ""}" onclick="ouvrir(${c.id})"><span class="msg-avatar" style="--h:${teinte(c.titre || "")}">${esc(lettre)}</span>
+    <b>${c.sourdine ? "🔇 " : ""}${esc(c.titre)}</b>${c.non_lus ? `<span class="pastille">${c.non_lus}</span>` : ""}<small>${esc(c.apercu)}</small></div>`;
+}
+// Dessine la barre latérale : onglet actif, pastilles de non-lus par onglet, groupe épinglé et liste filtrée.
+function rendreLateral(){
+  const d = S.donnees, client = S.moi.role === "lecteur";
+  S.onglet = ongletValide(S.onglet);
+  const par = {clients: [], equipe: [], autres: []};
+  for (const c of S.liste) (par[c.cible] || par.equipe).push(c);
+  document.querySelectorAll("#msg-onglets .msg-onglet").forEach(b => {
+    const nom = b.dataset.onglet, nb = par[nom].reduce((n, c) => n + c.non_lus, 0), pastille = b.querySelector(".msg-compte");
+    b.hidden = client && nom === "clients";
+    b.classList.toggle("actif", nom === S.onglet); b.setAttribute("aria-selected", nom === S.onglet);
+    pastille.hidden = !nb; pastille.textContent = nb > 99 ? "99+" : nb;
+  });
+  const epingles = {equipe: d.groupes.entreprise ? `<button class="petit msg-epingle" onclick="groupe('entreprise')">${tj("engine/templates/engine/messagerie.html:js:44:111")}</button>` : "",
+    clients: `<button class="petit msg-epingle" onclick="groupe('clients')">${client ? tj("engine/templates/engine/messagerie.html:js:45:90") : tj("engine/templates/engine/messagerie.html:js:45:114")}</button>`};
+  if (client) epingles.equipe += epingles.clients;        // un client n'a pas d'onglet « Clients » : son groupe est dans « Équipe »
+  $("msg-groupes").innerHTML = epingles[S.onglet] || "";
+  $("msg-outils").hidden = S.onglet !== "autres";
+  $("msg-liste").innerHTML = par[S.onglet].map(ligneConv).join("") || `<p class="guide-hint">${tj("engine/templates/engine/messagerie.html:js:48:9")}</p>`;
+}
+function choisirOnglet(nom){
+  S.onglet = ongletValide(nom);
+  try { localStorage.setItem("gy.messagerie.onglet", S.onglet); } catch(e){ /* stockage bloqué : l'onglet n'est simplement pas retenu */ }
+  if (S.liste) rendreLateral();
+}
+async function charger(sync){
+  const d = await api("/api/messagerie/conversations/" + (sync ? "?sync=1" : ""));
+  S.moi = d.moi; S.liste = d.conversations; S.donnees = d;
+  document.title = (d.total_non_lus ? "(" + d.total_non_lus + ") " : "") + tj("engine/templates/engine/messagerie.html:js:lbl_messagerie");
+  if (!S.onglet) { try { S.onglet = localStorage.getItem("gy.messagerie.onglet") || ""; } catch(e){ S.onglet = ""; } }
+  rendreLateral();
+}
+async function groupe(nom){ try { const d = await api("/api/messagerie/ouvrir/", {groupe: nom}); await ouvrir(d.conversation_id); } catch(e){ /* api() a déjà affiché l'erreur */ } }
+async function avec(id){
+  try { const d = await api("/api/messagerie/ouvrir/", {membre_id: id}); $("msg-q").value = ""; $("msg-resultats").hidden = true; await ouvrir(d.conversation_id); }
+  catch(e){ /* api() a déjà affiché l'erreur */ }
+}
+function pieceMedia(m){
+  if (!m.url) return "";
+  if (m.type === "image") return `<a href="${m.url}" target="_blank" rel="noopener"><img src="${m.url}" alt="${esc(m.nom_fichier)}"></a>`;
+  if (m.type === "audio") return `<audio controls preload="none" src="${m.url}"></audio>`;
+  if (m.type === "video") return `<video controls preload="metadata" src="${m.url}"></video>`;
+  return `<a class="fichier" href="${m.url}" download="${esc(m.nom_fichier)}">📥 ${esc(m.nom_fichier)} <small>(${taille(m.taille)})</small></a>`;
+}
+// Bon / mauvais : avis PRIVÉ sur un message reçu (jamais montré à l'expéditeur) ; c'est ce qui apprend au SIEM à reconnaître spams et messages malveillants.
+function avisMessage(m){
+  if (m.moi || m.supprime) return "";
+  const c = (v, e, titre) => `<label class="msg-avis-case" title="${titre}"><input type="checkbox" ${m.mon_avis === v ? "checked" : ""} onchange="donnerAvis(${m.id}, ${v})"> ${e}</label>`;
+  return `<div class="msg-avis">${c(1, "👍", "Message bon")}${c(-1, "👎", "Message mauvais (spam, malveillant)")}</div>`;
+}
+async function donnerAvis(id, valeur){
+  const deja = S.msgs[id] && S.msgs[id].mon_avis === valeur;   // recocher la même case = retirer l'avis
+  try { await api("/api/messagerie/messages/" + id + "/avis/", {valeur: deja ? 0 : valeur}); } catch(e){ /* api() a déjà affiché l'erreur */ }
+  await recharger();
+}
+function bulle(m){
+  S.msgs[m.id] = m;
+  if (m.supprime) return `<div class="msg-bulle ${m.moi ? "moi" : ""} supprime" id="m${m.id}"><i>${tj("engine/templates/engine/messagerie.html:js:63:99")}</i></div>`;
+  if (m.sourdine) return `<div class="msg-bulle supprime" id="m${m.id}"><i>${tj("engine/templates/engine/messagerie.html:js:79:77")} ${esc(m.de)} ${tj("engine/templates/engine/messagerie.html:js:79:103")}</i>
+    <small><a href="#" class="btn petit" onclick="sourdinePersonne(${m.expediteur_id}, false);return false">${tj("engine/templates/engine/messagerie.html:js:80:92")}</a></small></div>`;
+  const cite = m.reponse_a ? `<div class="msg-citation" onclick="allerA(${m.reponse_a.id})">${m.reponse_a.de ? `<b>${esc(m.reponse_a.de)}</b>` : ""}<span>${esc(m.reponse_a.apercu)}</span></div>` : "";
+  const reactions = m.reactions.length ? `<div class="msg-reactions">${m.reactions.map(r => `<button type="button" class="${r.moi ? "moi" : ""}" onclick="reagirMessage(${m.id}, '${r.emoji}')">${r.emoji} ${r.nb}</button>`).join("")}</div>` : "";
+  return `<div class="msg-bulle ${m.moi ? "moi" : ""}" id="m${m.id}">${m.moi ? "" : `<b>${esc(m.de)}</b>`}
+    ${m.transfere ? `<small class="msg-transfere">${tj("engine/templates/engine/messagerie.html:js:84:52")}</small>` : ""}${cite}${pieceMedia(m)}
+    ${m.structure && !m.moi && S.moi && S.moi.role !== "lecteur" ? `<div class="msg-structure-import"><button type="button" class="petit principal" id="imp${m.id}" onclick="importerStructure(${m.id})">${tj("engine/templates/engine/messagerie.html:js:65:203")}</button></div>` : ""}
+    ${m.enregistrement ? `<div class="msg-fiche-lien"><b>🔗 ${esc(m.enregistrement.table)}</b>${m.enregistrement.lignes.map(l => `<br><small>${esc(l.champ)} : ${esc(l.valeur)}</small>`).join("")}</div>` : ""}
+    ${m.suspect ? `<small class="msg-suspect">⚠️ ${tj("engine/templates/engine/messagerie.html:js:message_suspect")}</small>` : ""}
+    ${m.texte ? `<p>${esc(m.texte).replace(/\n/g, "<br>")}</p>` : ""}${reactions}${avisMessage(m)}
+    <small>${m.favori ? "⭐ " : ""}${m.modifie ? tj("engine/templates/engine/messagerie.html:js:88:50") : ""}${heure(m.date)} <a href="#" class="effacer btn petit" onclick="menuMessage(${m.id}, event);return false" title="${tj("engine/templates/engine/messagerie.html:js:103:222")}">⋯</a></small></div>`;
+}
+function afficher(messages, remplacer){
+  const fil = $("msg-fil"), bas = fil.scrollHeight - fil.scrollTop - fil.clientHeight < 80;
+  if (remplacer) { fil.innerHTML = ""; fil.dataset.jour = ""; S.msgs = {}; }
+  let html = "";
+  for (const m of messages) {
+    const j = jour(m.date);
+    if (fil.dataset.jour !== j) { html += `<div class="msg-jour">${esc(j)}</div>`; fil.dataset.jour = j; }
+    html += bulle(m); S.dernier = Math.max(S.dernier, m.id);
+  }
+  fil.insertAdjacentHTML("beforeend", html);
+  if (remplacer || (messages.length && bas)) fil.scrollTop = fil.scrollHeight;
+}
+async function ouvrir(id){
+  clearInterval(S.minuteur); S.conv = id; S.dernier = 0; S.tick = 0; S.empreinte = "";
+  annulerContexte(); $("msg-transfert").hidden = true;
+  if(window.gyFermerColonne) gyFermerColonne();   // petit écran : la liste est un tiroir, il se referme dès qu'une conversation s'ouvre
+  const d = await api("/api/messagerie/conversations/" + id + "/messages/");
+  $("msg-titre").textContent = d.titre; $("msg-saisie").hidden = false;
+  S.type = d.type; majStructure(); majSourdineConv(); majAppel();
+  afficher(d.messages, true);
+  if (!d.messages.length) $("msg-fil").innerHTML = tj("engine/templates/engine/messagerie.html:js:88:53");
+  S.empreinte = JSON.stringify(d.messages);
+  S.minuteur = setInterval(suite, 3000);
+  const ouverte = (S.liste || []).find(x => x.id === id); if (ouverte) S.onglet = ongletValide(ouverte.cible);   // la liste suit la conversation ouverte
+  charger(false); $("msg-texte").focus();
+}
+async function suite(){
+  if (!S.conv) return;
+  const id = S.conv, d = await api("/api/messagerie/conversations/" + id + "/messages/?apres=" + S.dernier);
+  if (id === S.conv && d.messages.length) { afficher(d.messages, false); charger(false); }
+  S.tick += 1;
+  if (S.tick % 4 === 0) await rafraichir(id);   // modifications, réactions et suppressions des autres : toutes les 12 s
+}
+// Recharge le fil complet s'il a changé (messages modifiés, réactions, suppressions), sans le faire sauter.
+async function rafraichir(id){
+  const d = await api("/api/messagerie/conversations/" + id + "/messages/"), vide = JSON.stringify(d.messages);
+  if (id !== S.conv || vide === S.empreinte) return;
+  S.empreinte = vide;
+  const fil = $("msg-fil"), haut = fil.scrollTop;
+  S.dernier = 0; afficher(d.messages, true); fil.scrollTop = haut;
+}
+async function recharger(){ if (S.conv) { S.empreinte = ""; await rafraichir(S.conv); } }
+function touche(e){ if (e.key === "Enter" && !e.shiftKey) { e.preventDefault(); envoyer(e); } }
+function joindre(input){
+  S.piece = input.files[0] || null; input.value = "";
+  $("msg-piece").hidden = !S.piece;
+  $("msg-piece").innerHTML = S.piece ? `${esc(S.piece.name)} <a href="#" class="btn petit" onclick="retirer();return false">✕</a>` : "";
+}
+function retirer(){ S.piece = null; $("msg-piece").hidden = true; }
+// Lier une de MES fiches (créées par moi) au message : le destinataire en voit un résumé dans la bulle.
+async function choisirFiche(){
+  const zone = $("msg-fiches");
+  if (!zone.hidden) { zone.hidden = true; return; }
+  try {
+    const d = await api("/api/messagerie/fiches/");
+    zone.innerHTML = (d.fiches.map(f => `<div class="msg-conv" data-titre="${esc(f.titre)}" onclick="lierFiche(${f.id}, this.dataset.titre)"><b>${esc(f.titre)}</b><small>${esc(f.table)} · ${heure(f.date)}</small></div>`).join("")
+      || tj("engine/templates/engine/messagerie.html:js:111:11")) + `<a href="#" class="btn petit" onclick="$('msg-fiches').hidden=true;return false">${tj("engine/templates/engine/messagerie.html:js:111:127")}</a>`;
+    zone.hidden = false;
+  } catch(e){ /* api() a déjà affiché l'erreur */ }
+}
+function lierFiche(id, titre){ S.fiche = id; $("msg-fiches").hidden = true; $("msg-fiche").hidden = false;
+  const z = $("msg-fiche"); z.textContent = "🔗 " + titre + " ";
+  const x = document.createElement("a"); x.href = "#"; x.className = "btn petit"; x.textContent = "✕";
+  x.onclick = () => { delier(); return false; }; z.appendChild(x); }
+function delier(){ S.fiche = null; $("msg-fiche").hidden = true; }
+async function envoyer(e){
+  e.preventDefault();
+  const texte = $("msg-texte").value.trim();
+  if (S.edition) return await validerEdition(texte);
+  if (!S.conv || (!texte && !S.piece && !S.fiche)) return false;
+  const fd = new FormData(); fd.append("texte", texte); if (S.piece) fd.append("fichier", S.piece); if (S.fiche) fd.append("enregistrement_id", S.fiche);
+  if (S.reponse) fd.append("reponse_a", S.reponse);
+  try { await api("/api/messagerie/conversations/" + S.conv + "/envoyer/", fd); $("msg-texte").value = ""; retirer(); delier(); annulerContexte(); await suite(); }
+  catch(err){ /* api() a déjà affiché l'erreur */ }
+  return false;
+}
+// ── Répondre / corriger / transférer / réagir / favoris / sourdine ───────────────────────────────────────────
+function annulerContexte(){
+  if (S.edition) $("msg-texte").value = "";
+  S.reponse = null; S.edition = null; $("msg-contexte").hidden = true; $("msg-contexte").innerHTML = "";
+}
+function afficherContexte(html){
+  $("msg-contexte").innerHTML = html + ` <a href="#" class="btn petit" onclick="annulerContexte();return false">✕</a>`; $("msg-contexte").hidden = false; $("msg-texte").focus();
+}
+function repondre(id){
+  const m = S.msgs[id]; if (!m) return;
+  annulerContexte(); S.reponse = id;
+  afficherContexte(`${tj("engine/templates/engine/messagerie.html:js:173:22")} <b>${esc(m.moi ? tj("engine/templates/engine/messagerie.html:js:vous") : m.de)}</b> : <span>${esc(m.texte || m.nom_fichier || tj("engine/templates/engine/messagerie.html:js:173:113")).slice(0, 80)}</span>`);
+}
+function corriger(id){
+  const m = S.msgs[id]; if (!m) return;
+  annulerContexte(); S.edition = id; $("msg-texte").value = m.texte;
+  afficherContexte(tj("engine/templates/engine/messagerie.html:js:178:21"));
+}
+async function validerEdition(texte){
+  const id = S.edition;
+  try { await api("/api/messagerie/messages/" + id + "/modifier/", {texte}); S.edition = null; annulerContexte(); $("msg-texte").value = ""; await recharger(); }
+  catch(e){ /* api() a déjà affiché l'erreur */ }
+  return false;
+}
+function allerA(id){
+  const el = $("m" + id); if (!el) return toast(tj("engine/templates/engine/messagerie.html:js:187:50"), true);
+  el.scrollIntoView({block: "center", behavior: "smooth"}); el.classList.add("surligne"); setTimeout(() => el.classList.remove("surligne"), 1500);
+}
+function menuMessage(id, ev){
+  const m = S.msgs[id]; if (!m) return;
+  document.querySelectorAll(".msg-menu").forEach(x => x.remove());
+  const el = $("m" + id), menu = document.createElement("div"); menu.className = "msg-menu";
+  const item = (txt, action) => `<a href="#" onclick="fermerMenu();${action};return false">${txt}</a>`;
+  menu.innerHTML = `<div class="msg-emojis">${EMOJIS.map(e => `<a href="#" onclick="fermerMenu();reagirMessage(${id}, '${e}');return false">${e}</a>`).join("")}</div>`
+    + item(tj("engine/templates/engine/messagerie.html:js:196:13"), `repondre(${id})`) + item(tj("engine/templates/engine/messagerie.html:js:196:53"), `choisirTransfert(${id})`)
+    + (m.texte ? item(tj("engine/templates/engine/messagerie.html:js:197:24"), tj("engine/templates/engine/messagerie.html:js:197:36", {v1: id})) : "") + item(m.favori ? tj("engine/templates/engine/messagerie.html:js:197:77") : tj("engine/templates/engine/messagerie.html:js:197:103"), `favori(${id})`)
+    + (m.modifiable ? item(tj("engine/templates/engine/messagerie.html:js:198:29"), `corriger(${id})`) : "")
+    + (!m.moi && m.expediteur_id && !m.expediteur_admin && !m.auto ? item("🔇 Mettre " + esc(m.de) + tj("engine/templates/engine/messagerie.html:js:199:102"), `sourdinePersonne(${m.expediteur_id}, true)`) : "")
+    + (m.moi ? item(tj("engine/templates/engine/messagerie.html:js:200:22"), tj("engine/templates/engine/messagerie.html:js:200:37", {v1: id})) : "");
+  el.appendChild(menu); ev.stopPropagation();
+}
+function fermerMenu(){ document.querySelectorAll(".msg-menu").forEach(x => x.remove()); }
+document.addEventListener("click", fermerMenu);
+async function copier(id){ try { await navigator.clipboard.writeText(S.msgs[id].texte); toast(tj("engine/templates/engine/messagerie.html:js:205:95")); } catch(e){ toast(tj("engine/templates/engine/messagerie.html:js:205:124"), true); } }
+async function reagirMessage(id, emoji){
+  try { await api("/api/messagerie/messages/" + id + "/reaction/", {emoji}); await recharger(); } catch(e){ /* api() a déjà affiché l'erreur */ }
+}
+async function favori(id){
+  try { await api("/api/messagerie/messages/" + id + "/favori/", {}); await recharger(); } catch(e){ /* api() a déjà affiché l'erreur */ }
+}
+// Transfert : une copie du message part vers les discussions cochées (5 au plus).
+function choisirTransfert(id){
+  const zone = $("msg-transfert");
+  zone.innerHTML = `<b>${tj("engine/templates/engine/messagerie.html:js:215:25")}</b>` + ((S.liste || []).map(c => `<label class="msg-ag"><input type="checkbox" name="dest" value="${c.id}"> ${esc(c.titre)}</label>`).join("") || tj("engine/templates/engine/messagerie.html:js:215:188"))
+    + `<button type="button" class="principal" onclick="transferer(${id})">${tj("engine/templates/engine/messagerie.html:js:216:77")}</button> <a href="#" class="btn petit" onclick="$('msg-transfert').hidden=true;return false">${tj("engine/templates/engine/messagerie.html:js:216:163")}</a>`;
+  zone.hidden = false;
+}
+async function transferer(id){
+  const cibles = [...$("msg-transfert").querySelectorAll("input[name=dest]:checked")].map(x => Number(x.value));
+  if (!cibles.length) return toast(tj("engine/templates/engine/messagerie.html:js:221:37"), true);
+  try { await api("/api/messagerie/messages/" + id + "/transferer/", {conversations: cibles}); $("msg-transfert").hidden = true; toast(tj("engine/templates/engine/messagerie.html:js:222:137")); await charger(false); await suite(); }
+  catch(e){ /* api() a déjà affiché l'erreur */ }
+}
+// Sourdine : une personne (ses messages ne me parviennent plus ; jamais l'administrateur) ou toute une discussion (silencieuse).
+async function sourdinePersonne(membreId, actif){
+  try { await api("/api/messagerie/sourdine/", {membre_id: membreId, actif}); toast(actif ? tj("engine/templates/engine/messagerie.html:js:227:94") : tj("engine/templates/engine/messagerie.html:js:227:123")); await recharger(); await charger(false); }
+  catch(e){ /* api() a déjà affiché l'erreur */ }
+}
+function majSourdineConv(){
+  const c = (S.liste || []).find(x => x.id === S.conv), b = $("msg-sourdine-conv");
+  S.sourdine = !!(c && c.sourdine); b.hidden = false; b.textContent = S.sourdine ? tj("engine/templates/engine/messagerie.html:js:232:85") : "🔔 Sourdine";
+  b.title = S.sourdine ? tj("engine/templates/engine/messagerie.html:js:233:27") : tj("engine/templates/engine/messagerie.html:js:233:79");
+}
+async function sourdineConversation(){
+  if (!S.conv) return;
+  try { await api("/api/messagerie/sourdine/", {conversation_id: S.conv, actif: !S.sourdine}); await charger(false); majSourdineConv(); }
+  catch(e){ /* api() a déjà affiché l'erreur */ }
+}
+async function afficherSourdines(){
+  const zone = $("msg-resultats"), d = await api("/api/messagerie/sourdines/");
+  zone.hidden = false;
+  zone.innerHTML = `<h3>${tj("engine/templates/engine/messagerie.html:js:243:26")}</h3>` + (d.sourdines.map(x => `<div class="msg-conv"><b>${esc(x.nom)}</b><button type="button" class="petit" onclick="sourdinePersonne(${x.id}, false);afficherSourdines()">${tj("engine/templates/engine/messagerie.html:js:261:256")}</button></div>`).join("") || tj("engine/templates/engine/messagerie.html:js:243:254"))
+    + `<a href="#" class="fermer btn petit" onclick="$('msg-resultats').hidden=true;return false">${tj("engine/templates/engine/messagerie.html:js:244:90")}</a>`;
+}
+async function afficherFavoris(){
+  const zone = $("msg-resultats"), d = await api("/api/messagerie/favoris/");
+  zone.hidden = false;
+  zone.innerHTML = `<h3>${tj("engine/templates/engine/messagerie.html:js:249:26")}</h3>` + (d.resultats.map(r => `<div class="msg-conv" onclick="ouvrir(${r.conversation_id})"><b>${esc(r.titre)}</b><small>${esc(r.de)} : ${esc(r.apercu)}</small></div>`).join("") || tj("engine/templates/engine/messagerie.html:js:249:226"))
+    + `<a href="#" class="fermer btn petit" onclick="$('msg-resultats').hidden=true;return false">${tj("engine/templates/engine/messagerie.html:js:250:90")}</a>`;
+}
+async function effacer(id){
+  if (!await GY.confirmer(tj("engine/templates/engine/messagerie.html:js:128:17"))) return;
+  try { await api("/api/messagerie/messages/" + id + "/supprimer/", {}); const el = $("m" + id); if (el) el.outerHTML = bulle({id, moi: true, supprime: true}); }
+  catch(e){ /* api() a déjà affiché l'erreur */ }
+}
+// Structure partagée (tables, champs, formules, tableaux de bord…, sans aucune donnée) : entre membres de l'équipe seulement.
+// L'administrateur peut tout (toute l'entreprise ou l'espace de quelques agents) ; un agent est confiné à son espace, en envoi comme en import.
+function majStructure(){
+  const b = $("msg-structure"); if (b) b.hidden = !(S.type === "direct" || S.type === "groupe_entreprise");
+  $("msg-structure-zone").hidden = true;
+}
+async function choisirStructure(){
+  const zone = $("msg-structure-zone");
+  if (!zone.hidden) { zone.hidden = true; return; }
+  try {
+    const d = await api("/api/messagerie/structure/agents/");
+    const fermer = `<a href="#" class="btn petit" onclick="$('msg-structure-zone').hidden=true;return false">${tj("engine/templates/engine/messagerie.html:js:143:93")}</a>`;
+    zone.innerHTML = d.role === "admin"
+      ? `<b>${tj("engine/templates/engine/messagerie.html:js:145:14")}</b>
+         <label><input type="radio" name="portee" value="tout" checked> ${tj("engine/templates/engine/messagerie.html:js:146:74")}</label>
+         <label><input type="radio" name="portee" value="agents"> ${tj("engine/templates/engine/messagerie.html:js:147:68")}</label>
+         ${d.agents.map(a => `<label class="msg-ag"><input type="checkbox" name="ag" value="${a.id}"> ${esc(a.nom)} <small>(${a.tables ? a.tables + " table(s)" : tj("engine/templates/engine/messagerie.html:js:148:164")})</small></label>`).join("") || tj("engine/templates/engine/messagerie.html:js:148:216")}
+         <button type="button" class="principal" onclick="envoyerStructure()">${tj("engine/templates/engine/messagerie.html:js:149:80")}</button> ${fermer}`
+      : `<b>${tj("engine/templates/engine/messagerie.html:js:150:14")}</b>
+         <small>${tj("engine/templates/engine/messagerie.html:js:151:18")}</small>
+         <button type="button" class="principal" onclick="envoyerStructure()">${tj("engine/templates/engine/messagerie.html:js:152:80")}</button> ${fermer}`;
+    zone.hidden = false;
+  } catch(e){ /* api() a déjà affiché l'erreur */ }
+}
+async function envoyerStructure(){
+  const zone = $("msg-structure-zone"); if (!S.conv) return;
+  const corps = {texte: $("msg-texte").value.trim()};
+  const agents = [...zone.querySelectorAll("input[name=ag]:checked")].map(x => Number(x.value));
+  const ciblage = zone.querySelector("input[name=portee]:checked");
+  if (ciblage && ciblage.value === "agents") { if (!agents.length) return toast(tj("engine/templates/engine/messagerie.html:js:161:82"), true); corps.agents = agents; }
+  try { await api("/api/messagerie/conversations/" + S.conv + "/structure/", corps); $("msg-texte").value = ""; zone.hidden = true; toast(tj("engine/templates/engine/messagerie.html:js:162:140")); await suite(); }
+  catch(e){ /* api() a déjà affiché l'erreur */ }
+}
+async function importerStructure(id){
+  if (!await GY.confirmer(tj("engine/templates/engine/messagerie.html:js:166:17") + (S.moi && S.moi.role === "admin" ? "." : tj("engine/templates/engine/messagerie.html:js:166:159")))) return;
+  try {
+    const d = await api("/api/messagerie/messages/" + id + "/importer/", {});
+    toast(d.tables + tj("engine/templates/engine/messagerie.html:js:169:23") + (d.renommees.length ? ", " + d.renommees.length + tj("engine/templates/engine/messagerie.html:js:312:131") : "") + ".");
+    const b = $("imp" + id); if (b) b.outerHTML = tj("engine/templates/engine/messagerie.html:js:170:52");
+  } catch(e){ /* api() a déjà affiché l'erreur */ }
+}
+// Message vocal : un clic démarre l'enregistrement, un second l'arrête et l'envoie.
+async function vocal(){
+  const bouton = $("msg-micro");
+  if (S.rec) { S.rec.stop(); return; }
+  if (!navigator.mediaDevices || !window.MediaRecorder) return toast(tj("engine/templates/engine/messagerie.html:js:177:71"), true);
+  try {
+    const flux = await navigator.mediaDevices.getUserMedia({audio: true}), morceaux = [], rec = new MediaRecorder(flux);
+    S.rec = rec; bouton.classList.add("actif"); bouton.title = tj("engine/templates/engine/messagerie.html:js:180:65");
+    rec.ondataavailable = ev => morceaux.push(ev.data);
+    rec.onstop = async () => {
+      flux.getTracks().forEach(t => t.stop()); S.rec = null; bouton.classList.remove("actif"); bouton.title = tj("engine/templates/engine/messagerie.html:js:183:112");
+      const type = rec.mimeType || "audio/webm", ext = type.includes("ogg") ? "ogg" : type.includes("mp4") ? "m4a" : "weba";
+      S.piece = new File(morceaux, "vocal." + ext, {type}); await envoyer(new Event("submit"));
+    };
+    rec.start();
+  } catch(e){ toast(tj("engine/templates/engine/messagerie.html:js:188:22"), true); }
+}
+// Recherche : personnes joignables + messages (au moins 2 caractères) ; champ vide = tous les contacts.
+function chercher(immediat){
+  clearTimeout(S.debounce);
+  S.debounce = setTimeout(lancerRecherche, immediat ? 0 : 300);
+}
+async function lancerRecherche(){
+  const q = $("msg-q").value.trim(), zone = $("msg-resultats");
+  if (q.length === 1) return;
+  const [p, m] = await Promise.all([api("/api/messagerie/contacts/?q=" + encodeURIComponent(q)), q ? api("/api/messagerie/recherche/?q=" + encodeURIComponent(q)) : {resultats: []}]);
+  const role = {chef: "chef", agent: "agent", client: "client"};
+  zone.hidden = false;
+  zone.innerHTML = `<h3>${tj("engine/templates/engine/messagerie.html:js:344:25")}</h3>` + (p.contacts.map(c => `<div class="msg-conv" onclick="avec(${c.id})"><b>${esc(c.nom)}</b><small>${role[c.role]}</small></div>`).join("") || "<p class='guide-hint'>" + tj("engine/templates/engine/messagerie.html:js:344:205") + "</p>")
+    + (m.resultats.length ? `<h3>${tj("engine/templates/engine/messagerie.html:js:202:35")}</h3>` + m.resultats.map(r => `<div class="msg-conv" onclick="ouvrir(${r.conversation_id})"><b>${esc(r.titre)}</b><small>${esc(r.de)} : ${esc(r.apercu)}</small></div>`).join("") : "")
+    + `<a href="#" class="fermer btn petit" onclick="$('msg-resultats').hidden=true;$('msg-q').value='';return false">${tj("engine/templates/engine/messagerie.html:js:203:110")}</a>`;
+}
+// Lien direct (bouton « Ouvrir la conversation » d'une publicité) : /messagerie/?avec=<id du membre> ouvre la discussion avec lui.
+Promise.resolve(charger(true)).then(() => {
+  const cible = parseInt(new URLSearchParams(location.search).get("avec"), 10);
+  if (cible) avec(cible);
+});
+setInterval(() => charger(false), 10000);
+
+// ── Appels audio / vidéo : le moteur WebRTC vit dans la coque (engine/coque.html + static/engine/js/appel_global.js), pas dans cette page.
+// Changer de page ne coupe donc pas l'appel ; ici on ne fait que le lancer. Voir engine/appels.py pour la signalisation.
+const appelGlobal = () => { try { return window.top !== window ? window.top.Appel || null : null; } catch(e){ return null; } };
+function majAppel(){
+  // Les boutons sont TOUJOURS visibles dès qu'une discussion est ouverte : si l'appel est impossible, lancerAppel() explique pourquoi.
+  const ok = !!S.conv;
+  $("msg-appel-audio").hidden = !ok; $("msg-appel-video").hidden = !ok;
+  $("msg-participants").hidden = !(ok && S.type === "salon");
+}
+async function lancerAppel(video){
+  if (!S.conv) return;
+  const g = appelGlobal();
+  if (!g) { toast(tj("engine/templates/engine/messagerie.html:js:344:20"), true); setTimeout(() => location.reload(), 1200); return; }
+  if (!g.possible) { toast(tj("engine/templates/engine/messagerie.html:js:345:29"), true); return; }
+  await g.entrer(S.conv, video, true, $("msg-titre").textContent || "");
+}
+
+// ── Discussions privées : le créateur choisit qui participe (huis clos) — messages et appels réservés à ces personnes.
+const N = {contacts: [], choisis: new Set(), q: "", reunion: false};
+async function nouvelleDiscussion(reunion){
+  N.choisis = new Set(); N.q = ""; N.reunion = !!reunion;
+  try { N.contacts = (await api("/api/messagerie/contacts/?limite=200")).contacts; } catch(e){ return; }
+  const z = $("msg-nouveau"); z.hidden = false;
+  z.innerHTML = `<h3>${reunion ? tj("engine/templates/engine/messagerie.html:js:355:35") : tj("engine/templates/engine/messagerie.html:js:355:92")}</h3>
+    <input id="nv-titre" maxlength="120" placeholder="${tj("engine/templates/engine/messagerie.html:js:356:56")}" autocomplete="off">
+    <input id="nv-q" type="search" placeholder="${tj("engine/templates/engine/messagerie.html:js:357:50")}" autocomplete="off" oninput="N.q=this.value.toLowerCase();listeChoix()">
+    <div class="nv-actions"><button type="button" class="petit" onclick="toutChoisir(true)">${tj("engine/templates/engine/messagerie.html:js:358:94")}</button>
+      <button type="button" class="petit" onclick="toutChoisir(false)">${tj("engine/templates/engine/messagerie.html:js:359:73")}</button> <span id="nv-compte"></span></div>
+    <div id="nv-liste"></div>
+    <div class="nv-actions"><button type="button" class="petit" onclick="creerDiscussion(null)">${tj("engine/templates/engine/messagerie.html:js:361:98")}</button>
+      <button type="button" class="petit principal" onclick="creerDiscussion(false)">${tj("engine/templates/engine/messagerie.html:js:362:87")}</button>
+      <button type="button" class="petit principal" onclick="creerDiscussion(true)">${tj("engine/templates/engine/messagerie.html:js:363:86")}</button>
+      <a href="#" class="btn petit" onclick="$('msg-nouveau').hidden=true;return false">${tj("engine/templates/engine/messagerie.html:js:364:72")}</a></div>`;
+  listeChoix();
+}
+function listeChoix(){
+  const role = {chef: "administrateur", agent: "agent", client: "client"};
+  $("nv-liste").innerHTML = N.contacts.filter(c => !N.q || c.nom.toLowerCase().includes(N.q)).map(c =>
+    `<label class="nv-ligne"><input type="checkbox" ${N.choisis.has(c.id) ? "checked" : ""} onchange="basculerChoix(${c.id}, this.checked)"> <b>${esc(c.nom)}</b> <small>${role[c.role] || ""}</small></label>`).join("")
+    || "<p class='guide-hint'>" + tj("engine/templates/engine/messagerie.html:js:394:31") + "</p>";
+  $("nv-compte").textContent = N.choisis.size + " choisie(s)";
+}
+function basculerChoix(id, oui){ oui ? N.choisis.add(id) : N.choisis.delete(id); $("nv-compte").textContent = N.choisis.size + " choisie(s)"; }
+function toutChoisir(oui){
+  N.contacts.filter(c => !N.q || c.nom.toLowerCase().includes(N.q)).forEach(c => oui ? N.choisis.add(c.id) : N.choisis.delete(c.id)); listeChoix();
+}
+async function creerDiscussion(appel){
+  if (!N.choisis.size) { toast(tj("engine/templates/engine/messagerie.html:js:379:33"), true); return; }
+  try {
+    const d = await api("/api/messagerie/salons/creer/", {titre: $("nv-titre").value, membres: [...N.choisis]});
+    $("msg-nouveau").hidden = true; await ouvrir(d.conversation_id);
+    if (appel !== null) await lancerAppel(appel);
+  } catch(e){ /* api() a déjà affiché l'erreur */ }
+}
+async function afficherParticipants(){
+  if (!S.conv) return;
+  const z = $("msg-nouveau"), conv = S.conv;
+  let d; try { d = await api("/api/messagerie/conversations/" + conv + "/participants/"); } catch(e){ return; }
+  z.hidden = false;
+  z.innerHTML = `<h3>${tj("engine/templates/engine/messagerie.html:js:414:22", {v1: d.participants.length})}</h3>` + d.participants.map(p =>
+    `<div class="nv-ligne"><b>${esc(p.nom)}</b> <small>${p.createur ? tj("engine/templates/engine/messagerie.html:js:createur") : ""}${p.moi ? " (" + tj("engine/templates/engine/messagerie.html:js:vous") + ")" : ""}</small>`
+    + (d.peut_gerer && !p.createur && !p.moi ? ` <button type="button" class="petit" onclick="gererParticipant('retirer', ${p.id})">${tj("engine/templates/engine/messagerie.html:js:416:133")}</button>` : "") + `</div>`).join("")
+    + `<div class="nv-actions">${d.peut_gerer ? `<button type="button" class="petit" onclick="ajouterParticipants()">${tj("engine/templates/engine/messagerie.html:js:394:119")}</button>` : ""}
+       <button type="button" class="petit" onclick="gererParticipant('quitter')">${tj("engine/templates/engine/messagerie.html:js:395:83")}</button>
+       <a href="#" class="btn petit" onclick="$('msg-nouveau').hidden=true;return false">${tj("engine/templates/engine/messagerie.html:js:396:73")}</a></div>`;
+}
+async function gererParticipant(action, membre){
+  try {
+    const d = await api("/api/messagerie/conversations/" + S.conv + "/participants/", {action, membre});
+    if (d.quitte) { $("msg-nouveau").hidden = true; S.conv = null; clearInterval(S.minuteur); $("msg-fil").innerHTML = ""; $("msg-saisie").hidden = true; $("msg-titre").textContent = tj("engine/templates/engine/messagerie.html:js:lbl_messagerie"); majAppel(); charger(false); }
+    else afficherParticipants();
+  } catch(e){}
+}
+async function ajouterParticipants(){
+  const dejà = new Set((await api("/api/messagerie/conversations/" + S.conv + "/participants/")).participants.map(p => p.id));
+  N.contacts = (await api("/api/messagerie/contacts/?limite=200")).contacts.filter(c => !dejà.has(c.id)); N.choisis = new Set(); N.q = "";
+  const z = $("msg-nouveau");
+  z.innerHTML = `<h3>${tj("engine/templates/engine/messagerie.html:js:409:23")}</h3><input id="nv-q" type="search" placeholder="${tj("engine/templates/engine/messagerie.html:js:432:129")}" oninput="N.q=this.value.toLowerCase();listeChoix()">
+    <span id="nv-compte"></span><div id="nv-liste"></div>
+    <div class="nv-actions"><button type="button" class="petit principal" onclick="validerAjout()">${tj("engine/templates/engine/messagerie.html:js:411:101")}</button> <a href="#" class="btn petit" onclick="afficherParticipants();return false">${tj("engine/templates/engine/messagerie.html:js:411:176")}</a></div>`;
+  listeChoix();
+}
+async function validerAjout(){
+  if (!N.choisis.size) { toast(tj("engine/templates/engine/messagerie.html:js:415:33"), true); return; }
+  try { await api("/api/messagerie/conversations/" + S.conv + "/participants/", {action: "ajouter", membres: [...N.choisis]}); afficherParticipants(); } catch(e){}
+}
+</script>{% endblock %}

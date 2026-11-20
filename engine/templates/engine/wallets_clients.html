@@ -1,0 +1,311 @@
+{% extends "engine/page_simple.html" %}
+{% load i18n_extras %}
+{% load static i18n_extras %}
+{% block classe_page %}page-reco page-wallets{% endblock %}
+{% block titre %}{% t "engine/templates/engine/wallets_clients.html:13:7" %}{% endblock %}
+{% block contenu %}
+<header class="reco-pouls" id="c-synthese">
+  <div class="pouls-tete">
+    <div class="pouls-risque" aria-live="polite"><b id="total-solde">–</b><span>{% t "engine/templates/engine/wallets_clients.html:9:81" %}</span></div>
+    <div class="pouls-texte">
+      <h2>{% t "engine/templates/engine/wallets_clients.html:10:11" %}</h2>
+      <p id="wallet-synthese">{% t "engine/templates/engine/wallets_clients.html:14:25" %}</p>
+    </div>
+  </div>
+  <div class="pouls-niveaux" id="niveaux" role="group" aria-label="{% t 'engine/templates/engine/wallets_clients.html:14:68' %}"></div>
+  <div class="pouls-barres" id="pouls-barres" role="list" aria-label="{% t 'engine/templates/engine/wallets_clients.html:15:71' %}"></div>
+  <div class="pouls-pied">
+    <div id="wallet-chiffres" class="chiffres"></div>
+    <div class="pouls-actions">
+      <button id="btn-actualiser" type="button" class="principal">{% t "engine/templates/engine/wallets_clients.html:26:51" %}</button>
+      <button id="btn-exporter-csv" type="button">{% t "engine/templates/engine/wallets_clients.html:27:53" %}</button>
+      <button id="btn-rendre-analysable" type="button">{% t "engine/templates/engine/wallets_clients.html:29:58" %}</button>
+    </div>
+  </div>
+</header>
+<nav class="reco-nav" aria-label="{% t 'engine/templates/engine/wallets_clients.html:26:35' %}">
+  <a href="#c-clients">{% t "engine/templates/engine/wallets_clients.html:26:24" %}</a><a href="#c-principal" id="nav-principal" hidden>{% t "engine/templates/engine/wallets_clients.html:27:137" %}</a><a href="#c-flux" id="nav-flux" hidden>{% t "engine/templates/engine/wallets_clients.html:27:196" %}</a><a href="#c-charges" id="nav-charges" hidden>{% t "engine/templates/engine/wallets_clients.html:27:263" %}</a><a href="#c-paie" id="nav-paie" hidden>{% t "engine/templates/engine/wallets_clients.html:26:143" %}</a>
+<a href="{% url 'engine:agent_flux_page' %}">{% t "engine/templates/engine/wallets_clients.html:28:46" %}</a><a href="{% url 'engine:comptabilite_wallet_page' %}" id="nav-compta" hidden>{% t "engine/templates/engine/wallets_clients.html:28:156" %}</a></nav>
+<section class="reco-section" id="c-clients">
+  <div class="section-tete">
+    <h2>{% t "engine/templates/engine/wallets_clients.html:30:9" %} <small id="nb-clients"></small></h2>
+    <div class="filtres"><input type="search" id="recherche-client" placeholder="{% t 'engine/templates/engine/wallets_clients.html:25:63' %}" aria-label="{% t 'engine/templates/engine/wallets_clients.html:25:63' %}"></div>
+  </div>
+  <div class="tbl-wrap"><table class="tbl">
+    <thead><tr>
+      <th>{% t "engine/templates/engine/wallets_clients.html:34:17" %}</th>
+      <th>{% t "engine/templates/engine/wallets_clients.html:35:17" %}</th>
+      <th>{% t "engine/templates/engine/wallets_clients.html:36:17" %}</th>
+      <th>{% t "engine/templates/engine/wallets_clients.html:37:17" %}</th>
+      <th>{% t "engine/templates/engine/wallets_clients.html:38:17" %}</th>
+      <th class="num">{% t "engine/templates/engine/wallets_clients.html:39:17" %}</th>
+    </tr></thead>
+    <tbody id="corps-wallets"><tr><td colspan="6" class="vide">{% t "engine/templates/engine/wallets_clients.html:43:89" %}</td></tr></tbody>
+  </table></div>
+</section>
+<section class="reco-section" id="bloc-principal" hidden>
+  <div class="section-tete"><h2 id="c-principal">{% t "engine/templates/engine/wallets_clients.html:47:50" %} <small><span id="total-principal">…</span> {% t "engine/templates/engine/wallets_clients.html:47:110" %}</small></h2></div>
+  <p class="guide-hint">{% t "engine/templates/engine/wallets_clients.html:24:51" %}</p>
+  <div class="tbl-wrap"><table class="tbl">
+    <thead><tr><th>{% t "engine/templates/engine/wallets_clients.html:26:22" %}</th><th class="num">{% t "engine/templates/engine/wallets_clients.html:26:36" %}</th><th class="num">{% t "engine/templates/engine/wallets_clients.html:26:77" %}</th><th class="num">{% t "engine/templates/engine/wallets_clients.html:50:263" %}</th><th class="num">{% t "engine/templates/engine/wallets_clients.html:50:297" %}</th></tr></thead>
+    <tbody id="corps-principal"></tbody>
+  </table></div>
+</section>
+<section class="reco-section" id="bloc-paie" hidden>
+  <div class="section-tete"><h2 id="c-paie">{% t "engine/templates/engine/wallets_clients.html:54:45" %}</h2></div>
+  <div id="parts" class="chiffres"></div>
+  <p class="guide-hint">{% t "engine/templates/engine/wallets_clients.html:56:25" %}</p>
+  <div class="tbl-wrap"><table class="tbl">
+    <thead><tr><th>{% t "engine/templates/engine/wallets_clients.html:58:20" %}</th><th>{% t "engine/templates/engine/wallets_clients.html:58:34" %}</th><th class="num">{% t "engine/templates/engine/wallets_clients.html:59:170" %}</th><th class="num">{% t "engine/templates/engine/wallets_clients.html:58:102" %}</th><th class="num">{% t "engine/templates/engine/wallets_clients.html:59:287" %}</th><th class="num">{% t "engine/templates/engine/wallets_clients.html:58:167" %}</th><th>{% t "engine/templates/engine/wallets_clients.html:58:181" %}</th><th></th></tr></thead>
+    <tbody id="corps-paie"></tbody>
+  </table></div>
+  <div class="section-tete"><h2>{% t "engine/templates/engine/wallets_clients.html:61:33" %} <small id="flux-synthese"></small></h2></div>
+  <div class="tbl-wrap"><table class="tbl">
+    <thead><tr><th>{% t "engine/templates/engine/wallets_clients.html:63:20" %}</th><th>{% t "engine/templates/engine/wallets_clients.html:64:89" %}</th><th>{% t "engine/templates/engine/wallets_clients.html:63:51" %}</th><th class="num">{% t "engine/templates/engine/wallets_clients.html:63:78" %}</th><th class="num">{% t "engine/templates/engine/wallets_clients.html:63:106" %}</th></tr></thead>
+    <tbody id="corps-flux"></tbody>
+  </table></div>
+</section>
+<section class="reco-section" id="bloc-flux" hidden>
+  <div class="section-tete">
+    <h2 id="c-flux">{% t "engine/templates/engine/wallets_clients.html:70:21" %} <small id="bilan-etat"></small></h2>
+    <div class="filtres"><select id="bilan-jours" aria-label="{% t 'engine/templates/engine/wallets_clients.html:71:63' %}"><option value="7">{% t "engine/templates/engine/wallets_clients.html:71:90" %}</option><option value="30" selected>{% t "engine/templates/engine/wallets_clients.html:71:134" %}</option><option value="90">{% t "engine/templates/engine/wallets_clients.html:71:170" %}</option><option value="365">{% t "engine/templates/engine/wallets_clients.html:71:207" %}</option></select></div>
+  </div>
+  <div id="bilan-chiffres" class="chiffres"></div>
+  <p class="guide-hint">{% t "engine/templates/engine/wallets_clients.html:74:25" %}</p>
+  <div class="tbl-wrap"><table class="tbl">
+    <thead><tr><th>{% t "engine/templates/engine/wallets_clients.html:76:20" %}</th><th class="num">{% t "engine/templates/engine/wallets_clients.html:76:52" %}</th><th class="num">{% t "engine/templates/engine/wallets_clients.html:76:87" %}</th><th class="num">{% t "engine/templates/engine/wallets_clients.html:76:124" %}</th><th class="num">{% t "engine/templates/engine/wallets_clients.html:76:167" %}</th><th class="num">{% t "engine/templates/engine/wallets_clients.html:76:194" %}</th></tr></thead>
+    <tbody id="corps-bilan-presta"></tbody>
+  </table></div>
+
+  <div class="section-tete"><h2 id="c-charges">{% t "engine/templates/engine/wallets_clients.html:80:48" %} <small id="charges-total"></small></h2></div>
+  <p class="guide-hint">{% t "engine/templates/engine/wallets_clients.html:81:25" %}</p>
+  <div id="charge-form" style="display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:8px;align-items:end;margin-bottom:12px">
+    <label>{% t "engine/templates/engine/wallets_clients.html:83:12" %}<select id="ch-cat"></select></label>
+    <label>{% t "engine/templates/engine/wallets_clients.html:84:12" %}<input id="ch-lib" type="text" maxlength="120"></label>
+    <label>{% t "engine/templates/engine/wallets_clients.html:85:12" %}<input id="ch-ben" type="text" maxlength="120"></label>
+    <label>{% t "engine/templates/engine/wallets_clients.html:86:12" %}<input id="ch-date" type="date"></label>
+    <label>{% t "engine/templates/engine/wallets_clients.html:87:12" %}<input id="ch-mont" type="number" min="1" step="any"></label>
+    <button id="ch-ok" type="button" class="principal">{% t "engine/templates/engine/wallets_clients.html:88:56" %}</button>
+  </div>
+  <div class="tbl-wrap"><table class="tbl">
+    <thead><tr><th>{% t "engine/templates/engine/wallets_clients.html:91:20" %}</th><th>{% t "engine/templates/engine/wallets_clients.html:91:33" %}</th><th>{% t "engine/templates/engine/wallets_clients.html:91:51" %}</th><th>{% t "engine/templates/engine/wallets_clients.html:91:67" %}</th><th class="num">{% t "engine/templates/engine/wallets_clients.html:91:100" %}</th><th class="num">{% t "engine/templates/engine/wallets_clients.html:91:135" %}</th></tr></thead>
+    <tbody id="corps-charges"></tbody>
+  </table></div>
+
+  <div class="section-tete"><h2>{% t "engine/templates/engine/wallets_clients.html:95:33" %}</h2></div>
+  <p class="guide-hint">{% t "engine/templates/engine/wallets_clients.html:96:25" %}</p>
+  <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:8px;align-items:end;margin-bottom:12px">
+    <label>{% t "engine/templates/engine/wallets_clients.html:98:12" %}<select id="vs-membre"></select></label>
+    <label>{% t "engine/templates/engine/wallets_clients.html:99:12" %}<input id="vs-mont" type="number" min="1" step="any"></label>
+    <label>{% t "engine/templates/engine/wallets_clients.html:100:12" %}<input id="vs-motif" type="text" maxlength="200"></label>
+    <button id="vs-ok" type="button">{% t "engine/templates/engine/wallets_clients.html:101:38" %}</button>
+  </div>
+
+  <div class="section-tete"><h2>{% t "engine/templates/engine/wallets_clients.html:104:33" %}</h2></div>
+  <div class="tbl-wrap"><table class="tbl">
+    <thead><tr><th>{% t "engine/templates/engine/wallets_clients.html:106:20" %}</th><th>{% t "engine/templates/engine/wallets_clients.html:106:33" %}</th><th>{% t "engine/templates/engine/wallets_clients.html:106:53" %}</th><th>{% t "engine/templates/engine/wallets_clients.html:106:71" %}</th><th>{% t "engine/templates/engine/wallets_clients.html:106:89" %}</th><th class="num">{% t "engine/templates/engine/wallets_clients.html:106:141" %}</th><th class="num">{% t "engine/templates/engine/wallets_clients.html:106:176" %}</th></tr></thead>
+    <tbody id="corps-presta"></tbody>
+  </table></div>
+
+  <div class="section-tete"><h2>{% t "engine/templates/engine/wallets_clients.html:110:33" %} <small id="retraits-total"></small></h2></div>
+  <div class="tbl-wrap"><table class="tbl">
+    <thead><tr><th>{% t "engine/templates/engine/wallets_clients.html:112:20" %}</th><th>{% t "engine/templates/engine/wallets_clients.html:112:33" %}</th><th>{% t "engine/templates/engine/wallets_clients.html:112:48" %}</th><th>{% t "engine/templates/engine/wallets_clients.html:112:68" %}</th><th class="num">{% t "engine/templates/engine/wallets_clients.html:112:95" %}</th><th class="num">{% t "engine/templates/engine/wallets_clients.html:112:130" %}</th><th class="num">{% t "engine/templates/engine/wallets_clients.html:112:156" %}</th></tr></thead>
+    <tbody id="corps-retraits"></tbody>
+  </table></div>
+</section>
+{% endblock %}
+{% block script %}{% i18n_js %}<script src="{% static 'engine/js/telechargement.js' %}"></script>
+<script>
+let _clients = [], _principal = null, FILTRE = "";
+const formaterSolde = s => Number(s || 0).toLocaleString((window.I18N_LOCALE||'fr-FR'), {minimumFractionDigits: 0, maximumFractionDigits: 2});
+// Deux états de solde (même vocabulaire de couleurs que Recommandations) : à zéro = à recharger, sinon en ordre.
+const NIVEAUX = {agir: tj("engine/templates/engine/wallets_clients.html:js:73:25"), surveiller: tj("engine/templates/engine/wallets_clients.html:js:73:53")};
+const niveau = c => Number(c.solde || 0) > 0 ? "surveiller" : "agir";
+const sansEmoji = s => String(s ?? "").replace(/[\u{1F000}-\u{1FAFF}\u{2190}-\u{2BFF}\u{FE0F}\u{200D}]/gu, "").replace(/\s+/g, " ").trim();
+function visibles(){
+  const q = $("recherche-client").value.trim().toLowerCase();
+  return _clients.filter(c => (!FILTRE || niveau(c) === FILTRE) &&
+    (!q || [c.nom, c.telephone, c.matricule].some(v => String(v || "").toLowerCase().includes(q))));
+}
+function afficherSynthese(){
+  const compte = {agir: 0, surveiller: 0};
+  _clients.forEach(c => compte[niveau(c)]++);
+  $("niveaux").replaceChildren(...Object.entries(NIVEAUX).map(([code, lib]) => {
+    const b = document.createElement("button");
+    b.type = "button"; b.className = "niveau n-" + code + (FILTRE === code ? " actif" : ""); b.setAttribute("aria-pressed", String(FILTRE === code));
+    b.innerHTML = `<b>${compte[code]}</b><span>${lib}</span>`;
+    b.onclick = () => { FILTRE = FILTRE === code ? "" : code; afficherSynthese(); afficherClients(); };
+    return b;
+  }));
+  const max = Math.max(1, ..._clients.map(c => Number(c.solde || 0)));
+  $("pouls-barres").replaceChildren(...visibles().slice(0, 90).map(c => {
+    const b = document.createElement("button");
+    b.type = "button"; b.className = "trait n-" + niveau(c); b.title = `${c.nom || "—"} — ${formaterSolde(c.solde)} ${(window.DEVISE_LABEL||'FCFA')}`;
+    b.style.height = Math.max(14, Math.round(100 * Number(c.solde || 0) / max)) + "%"; b.setAttribute("aria-label", b.title); b.setAttribute("role", "listitem");
+    b.onclick = () => { const l = $("client-" + c.id_ligne); if (l){ l.scrollIntoView({block: "center", behavior: "smooth"}); l.classList.add("repere"); setTimeout(() => l.classList.remove("repere"), 1600); } };
+    return b;
+  }));
+  const chiffres = [[tj("engine/templates/engine/wallets_clients.html:js:99:23"), _clients.length]];
+  if (_principal) chiffres.push([tj("engine/templates/engine/wallets_clients.html:js:100:35"), (_principal.agents || []).length], [tj("engine/templates/engine/wallets_clients.html:js:lbl_wallet_principal"), formaterSolde(_principal.total) + " FCFA"]);
+  $("wallet-chiffres").replaceChildren(...chiffres.map(([lib, n]) => { const d = document.createElement("div"); d.className = "chiffre"; d.innerHTML = `<b>${esc(n)}</b><span>${lib}</span>`; return d; }));
+}
+function afficherClients(){
+  const liste = visibles(), corps = $("corps-wallets");
+  $("nb-clients").textContent = liste.length === _clients.length ? (_clients.length ? String(_clients.length) : "") : tj("engine/templates/engine/wallets_clients.html:js:n_sur_total", {v1: liste.length, v2: _clients.length});
+  if (!liste.length){ corps.innerHTML = tj("engine/templates/engine/wallets_clients.html:js:72:24"); afficherBande(); return; }
+  corps.innerHTML = liste.map(c => `<tr id="client-${c.id_ligne}">
+      <td><strong>${esc(c.nom) || '—'}</strong></td>
+      <td>${esc(c.telephone) || '—'}</td>
+      <td>${esc(c.numero_client ?? '—')}</td>
+      <td>${esc(c.matricule) || '—'}</td>
+      <td>${esc(c.table_cliente) || '—'}</td>
+      <td class="num n-${niveau(c)}">${formaterSolde(c.solde)}</td></tr>`).join('');
+  afficherBande();
+}
+const afficherBande = () => { if (_clients.length) afficherSynthese(); };
+function chargerPrincipal(){
+  fetch('/api/wallet/principal').then(r => r.ok ? r.json() : null).then(d => {
+    if (!d || d.error) return;
+    _principal = d;
+    if (d.parts) afficherParts(d.parts);
+    $('bloc-principal').hidden = false; $('nav-principal').hidden = false;
+    $('total-principal').textContent = formaterSolde(d.total);
+    $('corps-principal').innerHTML = (d.agents || []).map(a => `
+      <tr><td><strong>${esc(a.nom)}</strong> <span class="muet">@${esc(a.username)}</span></td><td class="num">${esc(a.nb_clients)}</td>
+      <td class="num">${formaterSolde(a.solde_clients)}</td><td class="num">${formaterSolde(a.solde_propre)}</td>
+      <td class="num"><strong>${formaterSolde(a.solde_total)}</strong></td></tr>`).join('');
+    afficherSynthese();
+  }).catch(() => {});
+}
+const MODES_PAIE = {aucun: tj("engine/templates/engine/wallets_clients.html:js:131:29"), salaire: tj("engine/templates/engine/wallets_clients.html:js:lbl_salaire_mensuel"), pourcentage: tj("engine/templates/engine/wallets_clients.html:js:131:80")};
+const ETATS_PAIE = {verse: tj("engine/templates/engine/wallets_clients.html:js:132:29"), du: tj("engine/templates/engine/wallets_clients.html:js:132:42"), a_venir: tj("engine/templates/engine/wallets_clients.html:js:132:78"), "": "—"};
+const TYPES_FLUX = {wallet_depot: tj("engine/templates/engine/wallets_clients.html:js:133:36"), wallet_debit_service: tj("engine/templates/engine/wallets_clients.html:js:133:82"), wallet_abonnement: tj("engine/templates/engine/wallets_clients.html:js:133:117"), wallet_salaire: tj("engine/templates/engine/wallets_clients.html:js:133:152"), wallet_commission: tj("engine/templates/engine/wallets_clients.html:js:133:188"),
+  wallet_paiement_caisse: tj("engine/templates/engine/wallets_clients.html:js:134:28"), wallet_transfert_envoye: tj("engine/templates/engine/wallets_clients.html:js:134:82"), wallet_transfert_recu: tj("engine/templates/engine/wallets_clients.html:js:134:125"), wallet_retrait: tj("engine/templates/engine/wallets_clients.html:js:134:159"), wallet_remuneration_config: tj("engine/templates/engine/wallets_clients.html:js:134:198")};
+function afficherParts(p){
+  const f = [[tj("engine/templates/engine/wallets_clients.html:js:136:16"), p.clients], [tj("engine/templates/engine/wallets_clients.html:js:136:49"), p.agents], [tj("engine/templates/engine/wallets_clients.html:js:136:80"), p.entreprise], [tj("engine/templates/engine/wallets_clients.html:js:185:243"), p.total]];
+  $("parts").replaceChildren(...f.map(([lib, n]) => { const d = document.createElement("div"); d.className = "chiffre"; d.innerHTML = `<b>${formaterSolde(n)}</b><span>${tj("engine/templates/engine/wallets_clients.html:js:186:168", {v1: lib})}</span>`; return d; }));
+}
+function chargerPaie(){
+  fetch("/api/wallet/remuneration").then(r => r.ok ? r.json() : null).then(d => {
+    if (!d || d.error) return;
+    $("bloc-paie").hidden = false; $("nav-paie").hidden = false;
+    _agentsVersement = d.agents; $("vs-membre").replaceChildren(...d.agents.map(a => Object.assign(document.createElement("option"), {value: a.membre_id, textContent: a.nom})));
+    $("corps-paie").innerHTML = d.agents.map(a => `<tr data-id="${a.membre_id}"><td><strong>${esc(a.nom)}</strong></td>
+      <td><select class="p-mode">${Object.entries(MODES_PAIE).map(([k, v]) => `<option value="${k}"${k === a.mode ? " selected" : ""}>${v}</option>`).join("")}</select></td>
+      <td class="num"><input class="p-sal" type="number" min="0" step="any" value="${a.salaire}"></td>
+      <td class="num"><input class="p-jour" type="number" min="1" max="28" value="${a.jour_paie}"></td>
+      <td class="num"><input class="p-pct" type="number" min="0" max="100" step="any" value="${a.pourcentage}"></td>
+      <td class="num">${formaterSolde(a.solde)}</td><td>${ETATS_PAIE[a.etat_salaire] || "—"}</td><td><button type="button" class="p-ok">${tj("engine/templates/engine/wallets_clients.html:js:148:138")}</button></td></tr>`).join("") || `<tr><td colspan="8" class="vide">${tj("engine/templates/engine/wallets_clients.html:js:148:217")}</td></tr>`;
+    document.querySelectorAll("#corps-paie .p-ok").forEach(b => b.onclick = async () => {
+      const l = b.closest("tr"), q = s => l.querySelector(s).value;
+      await api("/api/wallet/remuneration", {membre_id: +l.dataset.id, mode: q(".p-mode"), salaire: q(".p-sal"), jour_paie: q(".p-jour"), pourcentage: q(".p-pct")});
+      toast(tj("engine/templates/engine/wallets_clients.html:js:152:14")); chargerPaie(); chargerPrincipal(); chargerFlux();
+    });
+  }).catch(() => {});
+}
+function chargerFlux(){
+  fetch("/api/wallet/journal").then(r => r.ok ? r.json() : null).then(d => {
+    if (!d || d.error) return;
+    $("flux-synthese").textContent = tj("engine/templates/engine/wallets_clients.html:js:159:39", {v1: formaterSolde(d.entrees), v2: formaterSolde(d.sorties), v3: d.chaine_valide ? "" : tj("engine/templates/engine/wallets_clients.html:js:159:143")});
+    $("corps-flux").innerHTML = d.mouvements.map(m => `<tr><td>${esc(new Date(m.date).toLocaleString((window.I18N_LOCALE||"fr-FR")))}</td><td>${esc(TYPES_FLUX[m.type] || m.type)}</td><td>${esc(m.motif)}</td>
+      <td class="num">${formaterSolde(m.montant)}</td><td class="num">${m.effet_caisse > 0 ? "+" : ""}${formaterSolde(m.effet_caisse)}</td></tr>`).join("") || `<tr><td colspan="5" class="vide">${tj("engine/templates/engine/wallets_clients.html:js:161:195")}</td></tr>`;
+  }).catch(() => {});
+}
+TYPES_FLUX.wallet_charge = tj("engine/templates/engine/wallets_clients.html:js:214:29"); TYPES_FLUX.wallet_prestataire = tj("engine/templates/engine/wallets_clients.html:js:214:77");
+async function envoyer(url, corps){
+  const res = await fetch(url, {method: "POST", headers: {"X-CSRFToken": CSRF, "Content-Type": "application/json"}, body: JSON.stringify(corps)});
+  const d = await res.json().catch(() => ({}));
+  if (!res.ok || d.error){ toast(d.error || tj("engine/templates/engine/wallets_clients.html:js:218:46") + res.status, true); throw d; }
+  return d;
+}
+const dateCourte = iso => esc(new Date(iso).toLocaleDateString((window.I18N_LOCALE||"fr-FR")));
+const ligneVide = (n, texte) => `<tr><td colspan="${n}" class="vide">${texte}</td></tr>`;
+const blocOuManque = b => b == null ? '<span title="' + tj("engine/templates/engine/wallets_clients.html:js:223:53") + '">' + tj("engine/templates/engine/wallets_clients.html:js:223:92") + '</span>' : esc(b);
+const STATUTS_PRESTA = {initie: tj("engine/templates/engine/wallets_clients.html:js:224:34"), credite: tj("engine/templates/engine/wallets_clients.html:js:224:59"), echec: tj("engine/templates/engine/wallets_clients.html:js:224:84"), suspect: tj("engine/templates/engine/wallets_clients.html:js:224:112")};
+let _agentsVersement = [];
+function chargerBilan(){
+  fetch("/api/wallet/bilan?jours=" + $("bilan-jours").value).then(r => r.ok ? r.json() : null).then(d => {
+    if (!d || d.error) return;
+    $("nav-compta").hidden = false; $("bloc-flux").hidden = false; $("nav-flux").hidden = false; $("nav-charges").hidden = false;
+    $("bilan-etat").textContent = d.chaine_valide ? "" : tj("engine/templates/engine/wallets_clients.html:js:230:59");
+    const f = [[tj("engine/templates/engine/wallets_clients.html:js:231:18"), d.entrees_externes.depots], [tj("engine/templates/engine/wallets_clients.html:js:lbl_retraits"), d.sorties_externes.retraits], ["Charges", d.sorties_externes.charges],
+               [tj("engine/templates/engine/wallets_clients.html:js:232:18"), d.net_externe], [tj("engine/templates/engine/wallets_clients.html:js:232:48"), d.caisse.solde]];
+    $("bilan-chiffres").replaceChildren(...f.map(([lib, n]) => { const x = document.createElement("div"); x.className = "chiffre"; x.innerHTML = `<b>${formaterSolde(n)}</b><span>${tj("engine/templates/engine/wallets_clients.html:js:233:179", {v1: lib})}</span>`; return x; }));
+    $("corps-bilan-presta").innerHTML = d.prestataires.map(p => `<tr><td><strong>${esc(p.fournisseur)}</strong></td><td class="num">${p.nb_inities}</td><td class="num">${p.nb_credites}</td>
+      <td class="num">${formaterSolde(p.montant_credite)}</td><td class="num">${p.nb_echecs}</td><td class="num">${p.nb_suspects}</td></tr>`).join("") || ligneVide(6, tj("engine/templates/engine/wallets_clients.html:js:235:169"));
+  }).catch(() => {});
+}
+function chargerCharges(){
+  fetch("/api/wallet/charges").then(r => r.ok ? r.json() : null).then(d => {
+    if (!d || d.error) return;
+    if (!$("ch-cat").options.length) $("ch-cat").replaceChildren(...d.categories.map(c => Object.assign(document.createElement("option"), {value: c.code, textContent: c.libelle})));
+    $("charges-total").textContent = formaterSolde(d.total) + " " + (window.DEVISE_LABEL||'FCFA');
+    $("corps-charges").innerHTML = d.charges.map(c => `<tr><td>${dateCourte(c.date)}</td><td>${esc(c.categorie_libelle)}</td><td>${esc(c.libelle)}</td><td>${esc(c.beneficiaire) || "—"}</td>
+      <td class="num">${formaterSolde(c.montant)}</td><td class="num">${blocOuManque(c.bloc)}</td></tr>`).join("") || ligneVide(6, tj("engine/templates/engine/wallets_clients.html:js:244:133"));
+  }).catch(() => {});
+}
+function chargerPrestataires(){
+  fetch("/api/wallet/prestataires").then(r => r.ok ? r.json() : null).then(d => {
+    if (!d || d.error) return;
+    $("corps-presta").innerHTML = d.evenements.map(e => `<tr><td>${esc(new Date(e.date).toLocaleString((window.I18N_LOCALE||"fr-FR")))}</td><td>${esc(e.fournisseur)}</td><td>${esc(STATUTS_PRESTA[e.type] || e.type)}${e.detail ? ` <span class="muet">${esc(e.detail)}</span>` : ""}</td>
+      <td>${esc(e.reference)}</td><td>${esc(e.reference_externe) || "—"}</td><td class="num">${e.montant == null ? "—" : formaterSolde(e.montant)}</td><td class="num">${blocOuManque(e.bloc)}</td></tr>`).join("") || ligneVide(7, tj("engine/templates/engine/wallets_clients.html:js:251:230"));
+  }).catch(() => {});
+}
+function chargerRetraits(){
+  fetch("/api/wallet/retraits?tous=1").then(r => r.ok ? r.json() : null).then(d => {
+    if (!d || d.error) return;
+    const noms = Object.fromEntries(_agentsVersement.map(a => [a.membre_id, a.nom]));
+    $("retraits-total").textContent = formaterSolde(d.retraits.filter(r => r.statut === "effectue").reduce((t, r) => t + r.montant, 0)) + " " + (window.DEVISE_LABEL||'FCFA');
+    $("corps-retraits").innerHTML = d.retraits.map(r => `<tr><td>${esc(new Date(r.date).toLocaleString((window.I18N_LOCALE||"fr-FR")))}</td><td>${esc(noms[r.membre_id] || "membre " + r.membre_id)}</td><td>${esc(r.operateur)} ${esc(r.numero)}</td>
+      <td>${r.statut === "effectue" ? tj("engine/templates/engine/wallets_clients.html:js:effectue") : tj("engine/templates/engine/wallets_clients.html:js:echec") + " " + esc(r.motif_echec)}</td><td class="num">${formaterSolde(r.montant)}</td><td class="num">${formaterSolde(r.frais)}</td><td class="num">${r.statut === "effectue" ? blocOuManque(r.bloc) : "—"}</td></tr>`).join("") || ligneVide(7, tj("engine/templates/engine/wallets_clients.html:js:260:291"));
+  }).catch(() => {});
+}
+function toutLeFlux(){ chargerBilan(); chargerCharges(); chargerPrestataires(); chargerRetraits(); chargerFlux(); chargerPrincipal(); }
+$("bilan-jours").onchange = chargerBilan;
+$("ch-ok").onclick = async () => {
+  try {
+    await envoyer("/api/wallet/charges", {categorie: $("ch-cat").value, libelle: $("ch-lib").value, beneficiaire: $("ch-ben").value, date: $("ch-date").value, montant: $("ch-mont").value});
+    ["ch-lib", "ch-ben", "ch-date", "ch-mont"].forEach(id => { $(id).value = ""; });
+    toast(tj("engine/templates/engine/wallets_clients.html:js:269:12")); toutLeFlux();
+  } catch (e) { /* le message est déjà affiché */ }
+};
+$("vs-ok").onclick = async () => {
+  try {
+    await envoyer("/api/wallet/payer-caisse", {membre_id: +$("vs-membre").value, montant: $("vs-mont").value, motif: $("vs-motif").value});
+    ["vs-mont", "vs-motif"].forEach(id => { $(id).value = ""; });
+    toast(tj("engine/templates/engine/wallets_clients.html:js:276:12")); toutLeFlux(); chargerPaie();
+  } catch (e) { /* le message est déjà affiché */ }
+};
+function chargerWallets(){
+  $('corps-wallets').innerHTML = tj("engine/templates/engine/wallets_clients.html:js:102:6");
+  fetch('/api/wallet/clients').then(r => r.json()).then(data => {
+    if (data.error){ $('corps-wallets').innerHTML = `<tr><td colspan="6" class="vide erreur">${esc(data.error)}</td></tr>`; return; }
+    _clients = (data.clients || []).map((c, i) => ({...c, id_ligne: i}));
+    $('total-solde').textContent = formaterSolde(data.total_solde);
+    $('wallet-synthese').textContent = !_clients.length ? tj("engine/templates/engine/wallets_clients.html:js:170:60")
+      : tj("engine/templates/engine/wallets_clients.html:js:171:10", {v1: _clients.length, v2: _clients.length > 1 ? "clients" : "client", v3: _clients.filter(c => niveau(c) === "agir").length});
+    afficherSynthese(); afficherClients();
+  }).catch(() => { $('corps-wallets').innerHTML = tj("engine/templates/engine/wallets_clients.html:js:115:8"); });
+}
+$('recherche-client').addEventListener('input', () => { afficherClients(); });
+$('btn-actualiser').onclick = () => { chargerWallets(); chargerPrincipal(); chargerPaie(); toutLeFlux(); };
+$('btn-exporter-csv').onclick = () => {
+  const lignes = [[tj("engine/templates/engine/wallets_clients.html:js:132:21"), tj("engine/templates/engine/wallets_clients.html:js:132:31"), tj("engine/templates/engine/wallets_clients.html:js:132:44"), tj("engine/templates/engine/wallets_clients.html:js:lbl_matricule"), tj("engine/templates/engine/wallets_clients.html:js:132:70"), tj("engine/templates/engine/wallets_clients.html:js:132:87")]];
+  _clients.forEach(c => lignes.push([c.nom, c.telephone, c.numero_client, c.matricule, c.table_cliente, c.solde]));
+  const csv = lignes.map(l => l.map(v => `"${String(v ?? '').replace(/"/g, '""')}"`).join(';')).join('\n');
+  gyTelechargerBlob(new Blob(['\ufeff' + csv], {type: 'text/csv;charset=utf-8;'}), 'wallets_clients.csv');
+};
+$('btn-rendre-analysable').onclick = () => {
+  fetch('/api/wallet/synchroniser-table', {method: 'POST', headers: {'X-CSRFToken': CSRF}}).then(r => r.json()).then(data => {
+    if (data.error){ toast(data.error, true); return; }
+    toast(tj("engine/templates/engine/wallets_clients.html:js:153:12", {v1: data.table_nom, v2: data.table_id}));
+  }).catch(() => toast(tj("engine/templates/engine/wallets_clients.html:js:154:25"), true));
+};
+document.querySelectorAll("button").forEach(b => { b.textContent = sansEmoji(b.textContent); });
+$('recherche-client').placeholder = sansEmoji($('recherche-client').placeholder);
+chargerWallets();
+chargerPrincipal();
+chargerPaie();
+chargerFlux();
+chargerBilan(); chargerCharges(); chargerPrestataires(); chargerRetraits();
+</script>{% endblock %}

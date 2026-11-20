@@ -1,0 +1,106 @@
+{% extends "engine/page_simple.html" %}
+{% load i18n_extras %}
+{% block classe_page %}page-agenda{% endblock %}
+{% block titre %}{% t "engine/templates/engine/agenda.html:4:23" %}{% endblock %}
+{% block contenu %}
+<style>
+  #ag-nav{display:flex;gap:12px;flex-wrap:wrap;margin-bottom:10px}
+  .ag-carte{border:1px solid var(--border);border-radius:8px;padding:12px;margin-bottom:12px;background:var(--surface,transparent)}
+  .ag-carte h2{margin:0 0 8px;font-size:15px}
+  #ag-form{display:grid;gap:8px;grid-template-columns:repeat(auto-fit,minmax(200px,1fr))}
+  #ag-form .large{grid-column:1/-1}
+  .ag-tache{display:flex;gap:10px;align-items:flex-start;justify-content:space-between;padding:8px 0;border-top:1px solid var(--border)}
+  .ag-tache:first-of-type{border-top:0}
+  .ag-tache.retard b.ag-quand{color:var(--texte-erreur,#f87171)}
+  .ag-tache.close{opacity:.7}
+  .ag-meta{color:var(--muted);font-size:12px}
+  .ag-actions{display:flex;gap:6px;flex-wrap:wrap;justify-content:flex-end}
+</style>
+<nav id="ag-nav">{% if est_equipe %}<a href="/">{% t "engine/templates/engine/agenda.html:19:54" %}</a>{% else %}<a href="/espace-client/">{% t "engine/templates/engine/agenda.html:19:135" %}</a>{% endif %}<a href="/messagerie/">{% t "engine/templates/engine/agenda.html:19:219" %}</a></nav>
+
+<div class="ag-carte" id="ag-alertes" hidden>
+  <h2 id="ag-alertes-titre"></h2>
+  <div id="ag-alertes-liste"></div>
+  <button class="petit" type="button" onclick="lireAlertes()">{% t "engine/templates/engine/agenda.html:24:68" %}</button>
+</div>
+
+<div class="ag-carte">
+  <h2 id="ag-form-titre">{% t "engine/templates/engine/agenda.html:28:31" %}</h2>
+  <div id="ag-form">
+    <input type="text" id="ag-titre" maxlength="200" placeholder="{% t 'engine/templates/engine/agenda.html:30:72' %}" aria-label="{% t 'engine/templates/engine/agenda.html:30:139' %}">
+    <input type="datetime-local" id="ag-quand" aria-label="{% t 'engine/templates/engine/agenda.html:31:65' %}">
+    <select id="ag-dest" aria-label="{% t 'engine/templates/engine/agenda.html:32:43' %}" hidden></select>
+    <textarea id="ag-desc" class="large" rows="2" maxlength="2000" placeholder="{% t 'engine/templates/engine/agenda.html:33:86' %}" aria-label="{% t 'engine/templates/engine/agenda.html:33:150' %}"></textarea>
+    <div class="large">
+      <button type="button" class="principal" onclick="enregistrer()">{% t "engine/templates/engine/agenda.html:35:76" %}</button>
+      <button type="button" id="ag-annuler" onclick="annuler()" hidden>{% t "engine/templates/engine/agenda.html:36:77" %}</button>
+      <small class="ag-meta">{% t "engine/templates/engine/agenda.html:37:35" %}</small>
+    </div>
+  </div>
+</div>
+
+<div class="ag-carte"><h2>{% t "engine/templates/engine/agenda.html:42:32" %} <small id="ag-compte"></small></h2><div id="ag-a-faire"></div></div>
+<div class="ag-carte"><h2>{% t "engine/templates/engine/agenda.html:43:32" %}</h2><div id="ag-closes"></div></div>
+{% endblock %}
+{% block script %}<script>
+const LANGUE = "{{ langue }}", S = {taches: [], cibles: [], edition: null};
+const L = {fait: tj("engine/templates/engine/agenda.html:js:47:21"), pasFait: tj("engine/templates/engine/agenda.html:js:47:50"), retard: tj("engine/templates/engine/agenda.html:js:47:86"), modifier: tj("engine/templates/engine/agenda.html:js:47:124"),
+           supprimer: tj("engine/templates/engine/agenda.html:js:48:26"), moi: tj("engine/templates/engine/agenda.html:js:48:58"), rien: tj("engine/templates/engine/agenda.html:js:48:81"), quand: tj("engine/templates/engine/agenda.html:js:48:122"),
+           sur: tj("engine/templates/engine/agenda.html:js:49:20")};
+const quand = iso => new Date(iso).toLocaleString(LANGUE, {dateStyle: "medium", timeStyle: "short"});
+const versLocal = iso => { const d = new Date(iso); d.setMinutes(d.getMinutes() - d.getTimezoneOffset()); return d.toISOString().slice(0, 16); };
+
+function ligne(x){
+  const origine = x.pour_moi ? (x.createur.id === x.destinataire.id ? "" : tj("engine/templates/engine/agenda.html:js:54:79", {v1: esc(x.createur.nom)}))
+                             : tj("engine/templates/engine/agenda.html:js:55:35", {v1: esc(x.destinataire.nom)});
+  const etat = x.statut === "fait" ? "✅ " + L.fait : x.statut === "non_fait" ? "❌ " + L.pasFait : x.en_retard ? "⚠️ " + L.retard : "";
+  const boutons = (x.pour_moi && x.statut === "a_faire" ? `<button class="principal petit" onclick="repondre(${x.id}, true)">${L.fait}</button><button class="petit" onclick="repondre(${x.id}, false)">${L.pasFait}</button>` : "")
+                + (x.modifiable ? `<button class="petit" onclick="editer(${x.id})">${L.modifier}</button><button class="petit" onclick="supprimer(${x.id})">${L.supprimer}</button>` : "");
+  return `<div class="ag-tache ${x.en_retard ? "retard" : ""} ${x.statut === "a_faire" ? "" : "close"}">
+    <div><b>${esc(x.titre)}</b> <span class="ag-meta">${etat}</span><br><b class="ag-quand">${esc(quand(x.echeance))}</b> <span class="ag-meta">${origine}</span>
+      ${x.description ? `<div class="ag-meta">${esc(x.description)}</div>` : ""}</div>
+    <div class="ag-actions">${boutons}</div></div>`;
+}
+function dessiner(){
+  const faire = S.taches.filter(x => x.statut === "a_faire"), closes = S.taches.filter(x => x.statut !== "a_faire");
+  $("ag-a-faire").innerHTML = faire.map(ligne).join("") || `<p class="ag-meta">${L.rien}</p>`;
+  $("ag-closes").innerHTML = closes.map(ligne).join("") || `<p class="ag-meta">${L.rien}</p>`;
+  $("ag-compte").textContent = faire.length ? "(" + faire.length + ")" : "";
+  const sel = $("ag-dest"), choisi = sel.value;
+  sel.hidden = S.cibles.length < 2;
+  sel.innerHTML = S.cibles.map(c => `<option value="${c.id}">${c.moi ? L.moi : esc(c.nom)}</option>`).join("");
+  if (S.cibles.some(c => String(c.id) === choisi)) sel.value = choisi;
+}
+async function charger(){
+  const d = await api("/api/agenda/");
+  S.taches = d.taches; S.cibles = d.cibles; dessiner(); alertes();
+}
+async function alertes(){
+  const d = await api("/api/agenda/alertes/");
+  $("ag-alertes").hidden = !d.non_lues;
+  $("ag-alertes-titre").textContent = "🔔 " + d.non_lues;
+  $("ag-alertes-liste").innerHTML = d.alertes.map(n => `<p><b>${esc(n.titre)}</b><br><small>${esc(n.message)}</small></p>`).join("");
+}
+async function lireAlertes(){ await api("/api/agenda/alertes/lire/", {}); alertes(); }
+async function repondre(id, fait){ await poster("/api/agenda/" + id + "/valider/", {fait}); }
+async function supprimer(id){ if (await GY.confirmer(L.sur)) await poster("/api/agenda/" + id + "/supprimer/", {}); }
+function editer(id){
+  const x = S.taches.find(t => t.id === id); if (!x) return;
+  S.edition = id; $("ag-titre").value = x.titre; $("ag-desc").value = x.description; $("ag-quand").value = versLocal(x.echeance); $("ag-dest").value = x.destinataire.id;
+  $("ag-form-titre").textContent = L.modifier; $("ag-annuler").hidden = false; $("ag-titre").focus();
+}
+function annuler(){
+  S.edition = null; $("ag-titre").value = $("ag-desc").value = $("ag-quand").value = "";
+  $("ag-form-titre").textContent = tj("engine/templates/engine/agenda.html:js:94:39"); $("ag-annuler").hidden = true;
+}
+async function enregistrer(){
+  if (!$("ag-quand").value) { toast(L.quand, true); return; }
+  const corps = {titre: $("ag-titre").value, description: $("ag-desc").value, echeance: new Date($("ag-quand").value).toISOString()};
+  if (!$("ag-dest").hidden) corps.destinataire_id = $("ag-dest").value;
+  await poster(S.edition ? "/api/agenda/" + S.edition + "/modifier/" : "/api/agenda/creer/", corps);
+  annuler();
+}
+charger();
+setInterval(() => { if (!document.hidden) charger(); }, 30000);
+document.addEventListener("visibilitychange", () => { if (!document.hidden) charger(); });
+</script>{% endblock %}

@@ -1,0 +1,66 @@
+{% load static %}<!DOCTYPE html>
+{% load i18n_extras %}
+<html lang="{{ langue_html|default:'fr' }}">
+<head>
+<link rel="stylesheet" href="{% static 'engine/css/app.css' %}"><link rel="stylesheet" href="{% url 'engine:marque_css' %}"><script src="{% static 'engine/js/marque.js' %}" defer></script><script src="{% static 'engine/js/gestes_tactiles.js' %}" defer></script>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>{% block titre_page %}{% endblock %} — {{ table.nom }}</title>
+<script src="{% static 'engine/js/dialogues.js' %}"></script>
+</head>
+<body class="page-statistiques page-series_temporelles page-dashboard_bi{% if lecture_seule %} lecture-seule-partage{% endif %}">
+{# Châssis commun de ANOVA et Analyse factorielle (même modèle que Statistiques : classes geo-* de la sidebar et sx-* partagées). #}
+<div id="sidebar-overlay"></div>
+<div id="app">
+
+<div id="sidebar">
+  <div id="marque"><img class="logo-gy" src="{% static 'engine/img/logo_agent_gy.png' %}" alt="{% t 'engine/templates/engine/analyse_base.html:17:96' %}"> {% t "engine/templates/engine/analyse_base.html:17:107" %}</div>
+
+  <div class="geo-section">{% t "engine/templates/engine/analyse_base.html:18:28" %}</div>
+  <div class="geo-bloc">
+    <div class="geo-note">{{ message_structure }}</div>
+    <div id="sx-tables"></div>
+    <div class="geo-note" id="sx-memoire"></div>
+  </div>
+
+  {% block options %}{% endblock %}
+
+  <div style="border-top:1px solid var(--border);padding:8px 10px 4px;font-size:11px;color:var(--muted)">
+    <a class="retour" href="/tables/{{ table.slug }}/?retour=1" style="font-size:12px">← {{ table.nom }}</a>
+  </div>
+</div>
+
+<div id="principal">
+  <div id="entete">
+    <div class="entete-rangee-titre">
+      <div class="entete-gauche">
+        <button id="btn-toggle-sidebar" aria-label="{% t 'engine/templates/engine/analyse_base.html:37:53' %}">☰</button>
+      </div>
+    </div>
+  </div>
+
+  <div id="zone-series">
+    <div class="sx-partie">
+      {% block contenu %}{% endblock %}
+      <div id="res"></div>
+    </div>
+  </div>
+</div>
+</div>
+
+<div id="toast"></div>
+{{ tables_disponibles|json_script:"sx-donnees-tables" }}
+{{ catalogue|json_script:"sx-donnees-catalogue" }}
+{% i18n_js %}
+<script>
+window.ANALYSE = {tableId: {{ table.id }}, lectureSeule: {{ lecture_seule|yesno:"true,false" }}, tableCompatible: {{ table_compatible|yesno:"true,false" }}, page: "{% block cle %}{% endblock %}"};
+</script>
+<script src="{% static 'engine/js/contexte_page.js' %}"></script>
+<script src="{% static 'engine/js/gy_couleur.js' %}"></script>
+<script src="{% static 'engine/js/filtre_table_liste.js' %}"></script>
+<script src="{% static 'engine/js/analyses_commun.js' %}"></script>
+{% block script %}{% endblock %}
+<script src="{% static 'engine/js/sidebar_toggle.js' %}"></script>
+<script src="{% static 'engine/js/selecteur_table_page.js' %}" defer></script>
+</body>
+</html>

@@ -1,0 +1,1184 @@
+{% load i18n_extras %}
+<!DOCTYPE html>
+{% load static %}
+<html lang="{{ langue_html|default:'fr' }}">
+<head>
+<script src="{% static 'engine/js/coque_garde.js' %}" data-coque="{% url 'engine:coque' %}"></script>
+<link rel="stylesheet" href="{% static 'engine/css/app.css' %}"><link rel="stylesheet" href="{% url 'engine:marque_css' %}"><script src="{% static 'engine/js/marque.js' %}" defer></script><script src="{% static 'engine/js/gestes_tactiles.js' %}" defer></script>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>{% t "engine/templates/engine/index.html:8:8" %}</title>
+<script src="{% static 'engine/js/dialogues.js' %}"></script>
+</head>
+<body class="page-index">
+<div id="intro-overlay">
+  <img class="intro-logo-img" src="{% static 'engine/img/logo_agent_gy.png' %}" alt="{% t 'engine/templates/engine/index.html:15:86' %}">
+  <div class="intro-logo">{% t "engine/templates/engine/index.html:16:27" %}</div>
+  <div class="intro-sub">{% t "engine/templates/engine/index.html:17:26" %}</div>
+  <div class="intro-tagline">{% t "engine/templates/engine/index.html:18:30" %}</div>
+  <div class="intro-barre"></div>
+</div>
+
+<div id="app">
+
+  <div id="sidebar-overlay"></div>
+  <div id="toast-conteneur"></div>
+
+  <div id="sidebar">
+    <div id="marque"><img class="logo-gy" src="{% static 'engine/img/logo_agent_gy.png' %}" alt="{% t 'engine/templates/engine/index.html:28:98' %}"> {% t "engine/templates/engine/index.html:28:109" %}</div>
+    <div class="sidebar-tabs">
+      <button class="sidebar-tab actif" id="sidebar-tab-table" data-guide="{% t 'engine/templates/engine/index.html:guide_tab_table' %}" onclick="sidebarActiverPage('table')">{% t "engine/templates/engine/index.html:30:102" %}</button>
+      <button class="sidebar-tab" id="sidebar-tab-actions" onclick="sidebarActiverPage('actions')" data-guide="{% t 'engine/templates/engine/index.html:29:107' %}">{% t "engine/templates/engine/index.html:29:201" %}</button>
+      <button class="sidebar-tab" id="sidebar-tab-conf" data-guide="{% t 'engine/templates/engine/index.html:guide_tab_conf' %}" onclick="sidebarActiverPage('conf')">{% t "engine/templates/engine/index.html:31:94" %}</button>
+    </div>
+    <div id="sidebar-liens-rapides" style="display:flex;gap:6px;padding:6px 10px 0;flex:none">
+      <button id="btn-messagerie" data-guide="{% t 'engine/templates/engine/index.html:guide_messagerie' %}" style="flex:1;background:transparent;border:1px solid var(--border);color:var(--muted);font-size:12px;white-space:normal;overflow-wrap:break-word">{% t "engine/templates/engine/index.html:lbl_messagerie" %}</button>
+      <button id="btn-publicites" data-guide="{% t 'engine/templates/engine/index.html:guide_publicites' %}" style="flex:1;background:transparent;border:1px solid var(--border);color:var(--muted);font-size:12px;white-space:normal;overflow-wrap:break-word">{% t "engine/templates/engine/index.html:34:182" %}</button>
+    </div>
+    <div id="sidebar-page-table">
+      <h1>{% t "engine/templates/engine/index.html:34:11" %}</h1>
+      <div id="liste-tables"><div class="muet" style="padding:8px 10px;color:var(--muted)">{% t "engine/templates/engine/index.html:35:92" %}</div></div>
+    </div>
+    <div id="sidebar-page-actions" style="display:none"><button id="btn-profil" data-guide="{% t 'engine/templates/engine/index.html:guide_profil' %}" onclick="window.location.href='/profile/'" style="width:100%;margin-bottom:8px;background:transparent;border:1px solid var(--border);color:var(--muted);font-size:12px;white-space:normal;overflow-wrap:break-word">{% t "engine/templates/engine/index.html:lbl_profil" %}</button><div id="sidebar-entetes-bascule" style="display:none;margin-bottom:8px"><label class="toggle-mini on" id="toggle-entetes" title="{% t 'engine/templates/engine/index.html:entetes_bascule_titre' %}"><div class="pill"><div class="knob"></div></div><span>{% t "engine/templates/engine/index.html:entetes_bascule_label" %}</span></label></div><div id="sidebar-actions-table"><div class="muet" style="color:var(--muted);font-size:12px;padding:4px">{% t "engine/templates/engine/index.html:36:161" %}</div></div></div>
+    <div id="sidebar-bas" style="display:none">
+      <div id="div-limite-lignes-globale" style="display:none;align-items:center;gap:4px;margin-bottom:8px" title="{% t 'engine/templates/engine/index.html:38:116' %}">
+        <span style="color:var(--muted);font-size:11px;white-space:nowrap">{% t "engine/templates/engine/index.html:39:76" %}</span>
+        <input id="input-limite-lignes-globale" type="number" min="0" placeholder="1000" style="width:64px;padding:4px 6px;flex:1;min-width:0">
+        <button id="btn-limite-lignes-globale" style="padding:4px 8px;font-size:12px">{% t "engine/templates/engine/index.html:41:87" %}</button>
+      </div>
+      <div id="div-limite-colonnes-globale" style="display:none;align-items:center;gap:4px;margin-bottom:8px" title="{% t 'engine/templates/engine/index.html:43:118' %}">
+        <span style="color:var(--muted);font-size:11px;white-space:nowrap">{% t "engine/templates/engine/index.html:44:76" %}</span>
+        <input id="input-limite-colonnes-globale" type="number" min="0" placeholder="50" style="width:64px;padding:4px 6px;flex:1;min-width:0">
+        <button id="btn-limite-colonnes-globale" style="padding:4px 8px;font-size:12px">{% t "engine/templates/engine/index.html:46:89" %}</button>
+      </div>
+      <button id="btn-nouvelle-table" data-guide="{% t 'engine/templates/engine/index.html:a:53:50' %}" style="width:100%;white-space:normal;overflow-wrap:break-word">{% t "engine/templates/engine/index.html:48:216" %}</button>
+      <button id="btn-importer-fichier" data-guide="{% t 'engine/templates/engine/index.html:a:54:52' %}" style="width:100%;margin-top:6px;white-space:normal;overflow-wrap:break-word">{% t "engine/templates/engine/index.html:49:238" %}</button>
+      <input type="file" id="input-fichier-import" accept=".csv,.xlsx,.xls,.json,.parquet" style="display:none">
+      <button id="btn-connexion-externe" data-guide="{% t 'engine/templates/engine/index.html:a:56:53' %}" style="width:100%;margin-top:6px;white-space:normal;overflow-wrap:break-word">{% t "engine/templates/engine/index.html:51:277" %}</button>
+      <button id="btn-groupes-tables" data-guide="{% t 'engine/templates/engine/index.html:a:57:50' %}" style="width:100%;margin-top:6px;white-space:normal;overflow-wrap:break-word">{% t "engine/templates/engine/index.html:52:282" %}</button>
+      <button id="btn-conteneurs-tables" data-guide="{% t 'engine/templates/engine/index.html:a:58:53' %}" style="width:100%;margin-top:6px;white-space:normal;overflow-wrap:break-word">{% t "engine/templates/engine/index.html:53:315" %}</button>
+      <button id="btn-config-ia" data-guide="{% t 'engine/templates/engine/index.html:a:59:45' %}" style="width:100%;margin-top:6px;background:transparent;border:1px solid var(--border);color:var(--muted);font-size:12px;white-space:normal;overflow-wrap:break-word">{% t "engine/templates/engine/index.html:53:314" %}</button>
+      <button id="btn-cloture-cycle" data-guide="{% t 'engine/templates/engine/index.html:guide_cloture_cycle' %}" style="display:none;width:100%;margin-top:6px;background:transparent;border:1px solid var(--border);color:var(--muted);font-size:12px;white-space:normal;overflow-wrap:break-word">{% t "engine/templates/engine/index.html:54:214" %}</button>
+      <button id="btn-taches-sidebar" data-guide="{% t 'engine/templates/engine/index.html:a:61:50' %}" style="width:100%;margin-top:6px;background:transparent;border:1px solid var(--border);color:var(--muted);font-size:12px;white-space:normal;overflow-wrap:break-word">{% t "engine/templates/engine/index.html:55:392" %}</button>
+      <button id="btn-recommandations" data-guide="{% t 'engine/templates/engine/index.html:a:62:51' %}" style="display:none;width:100%;margin-top:6px;background:transparent;border:1px solid var(--border);color:var(--muted);font-size:12px;white-space:normal;overflow-wrap:break-word">{% t "engine/templates/engine/index.html:57:418" %}</button>
+      <button id="btn-employes" data-guide="{% t 'engine/templates/engine/index.html:guide_employes' %}" style="display:none;width:100%;margin-top:6px;background:transparent;border:1px solid var(--border);color:var(--muted);font-size:12px;white-space:normal;overflow-wrap:break-word">{% t "engine/templates/engine/index.html:56:209" %}</button>
+      <button id="btn-config-documents" data-guide="{% t 'engine/templates/engine/index.html:guide_config_documents' %}" style="display:none;width:100%;margin-top:6px;background:transparent;border:1px solid var(--border);color:var(--muted);font-size:12px;white-space:normal;overflow-wrap:break-word">{% t "engine/templates/engine/index.html:57:217" %}</button>
+      <button id="btn-documents-administratifs" data-guide="{% t 'engine/templates/engine/index.html:guide_documents_administratifs' %}" style="display:block;width:100%;margin-top:6px;background:transparent;border:1px solid var(--border);color:var(--muted);font-size:12px;white-space:normal;overflow-wrap:break-word">{% t "engine/templates/engine/index.html:documents_administratifs" %}</button>
+      <button id="btn-personnalisation" data-guide="{% t 'engine/templates/engine/index.html:guide_personnalisation' %}" style="display:none;width:100%;margin-top:6px;background:transparent;border:1px solid var(--border);color:var(--muted);font-size:12px;white-space:normal;overflow-wrap:break-word">{% t "engine/templates/engine/index.html:btn_personnalisation" %}</button>
+      <button id="btn-paiement-config" data-guide="{% t 'engine/templates/engine/index.html:guide_paiement_config' %}" style="display:none;width:100%;margin-top:6px;background:transparent;border:1px solid var(--border);color:var(--muted);font-size:12px;white-space:normal;overflow-wrap:break-word">{% t "engine/templates/engine/index.html:58:216" %}</button>
+      <button id="btn-wallets-clients" data-guide="{% t 'engine/templates/engine/index.html:guide_wallets_clients' %}" style="display:none;width:100%;margin-top:6px;background:transparent;border:1px solid var(--border);color:var(--muted);font-size:12px;white-space:normal;overflow-wrap:break-word">{% t "engine/templates/engine/index.html:59:216" %}</button>
+      <button id="btn-finances" data-guide="{% t 'engine/templates/engine/index.html:guide_finances' %}" style="display:none;width:100%;margin-top:6px;background:transparent;border:1px solid var(--border);color:var(--muted);font-size:12px;white-space:normal;overflow-wrap:break-word">{% t "engine/templates/engine/finances.html:titre" %}</button>
+      <button id="btn-siem" data-guide="{% t 'engine/templates/engine/index.html:guide_siem' %}" style="display:none;width:100%;margin-top:6px;background:transparent;border:1px solid var(--border);color:var(--muted);font-size:12px;white-space:normal;overflow-wrap:break-word">{% t "engine/templates/engine/index.html:69:900" %}</button>
+      <button id="btn-notifications" data-guide="{% t 'engine/templates/engine/index.html:guide_notifications' %}" style="display:none;width:100%;margin-top:6px;background:transparent;border:1px solid var(--border);color:var(--muted);font-size:12px;white-space:normal;overflow-wrap:break-word">{% t "engine/templates/engine/index.html:60:214" %}</button>
+      <button id="btn-agenda" data-guide="{% t 'engine/templates/engine/index.html:guide_agenda' %}" style="display:none;width:100%;margin-top:6px;background:transparent;border:1px solid var(--border);color:var(--muted);font-size:12px;white-space:normal;overflow-wrap:break-word">{% t "engine/templates/engine/index.html:69:215" %}</button>
+      <button id="btn-flux-media" data-guide="{% t 'engine/templates/engine/index.html:guide_flux_media' %}" style="display:block;width:100%;margin-top:6px;background:transparent;border:1px solid var(--border);color:var(--muted);font-size:12px;white-space:normal;overflow-wrap:break-word">{% t "engine/templates/engine/index.html:btn_flux_media" %}</button>
+      <button id="btn-chatbot" data-guide="{% t 'engine/templates/engine/index.html:guide_chatbot' %}" style="display:none;width:100%;margin-top:6px;background:transparent;border:1px solid var(--border);color:var(--muted);font-size:12px;white-space:normal;overflow-wrap:break-word">{% t "engine/templates/engine/index.html:lbl_chatbot" %}</button>
+      <button id="btn-usabilite" data-guide="{% t 'engine/templates/engine/index.html:guide_usabilite' %}" style="display:none;width:100%;margin-top:6px;background:transparent;border:1px solid var(--border);color:var(--muted);font-size:12px;white-space:normal;overflow-wrap:break-word">{% t "engine/templates/engine/index.html:61:210" %}</button>
+      <!-- ── Compteur tokens ── -->
+      <div id="widget-tokens" style="margin-top:10px;padding:8px;background:var(--bg);border:1px solid var(--border);border-radius:6px;font-size:11px;cursor:pointer" title="{% t 'engine/templates/engine/index.html:63:174' %}" onclick="ouvrirModalTokens()">
+        <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:4px">
+          <span style="color:var(--muted);text-transform:uppercase;letter-spacing:.05em">{% t "engine/templates/engine/index.html:65:90" %}</span>
+          <span id="tokens-alerte" style="display:none;color:var(--texte-erreur,#f87171);font-weight:700">⚠</span>
+        </div>
+        <div style="display:flex;justify-content:space-between">
+          <span style="color:var(--text);font-weight:600" id="tokens-total">—</span>
+          <span style="color:var(--muted)" id="tokens-periode">{% t "engine/templates/engine/index.html:77:64" %}</span>
+        </div>
+        <div style="margin-top:4px;height:3px;background:var(--border);border-radius:2px">
+          <div id="tokens-barre" style="height:3px;width:0%;background:var(--accent);border-radius:2px;transition:width .4s"></div>
+        </div>
+        <div style="margin-top:3px;color:var(--muted);font-size:10px">
+          ↑<span id="tokens-in">0</span> ↓<span id="tokens-out">0</span>
+        </div>
+      </div>
+    </div>
+</div>
+
+<!-- ── Modal Compteur Tokens ── -->
+<div id="modal-tokens-fond" style="display:none;position:fixed;inset:0;background:color-mix(in srgb,var(--voile,#000000) 60%,transparent);z-index:9000;align-items:center;justify-content:center">
+  <div style="background:var(--panel);border:1px solid var(--border);border-radius:10px;padding:24px;min-width:min(320px,100%);max-width:400px;width:90%">
+    <h3 style="margin:0 0 16px;font-size:15px">{% t "engine/templates/engine/index.html:85:48" %}</h3>
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:16px">
+      <div style="background:var(--bg);border:1px solid var(--border);border-radius:6px;padding:10px;text-align:center">
+        <div style="font-size:20px;font-weight:700;color:var(--accent)" id="modal-tok-total">—</div>
+        <div style="font-size:10px;color:var(--muted)">{% t "engine/templates/engine/index.html:89:56" %}</div>
+      </div>
+      <div style="background:var(--bg);border:1px solid var(--border);border-radius:6px;padding:10px;text-align:center">
+        <div style="font-size:14px;color:var(--text)" id="modal-tok-detail">—</div>
+        <div style="font-size:10px;color:var(--muted)">{% t "engine/templates/engine/index.html:93:56" %}</div>
+      </div>
+    </div>
+    <div style="margin-bottom:12px">
+      <label style="font-size:12px;color:var(--muted);display:block;margin-bottom:4px">{% t "engine/templates/engine/index.html:97:88" %}</label>
+      <select id="sel-tokens-periode" style="width:100%;padding:6px;background:var(--bg);border:1px solid var(--border);color:var(--text);border-radius:4px">
+        <option value="heure">{% t "engine/templates/engine/index.html:99:31" %}</option>
+        <option value="jour">{% t "engine/templates/engine/index.html:100:30" %}</option>
+        <option value="semaine">{% t "engine/templates/engine/index.html:101:33" %}</option>
+        <option value="mois">{% t "engine/templates/engine/index.html:102:30" %}</option>
+      </select>
+    </div>
+    <div style="margin-bottom:16px">
+      <label style="font-size:12px;color:var(--muted);display:block;margin-bottom:4px">{% t "engine/templates/engine/index.html:106:88" %}</label>
+      <input id="inp-tokens-seuil" type="number" min="0" placeholder="{% t 'engine/templates/engine/index.html:107:71' %}"
+             style="width:100%;padding:6px;background:var(--bg);border:1px solid var(--border);color:var(--text);border-radius:4px;box-sizing:border-box">
+    </div>
+    <div style="display:flex;gap:8px;flex-wrap:wrap">
+      <button id="btn-tokens-sauv" style="flex:1;padding:7px" onclick="sauvegarderTokensConfig()">{% t "engine/templates/engine/index.html:111:99" %}</button>
+      <button id="btn-tokens-reset" style="padding:7px;background:transparent;border:1px solid var(--danger);color:var(--danger);border-radius:4px" onclick="reinitialiserTokens()">{% t "engine/templates/engine/index.html:112:181" %}</button>
+      <button style="padding:7px;background:transparent;border:1px solid var(--border);color:var(--muted);border-radius:4px" onclick="fermerModalTokens()">{% t "engine/templates/engine/index.html:113:156" %}</button>
+    </div>
+    <div id="tokens-debut-label" style="margin-top:10px;font-size:10px;color:var(--muted);text-align:center"></div>
+  </div>
+</div>
+
+  <div id="principal">
+    <div id="entete">
+      <!-- Bandeau : ☰ · Modules · logo + nom (posés par marque.js) -->
+      <div class="entete-rangee-titre">
+        <div class="entete-gauche">
+          <button id="btn-toggle-sidebar" aria-label="{% t 'engine/templates/engine/index.html:124:55' %}">☰</button>
+        </div>
+
+      </div>
+    </div>
+
+    <div id="zone-contenu"></div>
+  </div>
+
+</div>
+
+<!-- Modal Nouvelle Table -->
+<div id="modal-fond">
+  <div id="modal">
+    <h2>{% t "engine/templates/engine/index.html:143:9" %}</h2>
+    <input id="nouvelle-table-nom" placeholder="{% t 'engine/templates/engine/index.html:144:49' %}" style="margin-bottom:8px">
+    <div style="display:flex;align-items:center;gap:8px;margin-bottom:12px">
+      <span style="font-size:12px;color:var(--muted);flex:1">{% t "engine/templates/engine/index.html:146:62" %}</span>
+      <input id="nouvelle-table-echantillon" type="number" min="1" max="50" value="5" style="width:70px">
+    </div>
+    <div style="margin-bottom:12px">
+      <label style="font-size:12px;color:var(--muted);display:block;margin-bottom:4px">{% t "engine/templates/engine/index.html:150:88" %}</label>
+      <select id="nouvelle-table-type" style="width:100%">
+        <option value="normale">{% t "engine/templates/engine/index.html:152:33" %}</option>
+        <option value="membres">{% t "engine/templates/engine/index.html:153:33" %}</option>
+      </select>
+      <div id="nouvelle-table-type-desc" style="font-size:11px;color:var(--muted);opacity:.8;margin-top:4px"></div>
+      <div id="nouvelle-table-produits-zone" style="display:none;margin-top:8px">
+        <label style="font-size:12px;display:flex;align-items:center;gap:6px;cursor:pointer">
+          <input type="checkbox" id="nouvelle-table-produits"> {% t "engine/templates/engine/index.html:177:64" %}
+        </label>
+        <div style="font-size:11px;color:var(--muted);opacity:.8;margin-top:4px">{% t "engine/templates/engine/index.html:179:82" %}</div>
+      </div>
+    </div>
+    <div style="margin-bottom:12px">
+      <label style="font-size:12px;color:var(--muted);display:block;margin-bottom:4px">{% t "engine/templates/engine/index.html:formulaire_nature_label" %}</label>
+      <select id="nouvelle-table-formulaire" style="width:100%">
+        <option value="standard">{% t "engine/templates/engine/index.html:formulaire_nature_standard" %}</option>
+        <option value="conditionnel">{% t "engine/templates/engine/index.html:formulaire_nature_conditionnel" %}</option>
+      </select>
+      <div style="font-size:11px;color:var(--muted);opacity:.8;margin-top:4px">{% t "engine/templates/engine/index.html:formulaire_nature_aide" %}</div>
+    </div>
+    <div style="margin-bottom:12px">
+      <label style="font-size:12px;color:var(--muted);display:block;margin-bottom:4px">{% t "engine/templates/engine/index.html:158:88" %}</label>
+      <select id="nouvelle-table-stockage" style="width:100%">
+        <option value="sql">{% t "engine/templates/engine/index.html:160:29" %}</option>
+        <option value="nosql">{% t "engine/templates/engine/index.html:161:31" %}</option>
+      </select>
+      <div style="font-size:11px;color:var(--muted);opacity:.8;margin-top:4px">
+        {% t "engine/templates/engine/index.html:179:9" %}
+      </div>
+    </div>
+    <div style="font-size:12px;color:var(--muted);margin-bottom:6px;font-weight:600">{% t "engine/templates/engine/index.html:168:86" %}</div>
+    <div id="nouveaux-champs"></div>
+    <button id="btn-ajouter-champ" style="margin-top:8px;width:100%">{% t "engine/templates/engine/index.html:170:70" %}</button>
+
+    <div class="modal-actions">
+      <button id="btn-annuler-table">{% t "engine/templates/engine/index.html:173:38" %}</button>
+      <button class="principal" id="btn-creer-table">{% t "engine/templates/engine/index.html:174:54" %}</button>
+    </div>
+  </div>
+</div>
+
+<!-- Modal Structure de table (modifier / supprimer des colonnes, changer les types) -->
+<div id="modal-structure-fond" style="position:fixed;inset:0;background:color-mix(in srgb,var(--voile,#000000) 70%,transparent);display:none;align-items:center;justify-content:center;z-index:2000;padding:14px">
+  <div style="width:560px;max-width:100%;background:var(--panel);border:1px solid var(--border);border-radius:10px;padding:18px;max-height:90vh;overflow-y:auto">
+    <h2 style="margin:0 0 6px;font-size:15px">{% t "engine/templates/engine/index.html:182:47" %} <span id="modal-structure-table-nom"></span></h2>
+    <p style="color:var(--muted);margin:0 0 10px;font-size:12px">
+      {% t "engine/templates/engine/index.html:199:7" %}
+    </p>
+    <p id="structure-groupe-note" style="display:none;margin:0 0 10px;font-size:12px;color:var(--accent)"></p>
+    <div id="structure-champs"></div>
+    <button id="btn-ajouter-champ-structure" style="margin-top:8px;width:100%">{% t "engine/templates/engine/index.html:188:80" %}</button>
+    <div class="modal-actions">
+      <button id="btn-annuler-structure">{% t "engine/templates/engine/index.html:190:42" %}</button>
+      <button class="principal" id="btn-enregistrer-structure">{% t "engine/templates/engine/index.html:191:64" %}</button>
+    </div>
+  </div>
+</div>
+
+<!-- Modal Nouvelle formule de calcul (formules personnalisées, entreprise) -->
+<div id="modal-formule-fond" style="position:fixed;inset:0;background:color-mix(in srgb,var(--voile,#000000) 70%,transparent);display:none;align-items:center;justify-content:center;z-index:2000;padding:14px">
+  <div style="width:620px;max-width:100%;background:var(--panel);border:1px solid var(--border);border-radius:10px;padding:18px;max-height:90vh;overflow-y:auto">
+    <h2 style="margin:0 0 6px;font-size:15px">{% t "engine/templates/engine/index.html:199:47" %}</h2>
+    <p style="color:var(--muted);margin:0 0 10px;font-size:12px">
+      {% t "engine/templates/engine/index.html:216:7" %} <code>{% t "engine/templates/engine/index.html:201:60" %}</code> {% t "engine/templates/engine/index.html:216:119" %}
+    </p>
+    <div id="liste-formules-perso" style="margin-bottom:12px"></div>
+    <h3 style="margin:0 0 8px;font-size:13px;border-top:1px solid var(--border);padding-top:12px">{% t "engine/templates/engine/index.html:206:99" %}</h3>
+    <div style="display:flex;flex-direction:column;gap:10px">
+      <div>
+        <label style="font-size:11px;color:var(--muted)">{% t "engine/templates/engine/index.html:209:58" %}</label>
+        <input type="text" id="nf-nom" placeholder="{% t 'engine/templates/engine/index.html:210:53' %}">
+      </div>
+      <div>
+        <label style="font-size:11px;color:var(--muted)">{% t "engine/templates/engine/index.html:213:58" %}</label>
+        <input type="text" id="nf-description" placeholder="{% t 'engine/templates/engine/index.html:214:61' %}">
+      </div>
+      <div style="display:flex;gap:12px">
+        <div style="flex:1">
+          <label style="font-size:11px;color:var(--muted)">{% t "engine/templates/engine/index.html:218:60" %}</label>
+          <select id="nf-categorie">
+            <option value="personnalisee">{% t "engine/templates/engine/index.html:220:43" %}</option>
+            <option value="agregat">{% t "engine/templates/engine/index.html:221:37" %}</option>
+            <option value="statistique">{% t "engine/templates/engine/index.html:222:41" %}</option>
+            <option value="temporel">{% t "engine/templates/engine/index.html:223:38" %}</option>
+            <option value="texte">{% t "engine/templates/engine/index.html:224:35" %}</option>
+          </select>
+        </div>
+        <div style="flex:1">
+          <label style="font-size:11px;color:var(--muted)">{% t "engine/templates/engine/index.html:228:60" %}</label>
+          <select id="nf-cible-type">
+            <option value="colonne">{% t "engine/templates/engine/index.html:230:37" %}</option>
+            <option value="table">{% t "engine/templates/engine/index.html:231:35" %}</option>
+          </select>
+        </div>
+      </div>
+      <div id="nf-bloc-types">
+        <label style="font-size:11px;color:var(--muted)">{% t "engine/templates/engine/index.html:236:58" %}</label>
+        <input type="text" id="nf-types" placeholder="{% t 'engine/templates/engine/index.html:237:55' %}">
+      </div>
+      <div style="background:var(--fond-noir,#000);border:1px solid var(--border);border-radius:8px;padding:8px 10px;display:flex;flex-direction:column;gap:6px">
+        <label style="font-size:11px;color:var(--muted)">{% t "engine/templates/engine/index.html:240:58" %}</label>
+        <div style="display:flex;gap:6px">
+          <input type="text" id="nf-prompt-ia" placeholder="{% t 'engine/templates/engine/index.html:242:61' %}" style="flex:1">
+          <button type="button" id="btn-generer-formule-ia" style="padding:6px 12px;font-size:12px;white-space:nowrap">{% t "engine/templates/engine/index.html:243:120" %}</button>
+        </div>
+      </div>
+      <div>
+        <label style="font-size:11px;color:var(--muted);display:flex;align-items:center;justify-content:space-between;gap:8px">
+          <span>{% t "engine/templates/engine/index.html:248:17" %} <code>{% t "engine/templates/engine/index.html:248:50" %}</code> {% t "engine/templates/engine/index.html:248:81" %}</span>
+          <button type="button" id="btn-import-nf-code" style="background:transparent;border:1px solid var(--border);color:var(--muted);font-size:11px;padding:3px 9px;border-radius:5px;cursor:pointer;white-space:nowrap;flex-shrink:0">{% t "engine/templates/engine/index.html:249:235" %}</button>
+        </label>
+        <textarea id="nf-code" rows="10" style="font-family:monospace;font-size:12px" placeholder="def formule(cible):
+    # 'cible' est une pandas.Series (colonne) ou un pandas.DataFrame (table)
+    return cible.mean()"></textarea>
+      </div>
+    </div>
+    <div class="modal-actions">
+      <button id="btn-annuler-formule">{% t "engine/templates/engine/index.html:257:40" %}</button>
+      <button class="principal" id="btn-enregistrer-formule">{% t "engine/templates/engine/index.html:258:62" %}</button>
+    </div>
+  </div>
+</div>
+
+<!-- Modal Prompt Rapport & Configuration IA -->
+<div id="modal-prompt-fond">
+  <div style="width:560px;max-width:100%;background:var(--panel);border:1px solid var(--border);border-radius:10px;padding:18px">
+    <h2 style="margin:0 0 6px;font-size:15px">{% t "engine/templates/engine/index.html:266:47" %} <span id="modal-prompt-table-nom"></span></h2>
+    <div style="display:flex;flex-direction:column;gap:4px;margin:10px 0 12px">
+      <button id="modal-prompt-tab-analyse" style="width:100%;text-align:left;padding:8px 12px;font-size:12px;border-radius:6px;border:1px solid var(--border);cursor:pointer" onclick="promptActiverCanal('analyse')">{% t "engine/templates/engine/index.html:268:211" %}</button>
+      <button id="modal-prompt-tab-document" style="width:100%;text-align:left;padding:8px 12px;font-size:12px;border-radius:6px;border:1px solid var(--border);cursor:pointer" onclick="promptActiverCanal('document')">{% t "engine/templates/engine/index.html:269:213" %}</button>
+    </div>
+    <div id="modal-prompt-panel-analyse" class="carte reduite" style="margin-bottom:0">
+      <div class="entete-carte"><span class="titre-analyse">{% t "engine/templates/engine/index.html:272:61" %}</span><button class="btn-reduire" title="{% t 'engine/templates/engine/index.html:272:142' %}">▸</button></div>
+      <div class="corps-carte">
+        <p style="color:var(--muted);margin:0 0 10px;font-size:12px">
+          {% t "engine/templates/engine/index.html:290:11" %}
+        </p>
+        <textarea id="modal-prompt-texte" rows="6" placeholder="{% t 'engine/templates/engine/index.html:277:65' %}"></textarea>
+        <div style="display:flex;flex-wrap:wrap;gap:12px;margin-top:12px">
+          <div style="flex:1">
+            <label style="font-size:11px;color:var(--muted)">{% t "engine/templates/engine/index.html:280:62" %}</label>
+            <input id="modal-prompt-timeout-execution" type="number" min="1" value="30">
+          </div>
+          <div style="flex:1">
+            <label style="font-size:11px;color:var(--muted)">{% t "engine/templates/engine/index.html:284:62" %}</label>
+            <input id="modal-prompt-timeout-inference" type="number" min="1" value="120">
+          </div>
+        </div>
+      </div>
+    </div>
+    <div id="modal-prompt-panel-document" class="carte reduite" style="margin-bottom:0;display:none">
+      <div class="entete-carte"><span class="titre-analyse">{% t "engine/templates/engine/index.html:291:61" %}</span><button class="btn-reduire" title="{% t 'engine/templates/engine/index.html:291:132' %}">▸</button></div>
+      <div class="corps-carte">
+        <p style="color:var(--muted);margin:0 0 10px;font-size:12px">
+          {% t "engine/templates/engine/index.html:309:11" %}
+        </p>
+        <textarea id="modal-prompt-texte-document" rows="6" placeholder="{% t 'engine/templates/engine/index.html:296:74' %}"></textarea>
+      </div>
+    </div>
+    <div class="modal-actions">
+      <button id="btn-annuler-prompt">{% t "engine/templates/engine/index.html:300:39" %}</button>
+      <button class="principal" id="btn-enregistrer-prompt">{% t "engine/templates/engine/index.html:301:61" %}</button>
+    </div>
+  </div>
+</div>
+
+<!-- Modal Édition de ligne -->
+<div id="modal-ligne-fond">
+  <div style="width:560px;max-width:100%;background:var(--panel);border:1px solid var(--border);border-radius:10px;padding:18px;max-height:90vh;display:flex;flex-direction:column">
+    <h2 style="margin:0 0 12px;font-size:15px;flex-shrink:0">{% t "engine/templates/engine/index.html:309:62" %}</h2>
+    <div id="modal-ligne-champs" class="form-grille" style="overflow-y:auto;flex:1;padding-right:4px"></div>
+    <div class="modal-actions" style="flex-shrink:0;margin-top:12px">
+      <button id="btn-annuler-ligne">{% t "engine/templates/engine/index.html:312:38" %}</button>
+      <button class="principal" id="btn-enregistrer-ligne">{% t "engine/templates/engine/index.html:313:60" %}</button>
+    </div>
+  </div>
+</div>
+
+<div id="modal-iteration-fond">
+  <div style="width:420px;max-width:100%;background:var(--panel);border:1px solid var(--border);border-radius:10px;padding:18px;max-height:90vh;display:flex;flex-direction:column">
+    <h2 style="margin:0 0 4px;font-size:15px;flex-shrink:0">{% t "engine/templates/engine/index.html:320:61" %}</h2>
+    <div style="font-size:11px;color:var(--muted);margin-bottom:8px;flex-shrink:0">{% t "engine/templates/engine/index.html:321:84" %}</div>
+    <div id="modal-iteration-liste" style="overflow-y:auto;flex:1;border:1px solid var(--border);border-radius:6px;padding:4px"></div>
+    <div class="modal-actions" style="flex-shrink:0;margin-top:12px">
+      <button id="btn-annuler-iteration">{% t "engine/templates/engine/index.html:324:42" %}</button>
+      <button class="principal" id="btn-valider-iteration">{% t "engine/templates/engine/index.html:325:60" %}</button>
+    </div>
+  </div>
+</div>
+
+<!-- Modal Carte d'agent : themes recto/verso + logo/signature/cachet +
+     colonnes affichees + couleurs. Disposition FIGEE et calculee
+     automatiquement (photo en haut-gauche, logo en haut-droite, colonnes
+     empilees, bande basse QR/signature/cachet) : plus de positionnement
+     libre a configurer ici. -->
+<div id="modal-carte-fond" style="position:fixed;inset:0;background:color-mix(in srgb,var(--voile,#000000) 80%,transparent);display:none;align-items:center;justify-content:center;z-index:5000;padding:14px">
+  <div style="width:640px;max-width:100%;background:var(--panel);border:1px solid var(--border);border-radius:10px;padding:18px;max-height:92vh;overflow-y:auto">
+    <h2 style="margin:0 0 10px;font-size:15px">{% t "engine/templates/engine/index.html:337:48" %}</h2>
+    <p style="font-size:11px;color:var(--muted);margin:0 0 12px">{% t "engine/templates/engine/index.html:338:66" %}</p>
+
+    <div style="display:flex;gap:14px;margin-bottom:12px">
+      <div><label style="font-size:11px;color:var(--muted)">{% t "engine/templates/engine/index.html:341:61" %}</label><br><input type="file" id="carte-theme-recto" accept="image/*"><div id="carte-theme-recto-apercu" style="margin-top:4px"></div></div>
+      <div id="carte-theme-verso-bloc"><label style="font-size:11px;color:var(--muted)">{% t "engine/templates/engine/index.html:342:61" %}</label><br><input type="file" id="carte-theme-verso" accept="image/*"><div id="carte-theme-verso-apercu" style="margin-top:4px"></div></div>
+    </div>
+    <div style="display:flex;gap:14px;margin-bottom:16px;flex-wrap:wrap">
+      <div><label style="font-size:11px;color:var(--muted)">{% t "engine/templates/engine/index.html:345:61" %}</label><br><input type="file" id="carte-signature-fichier" accept="image/*"><div id="carte-signature-apercu" style="margin-top:4px"></div></div>
+      <div><label style="font-size:11px;color:var(--muted)">{% t "engine/templates/engine/index.html:346:61" %}</label><br><input type="text" id="carte-signature-nom" placeholder="{% t 'engine/templates/engine/index.html:346:162' %}" style="width:180px"></div>
+      <div><label style="font-size:11px;color:var(--muted)">{% t "engine/templates/engine/index.html:347:61" %}</label><br><input type="file" id="carte-cachet-fichier" accept="image/*"><div id="carte-cachet-apercu" style="margin-top:4px"></div></div>
+      <div><label style="font-size:11px;color:var(--muted)">{% t "engine/templates/engine/index.html:348:61" %}</label><br><input type="text" id="carte-matricule-prefixe" placeholder="{% t 'engine/templates/engine/index.html:348:185' %}" style="width:100px"></div>
+    </div>
+
+    <div style="margin-bottom:10px;font-size:12px">
+      <label style="color:var(--muted)">{% t "engine/templates/engine/index.html:366:41" %}</label>
+      <select id="carte-faces" style="margin-left:6px">
+        <option value="recto_verso">{% t "engine/templates/engine/index.html:368:37" %}</option>
+        <option value="recto">{% t "engine/templates/engine/index.html:369:31" %}</option>
+      </select>
+      <label style="color:var(--muted);margin-left:14px">{% t "engine/templates/engine/index.html:371:58" %}</label>
+      <select id="carte-sortie" style="margin-left:6px">
+        <option value="pdf">{% t "engine/templates/engine/index.html:373:29" %}</option>
+        <option value="images">{% t "engine/templates/engine/index.html:374:32" %}</option>
+      </select>
+    </div>
+
+    <div class="onglets-vue" style="margin-bottom:8px">
+      <button class="onglet-vue actif" id="carte-face-recto">{% t "engine/templates/engine/index.html:352:62" %}</button>
+      <button class="onglet-vue" id="carte-face-verso">{% t "engine/templates/engine/index.html:353:56" %}</button>
+    </div>
+
+    <div style="display:flex;gap:14px;flex-wrap:wrap;margin-bottom:12px;font-size:12px">
+      <label style="display:flex;align-items:center;gap:5px"><input type="checkbox" id="carte-toggle-logo">{% t "engine/templates/engine/index.html:357:108" %}</label>
+      <label style="display:flex;align-items:center;gap:5px"><input type="checkbox" id="carte-toggle-qrcode">{% t "engine/templates/engine/index.html:358:110" %}</label>
+      <label style="display:flex;align-items:center;gap:5px"><input type="checkbox" id="carte-toggle-signature">{% t "engine/templates/engine/index.html:359:113" %}</label>
+      <label style="display:flex;align-items:center;gap:5px"><input type="checkbox" id="carte-toggle-cachet">{% t "engine/templates/engine/index.html:360:110" %}</label>
+    </div>
+    <div style="border:1px solid var(--border);border-radius:8px;padding:10px;margin-bottom:12px;font-size:12px">
+      <div style="margin-bottom:6px"><label><input type="radio" name="qrcode-source" id="carte-qr-source-upload" value="upload">{% t "engine/templates/engine/index.html:363:129" %}</label>
+        <input type="file" id="carte-qrcode-fichier" accept="image/*" style="margin-left:8px">
+        <span id="carte-qrcode-apercu"></span>
+      </div>
+      <div><label><input type="radio" name="qrcode-source" id="carte-qr-source-auto" value="auto" checked>{% t "engine/templates/engine/index.html:367:107" %}</label>
+        <select id="carte-qr-mode" style="margin-left:6px">
+          <option value="hash">{% t "engine/templates/engine/index.html:369:32" %}</option>
+          <option value="resume" selected>{% t "engine/templates/engine/index.html:370:43" %}</option>
+          <option value="champ">{% t "engine/templates/engine/index.html:371:33" %}</option>
+          <option value="securise">{% t "engine/templates/engine/index.html:372:36" %}</option>
+        </select>
+      </div>
+      <div id="carte-qr-champ-bloc" style="margin-top:6px;display:none">{% t "engine/templates/engine/index.html:375:73" %} <select id="carte-qr-champ"></select></div>
+      <div id="carte-qr-colonnes-bloc" style="margin-top:6px;display:none">{% t "engine/templates/engine/index.html:376:76" %} <select id="carte-qr-colonnes" multiple style="min-height:60px;vertical-align:top"></select></div>
+    </div>
+
+    <hr style="border:none;border-top:1px solid var(--border);margin:14px 0">
+    <h3 style="margin:0 0 6px;font-size:13px">{% t "engine/templates/engine/index.html:380:47" %}</h3>
+    <p style="font-size:11px;color:var(--muted);margin:0 0 8px">
+      {% t "engine/templates/engine/index.html:397:7" %} <b>{% t "engine/templates/engine/index.html:382:25" %}</b> {% t "engine/templates/engine/index.html:382:47" %}<br>
+      {% t "engine/templates/engine/index.html:398:7" %} <b>{% t "engine/templates/engine/index.html:383:25" %}</b> {% t "engine/templates/engine/index.html:398:81" %}
+    </p>
+    <div id="carte-agents-compteur" style="font-size:11px;color:var(--muted);margin:0 0 8px">{% t "engine/templates/engine/index.html:385:94" %}</div>
+    <button id="btn-carte-tout-generer" type="button" title="{% t 'engine/templates/engine/index.html:386:62' %}" style="margin:0 0 8px;padding:4px 10px;font-size:11px">{% t "engine/templates/engine/index.html:386:178" %}</button>
+    <div id="carte-grille-conteneur" style="overflow:auto;max-height:320px;border:1px solid var(--border);border-radius:8px;margin-bottom:14px">
+      <table id="carte-grille" style="border-collapse:collapse;width:100%;font-size:12px;user-select:none"></table>
+    </div>
+
+    <div style="display:flex;gap:16px;flex-wrap:wrap;align-items:center;margin-bottom:14px;font-size:12px">
+      <label style="display:flex;align-items:center;gap:6px">{% t "engine/templates/engine/index.html:392:62" %} <input type="color" id="carte-couleur-texte" value="#1a1a1a" data-gy-var="--doc-texte" data-gy-defaut="#1a1a1a"></label>
+      <label style="display:flex;align-items:center;gap:6px">{% t "engine/templates/engine/index.html:393:62" %} <input type="color" id="carte-couleur-bordure" value="#999999" data-gy-var="--doc-carte-bordure" data-gy-defaut="#999999"></label>
+      <label style="display:flex;align-items:center;gap:6px">{% t "engine/templates/engine/index.html:394:62" %} <input type="color" id="carte-couleur-separateur" value="#dddddd" data-gy-var="--doc-carte-separateur" data-gy-defaut="#dddddd"></label>
+      <label style="display:flex;align-items:center;gap:6px">{% t "engine/templates/engine/index.html:410:62" %}
+        <input type="number" id="carte-taille-police" min="5" max="14" step="0.5" value="8" style="width:56px">pt
+      </label>
+      <label style="display:flex;align-items:center;gap:6px">{% t "engine/templates/engine/index.html:425:62:p7" %}
+        <select id="carte-police">
+          <option value="simplex">{% t "engine/templates/engine/index.html:400:35" %}</option><option value="plain">{% t "engine/templates/engine/index.html:400:73" %}</option>
+          <option value="duplex" selected>{% t "engine/templates/engine/index.html:401:43" %}</option><option value="complex">{% t "engine/templates/engine/index.html:401:82" %}</option>
+          <option value="triplex">{% t "engine/templates/engine/index.html:402:35" %}</option><option value="complex_small">{% t "engine/templates/engine/index.html:402:81" %}</option>
+          <option value="script_simplex">{% t "engine/templates/engine/index.html:403:42" %}</option><option value="script_complex">{% t "engine/templates/engine/index.html:403:96" %}</option>
+          <option value="simplex_italique">{% t "engine/templates/engine/index.html:404:44" %}</option><option value="complex_italique">{% t "engine/templates/engine/index.html:404:102" %}</option>
+        </select>
+      </label>
+    </div>
+
+    <div class="modal-actions">
+      <button id="btn-annuler-carte">{% t "engine/templates/engine/index.html:410:38" %}</button>
+      <button class="principal" id="btn-generer-carte">{% t "engine/templates/engine/index.html:411:56" %}</button>
+      <button class="principal" id="btn-enregistrer-carte">{% t "engine/templates/engine/index.html:412:60" %}</button>
+    </div>
+  </div>
+</div>
+
+
+<!-- Modal capture média : caméra/micro directement dans le navigateur -->
+<div id="modal-capture-fond" style="position:fixed;inset:0;background:color-mix(in srgb,var(--voile,#000000) 80%,transparent);display:none;align-items:center;justify-content:center;z-index:5000;padding:14px">
+  <div style="width:520px;max-width:100%;background:var(--panel);border:1px solid var(--border);border-radius:10px;padding:18px;max-height:92vh;display:flex;flex-direction:column;gap:10px">
+    <h2 id="capture-titre" style="margin:0;font-size:15px">{% t "engine/templates/engine/index.html:421:60" %}</h2>
+    <div id="capture-erreur" style="display:none;font-size:12px;color:var(--danger);background:var(--fond-danger,#2a1010);border:1px solid var(--danger);border-radius:6px;padding:8px"></div>
+    <div style="position:relative;background:var(--fond-noir,#000);border:1px solid var(--border);border-radius:8px;overflow:hidden;min-height:220px;display:flex;align-items:center;justify-content:center">
+      <video id="capture-video" autoplay playsinline muted style="width:100%;max-height:340px;display:block"></video>
+      <button type="button" id="capture-btn-basculer" title="{% t 'engine/templates/engine/index.html:425:62' %}" style="display:none;position:absolute;bottom:8px;right:8px;background:color-mix(in srgb,var(--voile,#000000) 55%,transparent);color:var(--texte-sombre,#fff);border:1px solid color-mix(in srgb,var(--voile-clair,#ffffff) 40%,transparent);border-radius:50%;width:34px;height:34px;font-size:16px;cursor:pointer">🔄</button>
+      <img id="capture-photo-apercu" style="width:100%;max-height:340px;display:none;object-fit:contain">
+      <audio id="capture-audio-apercu" controls style="width:90%;display:none"></audio>
+      <video id="capture-video-apercu" controls style="width:100%;max-height:340px;display:none"></video>
+      <div id="capture-rec-indicateur" style="display:none;position:absolute;top:8px;left:8px;align-items:center;gap:6px;background:color-mix(in srgb,var(--voile,#000000) 60%,transparent);padding:4px 8px;border-radius:12px">
+        <span id="capture-rec-point" style="width:9px;height:9px;border-radius:50%;background:var(--danger)"></span>
+        <span id="capture-rec-temps" style="font-size:11px;color:var(--texte-sombre,#fff)">00:00</span>
+      </div>
+    </div>
+    <canvas id="capture-canvas" style="display:none"></canvas>
+    <div class="modal-actions" style="justify-content:space-between">
+      <button type="button" id="capture-btn-annuler">{% t "engine/templates/engine/index.html:436:54" %}</button>
+      <div style="display:flex;gap:8px">
+        <button type="button" id="capture-btn-reprendre" style="display:none">{% t "engine/templates/engine/index.html:438:79" %}</button>
+        <button type="button" class="principal" id="capture-btn-action">{% t "engine/templates/engine/index.html:439:73" %}</button>
+        <button type="button" class="principal" id="capture-btn-utiliser" style="display:none">{% t "engine/templates/engine/index.html:440:96" %}</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Modal Visionneuse : espace dédié pour ouvrir en grand une image/son/vidéo
+     depuis une cellule de la vue Données (bouton "⤢ Ouvrir" de valeurCellule) -->
+<div id="modal-visionneuse-fond" style="position:fixed;inset:0;background:color-mix(in srgb,var(--voile,#000000) 85%,transparent);display:none;align-items:center;justify-content:center;z-index:6000;padding:14px">
+  <div style="width:min(900px, 96vw);max-height:92vh;background:var(--panel);border:1px solid var(--border);border-radius:10px;padding:16px;display:flex;flex-direction:column;gap:10px">
+    <div style="display:flex;align-items:center;justify-content:space-between;flex-shrink:0;gap:10px">
+      <h2 id="visionneuse-titre" style="margin:0;font-size:14px;color:var(--muted);overflow:hidden;text-overflow:ellipsis;white-space:nowrap">{% t "engine/templates/engine/index.html:451:143" %}</h2>
+      <div style="display:flex;align-items:center;gap:8px;flex-shrink:0">
+        <a id="visionneuse-lien-original" href="#" target="_blank" rel="noopener" title="{% t 'engine/templates/engine/index.html:453:90' %}" style="color:var(--accent);text-decoration:none;font-size:13px;border:1px solid var(--border);border-radius:4px;padding:4px 8px;line-height:1">⤢</a>
+        <button type="button" id="btn-fermer-visionneuse" style="background:transparent;border:none;font-size:18px;cursor:pointer;color:var(--muted)">✕</button>
+      </div>
+    </div>
+    <div style="flex:1;min-height:0;background:var(--fond-noir,#000);border:1px solid var(--border);border-radius:8px;display:flex;align-items:center;justify-content:center;overflow:hidden">
+      <img id="visionneuse-image" style="display:none;max-width:100%;max-height:78vh;object-fit:contain">
+      <video id="visionneuse-video" controls autoplay style="display:none;max-width:100%;max-height:78vh"></video>
+      <audio id="visionneuse-audio" controls style="display:none;width:90%"></audio>
+      <div id="visionneuse-lisible" style="display:none;width:100%;align-self:stretch;overflow:auto"></div>
+    </div>
+  </div>
+</div>
+
+<!-- Modal Sélecteur de cible graphique (tables de calcul) : cliquer/glisser sur
+     le tableau réel pour capturer la cible d'un calcul — colonne entière (clic
+     sur un en-tête), plage de colonnes (glisser sur plusieurs en-têtes,
+     formules "table" uniquement), plage de lignes sur une colonne (glisser
+     sur des cellules d'une même colonne), ou plage de lignes sur plusieurs
+     colonnes (glisser un rectangle, formules "table" uniquement) — au lieu de
+     saisir des numéros de ligne à la main. -->
+<div id="modal-selecteur-cible-fond" style="position:fixed;inset:0;background:color-mix(in srgb,var(--voile,#000000) 85%,transparent);display:none;align-items:center;justify-content:center;z-index:6500;padding:14px">
+  <div style="width:min(1000px, 96vw);max-height:92vh;background:var(--panel);border:1px solid var(--border);border-radius:10px;padding:16px;display:flex;flex-direction:column;gap:10px">
+    <div style="display:flex;align-items:center;justify-content:space-between;flex-shrink:0;gap:10px">
+      <div>
+        <h2 style="margin:0;font-size:14px">{% t "engine/templates/engine/index.html:476:45" %}</h2>
+        <div style="font-size:11px;color:var(--muted);margin-top:2px">{% t "engine/templates/engine/index.html:477:71" %}</div>
+      </div>
+      <button type="button" id="btn-fermer-selcible" style="background:transparent;border:none;font-size:18px;cursor:pointer;color:var(--muted)">✕</button>
+    </div>
+    <div id="selcible-resume" style="flex-shrink:0;font-size:12px;font-weight:600;color:var(--accent)">{% t "engine/templates/engine/index.html:481:104" %}</div>
+    <div id="selcible-grille-conteneur" style="flex:1;min-height:0;overflow:auto;border:1px solid var(--border);border-radius:8px">
+      <table id="selcible-grille" style="border-collapse:collapse;width:100%;font-size:12px;user-select:none"></table>
+    </div>
+    <div style="flex-shrink:0;display:flex;justify-content:flex-end;gap:8px">
+      <button type="button" id="btn-annuler-selcible" style="padding:6px 12px;font-size:12px">{% t "engine/templates/engine/index.html:486:95" %}</button>
+      <button type="button" id="btn-valider-selcible" class="principal" style="padding:6px 12px;font-size:12px">{% t "engine/templates/engine/index.html:487:113" %}</button>
+    </div>
+  </div>
+</div>
+
+<!-- Modal picker relation : recherche dans une table liée -->
+<div id="modal-picker-relation" style="position:fixed;inset:0;background:color-mix(in srgb,var(--voile,#000000) 75%,transparent);display:none;align-items:center;justify-content:center;z-index:4000;padding:14px">
+  <div style="width:680px;max-width:100%;background:var(--panel);border:1px solid var(--border);border-radius:10px;padding:18px;max-height:88vh;display:flex;flex-direction:column;gap:10px">
+    <div style="display:flex;align-items:center;justify-content:space-between;flex-shrink:0">
+      <h2 style="margin:0;font-size:15px">{% t "engine/templates/engine/index.html:496:43" %} <span id="picker-table-nom" style="color:var(--accent)"></span></h2>
+      <button id="btn-fermer-picker" style="background:transparent;border:none;font-size:18px;cursor:pointer;color:var(--muted)">✕</button>
+    </div>
+    <div style="flex-shrink:0">
+      <input id="picker-recherche" type="text" placeholder="{% t 'engine/templates/engine/index.html:500:61' %}" style="width:100%;box-sizing:border-box;font-size:13px">
+    </div>
+    <div style="font-size:11px;color:var(--muted);flex-shrink:0" id="picker-info-colonne"></div>
+    <div style="overflow:auto;flex:1;border:1px solid var(--border);border-radius:6px">
+      <table id="picker-table" style="width:100%;border-collapse:collapse;font-size:12px">
+        <thead id="picker-thead" style="position:sticky;top:0;background:var(--panel);z-index:1"></thead>
+        <tbody id="picker-tbody"></tbody>
+      </table>
+    </div>
+    <div style="flex-shrink:0;font-size:11px;color:var(--muted)" id="picker-count"></div>
+  </div>
+</div>
+
+<!-- Modal Partage de ligne / cellule : relier la ligne (ou la cellule)
+     courante à une ligne (ou cellule) d'une AUTRE table (ou de la même),
+     synchronisée automatiquement — voir GroupePartageLigne/LignePartagee
+     et GroupePartageCellule/CellulePartagee (engine/models.py). Le choix de
+     la ligne/cellule cible réutilise TEL QUEL le sélecteur graphique des
+     tables de calcul (_ouvrirSelecteurCible, modal #modal-selecteur-cible-fond) —
+     appliqué directement sur la table choisie ci-dessous, clic sur une
+     cellule = ligne + colonne cible. -->
+<div id="modal-partage-fond" style="position:fixed;inset:0;background:color-mix(in srgb,var(--voile,#000000) 75%,transparent);display:none;align-items:center;justify-content:center;z-index:4200;padding:14px">
+  <div style="width:520px;max-width:100%;background:var(--panel);border:1px solid var(--border);border-radius:10px;padding:18px;max-height:88vh;display:flex;flex-direction:column;gap:10px">
+    <div style="display:flex;align-items:center;justify-content:space-between;flex-shrink:0">
+      <h2 id="partage-titre" style="margin:0;font-size:15px">{% t "engine/templates/engine/index.html:524:62" %}</h2>
+      <button id="btn-fermer-partage" style="background:transparent;border:none;font-size:18px;cursor:pointer;color:var(--muted)">✕</button>
+    </div>
+
+    <div style="flex-shrink:0">
+      <div style="font-size:11px;color:var(--muted);text-transform:uppercase;letter-spacing:.03em;margin-bottom:4px">{% t "engine/templates/engine/index.html:529:118" %}</div>
+      <div id="partage-membres-actuels" style="font-size:12px"></div>
+      <button type="button" id="btn-partage-retirer" style="display:none;margin-top:6px;padding:4px 10px;font-size:11px" class="danger">{% t "engine/templates/engine/index.html:531:137" %}</button>
+    </div>
+
+    <div style="flex-shrink:0;border-top:1px solid var(--border);padding-top:10px">
+      <div style="font-size:11px;color:var(--muted);text-transform:uppercase;letter-spacing:.03em;margin-bottom:4px">{% t "engine/templates/engine/index.html:535:118" %}</div>
+      <select id="partage-select-table" style="width:100%;font-size:12px"></select>
+      <div id="partage-cibles-attente" style="font-size:12px;margin-top:6px"></div>
+      <button type="button" id="btn-partage-valider" style="display:none;margin-top:6px;padding:4px 10px;font-size:11px">{% t "engine/templates/engine/index.html:548:122" %}</button>
+      <div style="font-size:11px;color:var(--muted);margin-top:4px">{% t "engine/templates/engine/index.html:537:69" %}</div>
+    </div>
+  </div>
+</div>
+
+<!-- Modal Import de fichier (choix de la feuille Excel + format CSV) -->
+<div id="modal-import-fond" style="position:fixed;inset:0;background:color-mix(in srgb,var(--voile,#000000) 70%,transparent);display:none;align-items:center;justify-content:center;z-index:2000;padding:14px">
+  <div style="width:520px;max-width:100%;background:var(--panel);border:1px solid var(--border);border-radius:10px;padding:18px;max-height:90vh;overflow-y:auto">
+    <h2 style="margin:0 0 6px;font-size:15px">{% t "engine/templates/engine/index.html:545:47" %}</h2>
+    <p style="color:var(--muted);margin:0 0 12px;font-size:12px">
+      {% t "engine/templates/engine/index.html:564:7" %}
+    </p>
+
+    <div style="margin-bottom:12px">
+      <div style="font-size:11px;color:var(--muted);text-transform:uppercase;letter-spacing:.03em;margin-bottom:4px">{% t "engine/templates/engine/index.html:551:118" %}</div>
+      <div id="import-nom-fichier" style="padding:8px 10px;background:var(--fond-sombre,#0f1216);border:1px solid var(--border);border-radius:6px;font-size:13px;word-break:break-all">—</div>
+    </div>
+
+    <!-- Export de la plateforme (JSON / Excel avec manifeste) ou JSON ordinaire : table native / indépendante -->
+    <div id="import-bloc-fidele" style="display:none;margin-bottom:12px;padding:10px;background:var(--fond-sombre,#0f1216);border:1px solid var(--border);border-radius:6px;font-size:12px">
+      <div id="import-fidele-titre" style="font-weight:600;margin-bottom:4px"></div>
+      <div id="import-fidele-detail" style="color:var(--muted);margin-bottom:8px"></div>
+      <div id="import-fidele-choix" style="display:none">
+        <label style="display:block;margin-bottom:6px;cursor:pointer"><input type="radio" name="import-mode-restauration" value="remplacer" checked> <span id="import-fidele-lib-remplacer"></span></label>
+        <label style="display:block;cursor:pointer"><input type="radio" name="import-mode-restauration" value="copie"> {% t "engine/templates/engine/index.html:577:120" %}</label>
+      </div>
+    </div>
+
+    <!-- Champ : feuille Excel (caché pour CSV) -->
+    <div class="champ-item" id="import-champ-feuille" style="margin-bottom:12px;display:none">
+      <label>{% t "engine/templates/engine/index.html:557:14" %}</label>
+      <select id="import-feuille">
+        <option value="">{% t "engine/templates/engine/index.html:559:26" %}</option>
+      </select>
+      <div style="font-size:11px;color:var(--muted);margin-top:4px">{% t "engine/templates/engine/index.html:561:69" %}</div>
+    </div>
+
+    <!-- Champ : séparateur CSV (caché pour Excel) -->
+    <div class="champ-item" id="import-champ-separateur" style="margin-bottom:12px;display:none">
+      <label>{% t "engine/templates/engine/index.html:566:14" %}</label>
+      <select id="import-separateur">
+        <option value="auto">{% t "engine/templates/engine/index.html:568:30" %}</option>
+        <option value="virgule">{% t "engine/templates/engine/index.html:569:33" %}</option>
+        <option value="point_virgule">{% t "engine/templates/engine/index.html:570:39" %}</option>
+        <option value="tabulation">{% t "engine/templates/engine/index.html:571:36" %}</option>
+        <option value="pipe">{% t "engine/templates/engine/index.html:572:30" %}</option>
+      </select>
+      <div style="font-size:11px;color:var(--muted);margin-top:4px">{% t "engine/templates/engine/index.html:574:69" %}</div>
+    </div>
+
+    <!-- Champ : encodage (visible pour CSV, masqué pour Excel) -->
+    <div class="champ-item" id="import-champ-encodage" style="margin-bottom:18px;display:none">
+      <label>{% t "engine/templates/engine/index.html:579:14" %}</label>
+      <select id="import-encodage">
+        <option value="auto">{% t "engine/templates/engine/index.html:581:30" %}</option>
+        <option value="utf-8">{% t "engine/templates/engine/index.html:582:31" %}</option>
+        <option value="utf-8-sig">{% t "engine/templates/engine/index.html:583:35" %}</option>
+        <option value="latin-1">{% t "engine/templates/engine/index.html:584:33" %}</option>
+        <option value="cp1252">{% t "engine/templates/engine/index.html:585:32" %}</option>
+      </select>
+      <div style="font-size:11px;color:var(--muted);margin-top:4px">{% t "engine/templates/engine/index.html:587:69" %}</div>
+    </div>
+
+    <div class="champ-item" id="import-champ-stockage" style="margin-bottom:18px">
+      <label>{% t "engine/templates/engine/index.html:591:14" %}</label>
+      <select id="import-stockage">
+        <option value="sql">{% t "engine/templates/engine/index.html:593:29" %}</option>
+        <option value="nosql">{% t "engine/templates/engine/index.html:594:31" %}</option>
+      </select>
+      <div style="font-size:11px;color:var(--muted);margin-top:4px">{% t "engine/templates/engine/index.html:596:69" %}</div>
+    </div>
+
+    <div id="import-erreur" style="display:none;color:var(--danger);font-size:12px;margin-bottom:10px;padding:8px;background:var(--fond-danger,#2d1416);border:1px solid var(--bordure-danger,#4a2b28);border-radius:6px"></div>
+
+    <div class="modal-actions">
+      <button id="btn-annuler-import">{% t "engine/templates/engine/index.html:602:39" %}</button>
+      <button class="principal" id="btn-confirmer-import">{% t "engine/templates/engine/index.html:603:59" %}</button>
+    </div>
+  </div>
+</div>
+
+<!-- Modal Configuration IA -->
+<div id="modal-config-ia-fond" style="position:fixed;inset:0;background:color-mix(in srgb,var(--voile,#000000) 75%,transparent);display:none;align-items:flex-start;justify-content:center;z-index:3000;padding:14px;overflow-y:auto">
+  <div style="width:820px;max-width:100%;background:var(--panel);border:1px solid var(--border);border-radius:12px;padding:16px">
+
+    <div style="display:flex;flex-wrap:wrap;align-items:center;justify-content:space-between;gap:8px;margin-bottom:16px">
+      <h2 style="margin:0;font-size:16px">{% t "engine/templates/engine/index.html:613:43" %}</h2>
+      <button id="btn-fermer-config-ia" style="background:transparent;border:none;font-size:18px;cursor:pointer;color:var(--muted)">✕</button>
+    </div>
+
+    <!-- Moteur d'inférence : local (IP+port) ou externe (API compatible OpenAI) -->
+    <div class="carte reduite" style="margin-bottom:12px">
+      <div class="entete-carte"><span class="titre-analyse">{% t "engine/templates/engine/index.html:619:61" %}</span><button class="btn-reduire">▸</button></div>
+      <div class="corps-carte">
+        <div style="display:flex;gap:14px;margin-bottom:10px;font-size:13px">
+          <label><input type="radio" name="cfg-moteur-type" value="local" id="cfg-moteur-local"> {% t "engine/templates/engine/index.html:622:98" %}</label>
+          <label><input type="radio" name="cfg-moteur-type" value="externe" id="cfg-moteur-externe"> {% t "engine/templates/engine/index.html:623:102" %}</label>
+        </div>
+        <div id="cfg-moteur-panel-local" style="display:flex;gap:10px;flex-wrap:wrap">
+          <input id="cfg-moteur-host" placeholder="{% t 'engine/templates/engine/index.html:626:52' %}" style="flex:2;min-width:160px;padding:6px">
+          <input id="cfg-moteur-port" type="number" placeholder="{% t 'engine/templates/engine/index.html:627:66' %}" style="flex:1;min-width:100px;padding:6px">
+        </div>
+        <div id="cfg-moteur-panel-externe" style="display:none;flex-direction:column;gap:8px">
+          <select id="cfg-moteur-fournisseur" style="padding:6px">
+            <option value="">{% t "engine/templates/engine/index.html:631:30" %}</option>
+            <option value="openai">{% t "engine/templates/engine/index.html:632:36" %}</option>
+            <option value="anthropic">{% t "engine/templates/engine/index.html:633:39" %}</option>
+            <option value="deepseek">{% t "engine/templates/engine/index.html:634:38" %}</option>
+            <option value="qwen">{% t "engine/templates/engine/index.html:635:34" %}</option>
+            <option value="glm">{% t "engine/templates/engine/index.html:636:33" %}</option>
+          </select>
+          <input id="cfg-moteur-url" placeholder="{% t 'engine/templates/engine/index.html:638:51' %}" style="padding:6px">
+          <input id="cfg-moteur-modele" placeholder="{% t 'engine/templates/engine/index.html:639:54' %}" style="padding:6px">
+          <input id="cfg-moteur-cle" type="password" placeholder="{% t 'engine/templates/engine/index.html:640:67' %}" style="padding:6px">
+          <span id="cfg-moteur-cle-statut" style="font-size:11px;color:var(--muted)"></span>
+        </div>
+      </div>
+    </div>
+
+    <!-- System prompt commun aux deux canaux -->
+    <div class="carte reduite" style="margin-bottom:12px">
+      <div class="entete-carte"><span class="titre-analyse">{% t "engine/templates/engine/index.html:648:61" %} <span style="font-weight:400;color:var(--texte-tertiaire,#4a5060)">{% t "engine/templates/engine/index.html:648:119" %}</span></span><button class="btn-reduire">▸</button></div>
+      <div class="corps-carte">
+        <textarea id="cfg-system-prompt" rows="3" style="width:100%;font-family:monospace;font-size:12px;resize:vertical"></textarea>
+      </div>
+    </div>
+
+    <!-- Onglets canaux -->
+    <div class="cfg-canaux">
+    <div class="cfg-onglets">
+      <button id="cfg-tab-dashboard" class="cfg-tab actif" onclick="cfgActiverOnglet('dashboard')">{% t "engine/templates/engine/index.html:656:100" %}</button>
+      <button id="cfg-tab-document"  class="cfg-tab"       onclick="cfgActiverOnglet('document')">{% t "engine/templates/engine/index.html:657:99" %}</button>
+      <button id="cfg-tab-formule"   class="cfg-tab"       onclick="cfgActiverOnglet('formule')">{% t "engine/templates/engine/index.html:658:98" %}</button>
+      <button id="cfg-tab-graphique-bi" class="cfg-tab"    onclick="cfgActiverOnglet('graphique-bi')">{% t "engine/templates/engine/index.html:659:103" %}</button>
+      <button id="cfg-tab-couche-ontologie" class="cfg-tab" onclick="cfgActiverOnglet('couche-ontologie')">{% t "engine/templates/engine/index.html:660:108" %}</button>
+      <button id="cfg-tab-modele-ia" class="cfg-tab" onclick="cfgActiverOnglet('modele-ia')">{% t "engine/templates/engine/index.html:modele_ia:tab" %}</button>
+      <button id="cfg-tab-tache" class="cfg-tab" onclick="cfgActiverOnglet('tache')">{% t "engine/templates/engine/index.html:tache:tab" %}</button>
+    </div>
+
+    <!-- ═══ CANAL DASHBOARD ═══ -->
+    <div id="cfg-panel-dashboard">
+
+      <div class="carte reduite">
+        <div class="entete-carte"><span class="titre-analyse">{% t "engine/templates/engine/index.html:667:63" %}</span><button class="btn-reduire">▸</button></div>
+        <div class="corps-carte">
+          <div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(220px,1fr));gap:10px">
+            <label style="font-size:12px;color:var(--muted);display:flex;flex-direction:column;gap:4px">{% t "engine/templates/engine/index.html:690:105" %}
+              <textarea id="cfg-role-analysis" rows="4" style="font-family:monospace;font-size:11px;resize:vertical"></textarea>
+            </label>
+            <label style="font-size:12px;color:var(--muted);display:flex;flex-direction:column;gap:4px">{% t "engine/templates/engine/index.html:693:105" %}
+              <textarea id="cfg-role-skill" rows="4" style="font-family:monospace;font-size:11px;resize:vertical"></textarea>
+            </label>
+            <label style="font-size:12px;color:var(--muted);display:flex;flex-direction:column;gap:4px">{% t "engine/templates/engine/index.html:696:105" %}
+              <textarea id="cfg-role-report" rows="3" style="font-family:monospace;font-size:11px;resize:vertical"></textarea>
+            </label>
+            <label style="font-size:12px;color:var(--muted);display:flex;flex-direction:column;gap:4px">{% t "engine/templates/engine/index.html:699:105" %}
+              <textarea id="cfg-role-other" rows="3" style="font-family:monospace;font-size:11px;resize:vertical"></textarea>
+            </label>
+          </div>
+        </div>
+      </div>
+
+      <div class="carte reduite">
+        <div class="entete-carte"><span class="titre-analyse">{% t "engine/templates/engine/index.html:687:63" %} <span style="font-weight:400;color:var(--texte-tertiaire,#4a5060)">{% t "engine/templates/engine/index.html:687:123" %}</span></span><button class="btn-reduire">▸</button></div>
+        <div class="corps-carte">
+          <textarea id="cfg-regle-script" rows="6" style="width:100%;font-family:monospace;font-size:11px;resize:vertical"></textarea>
+        </div>
+      </div>
+
+      <div class="carte reduite">
+        <div class="entete-carte"><span class="titre-analyse">{% t "engine/templates/engine/index.html:694:63" %} <span style="font-weight:400;color:var(--texte-tertiaire,#4a5060)">{% t "engine/templates/engine/index.html:694:132" %}</span></span><button class="btn-reduire">▸</button></div>
+        <div class="corps-carte">
+          <p style="font-size:11px;color:var(--muted);margin:0 0 8px">{% t "engine/templates/engine/index.html:696:71" %} <code>import</code> {% t "engine/templates/engine/index.html:696:151" %}</p>
+          <input id="cfg-modules-script" type="text" style="width:100%;font-family:monospace;font-size:11px" placeholder="{% t 'engine/templates/engine/index.html:697:123' %}">
+        </div>
+      </div>
+
+      <div class="carte reduite">
+        <div class="entete-carte"><span class="titre-analyse">{% t "engine/templates/engine/index.html:702:63" %} <span style="font-weight:400;color:var(--texte-tertiaire,#4a5060)">{% t "engine/templates/engine/index.html:702:126" %}</span></span><button class="btn-reduire">▸</button></div>
+        <div class="corps-carte">
+          <textarea id="cfg-contraintes" rows="7" style="width:100%;font-family:monospace;font-size:11px;resize:vertical"></textarea>
+        </div>
+      </div>
+
+      <div class="carte reduite">
+        <div class="entete-carte"><span class="titre-analyse">{% t "engine/templates/engine/index.html:709:63" %} <span style="font-weight:400;color:var(--texte-tertiaire,#4a5060)">{% t "engine/templates/engine/index.html:709:134" %}</span></span><button class="btn-reduire">▸</button></div>
+        <div class="corps-carte">
+          <p style="font-size:11px;color:var(--muted);margin:0 0 8px">{% t "engine/templates/engine/index.html:711:71" %} <code>{% t "engine/templates/engine/index.html:711:152" %}</code> {% t "engine/templates/engine/index.html:711:167" %}</p>
+          <div class="CodeMirror-editeur" style="border:1px solid var(--border);border-radius:6px;overflow:hidden">
+            <textarea id="cfg-script-exemple" rows="22" style="width:100%;font-family:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;font-size:11px"></textarea>
+          </div>
+          <div style="display:flex;flex-wrap:wrap;justify-content:flex-end;gap:6px;margin-top:6px">
+            <button id="btn-copier-exemple" type="button" style="background:transparent;border:1px solid var(--border);color:var(--muted);font-size:11px;padding:4px 10px;border-radius:5px;cursor:pointer">{% t "engine/templates/engine/index.html:716:205" %}</button>
+            <button id="btn-import-exemple" type="button" style="background:transparent;border:1px solid var(--border);color:var(--muted);font-size:11px;padding:4px 10px;border-radius:5px;cursor:pointer">{% t "engine/templates/engine/index.html:717:205" %}</button>
+            <button id="btn-restaurer-exemple" type="button" style="background:transparent;border:1px solid var(--border);color:var(--muted);font-size:11px;padding:4px 10px;border-radius:5px;cursor:pointer">{% t "engine/templates/engine/index.html:718:208" %}</button>
+          </div>
+        </div>
+      </div>
+
+    </div><!-- fin #cfg-panel-dashboard -->
+
+    <!-- ═══ CANAL DOCUMENT ═══ -->
+    <div id="cfg-panel-document" style="display:none">
+
+      <div class="carte reduite">
+        <div class="entete-carte"><span class="titre-analyse">{% t "engine/templates/engine/index.html:729:63" %} <span style="font-weight:400;color:var(--texte-tertiaire,#4a5060)">{% t "engine/templates/engine/index.html:729:121" %}</span></span><button class="btn-reduire">▸</button></div>
+        <div class="corps-carte">
+          <textarea id="cfg-role-document" rows="4" style="width:100%;font-family:monospace;font-size:11px;resize:vertical"></textarea>
+        </div>
+      </div>
+
+      <div class="carte reduite">
+        <div class="entete-carte"><span class="titre-analyse">{% t "engine/templates/engine/index.html:736:63" %} <span style="font-weight:400;color:var(--texte-tertiaire,#4a5060)">{% t "engine/templates/engine/index.html:736:123" %}</span></span><button class="btn-reduire">▸</button></div>
+        <div class="corps-carte">
+          <p style="font-size:11px;color:var(--muted);margin:0 0 6px">{% t "engine/templates/engine/index.html:738:71" %} <code>{% t "engine/templates/engine/index.html:738:131" %}</code>{% t "engine/templates/engine/index.html:738:162" %}</p>
+          <textarea id="cfg-regle-document" rows="8" style="width:100%;font-family:monospace;font-size:11px;resize:vertical"></textarea>
+        </div>
+      </div>
+
+      <div class="carte reduite">
+        <div class="entete-carte"><span class="titre-analyse">{% t "engine/templates/engine/index.html:744:63" %} <span style="font-weight:400;color:var(--texte-tertiaire,#4a5060)">{% t "engine/templates/engine/index.html:744:132" %}</span></span><button class="btn-reduire">▸</button></div>
+        <div class="corps-carte">
+          <p style="font-size:11px;color:var(--muted);margin:0 0 8px">{% t "engine/templates/engine/index.html:746:71" %} <code>import</code> {% t "engine/templates/engine/index.html:746:151" %}</p>
+          <input id="cfg-modules-document" type="text" style="width:100%;font-family:monospace;font-size:11px" placeholder="{% t 'engine/templates/engine/index.html:747:125' %}">
+        </div>
+      </div>
+
+      <div class="carte reduite">
+        <div class="entete-carte"><span class="titre-analyse">{% t "engine/templates/engine/index.html:752:63" %} <span style="font-weight:400;color:var(--texte-tertiaire,#4a5060)">{% t "engine/templates/engine/index.html:752:126" %}</span></span><button class="btn-reduire">▸</button></div>
+        <div class="corps-carte">
+          <p style="font-size:11px;color:var(--muted);margin:0 0 6px">{% t "engine/templates/engine/index.html:754:71" %} <code>enregistrement</code> {% t "engine/templates/engine/index.html:754:147" %}</p>
+          <textarea id="cfg-contraintes-document" rows="6" style="width:100%;font-family:monospace;font-size:11px;resize:vertical"></textarea>
+        </div>
+      </div>
+
+      <div class="carte reduite">
+        <div class="entete-carte"><span class="titre-analyse">{% t "engine/templates/engine/index.html:760:63" %} <span style="font-weight:400;color:var(--texte-tertiaire,#4a5060)">{% t "engine/templates/engine/index.html:760:133" %}</span></span><button class="btn-reduire">▸</button></div>
+        <div class="corps-carte">
+          <p style="font-size:11px;color:var(--muted);margin:0 0 8px">{% t "engine/templates/engine/index.html:762:71" %}</p>
+          <div class="CodeMirror-editeur" style="border:1px solid var(--border);border-radius:6px;overflow:hidden">
+            <textarea id="cfg-script-exemple-document" rows="22" style="width:100%;font-family:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;font-size:11px"></textarea>
+          </div>
+          <div style="display:flex;flex-wrap:wrap;justify-content:flex-end;gap:6px;margin-top:6px">
+            <button id="btn-copier-exemple-document" type="button" style="background:transparent;border:1px solid var(--border);color:var(--muted);font-size:11px;padding:4px 10px;border-radius:5px;cursor:pointer">{% t "engine/templates/engine/index.html:767:214" %}</button>
+            <button id="btn-import-exemple-document" type="button" style="background:transparent;border:1px solid var(--border);color:var(--muted);font-size:11px;padding:4px 10px;border-radius:5px;cursor:pointer">{% t "engine/templates/engine/index.html:768:214" %}</button>
+            <button id="btn-restaurer-exemple-document" type="button" style="background:transparent;border:1px solid var(--border);color:var(--muted);font-size:11px;padding:4px 10px;border-radius:5px;cursor:pointer">{% t "engine/templates/engine/index.html:769:217" %}</button>
+          </div>
+        </div>
+      </div>
+
+    </div><!-- fin #cfg-panel-document -->
+
+    <!-- ═══ CANAL FORMULE ═══ -->
+    <div id="cfg-panel-formule" style="display:none">
+
+      <div class="carte reduite">
+        <div class="entete-carte"><span class="titre-analyse">{% t "engine/templates/engine/index.html:780:63" %} <span style="font-weight:400;color:var(--texte-tertiaire,#4a5060)">{% t "engine/templates/engine/index.html:780:120" %}</span></span><button class="btn-reduire">▸</button></div>
+        <div class="corps-carte">
+          <textarea id="cfg-role-formule" rows="4" style="width:100%;font-family:monospace;font-size:11px;resize:vertical"></textarea>
+        </div>
+      </div>
+
+      <div class="carte reduite">
+        <div class="entete-carte"><span class="titre-analyse">{% t "engine/templates/engine/index.html:787:63" %} <span style="font-weight:400;color:var(--texte-tertiaire,#4a5060)">{% t "engine/templates/engine/index.html:787:123" %}</span></span><button class="btn-reduire">▸</button></div>
+        <div class="corps-carte">
+          <p style="font-size:11px;color:var(--muted);margin:0 0 6px">{% t "engine/templates/engine/index.html:789:71" %}</p>
+          <textarea id="cfg-regle-formule" rows="8" style="width:100%;font-family:monospace;font-size:11px;resize:vertical"></textarea>
+        </div>
+      </div>
+
+      <div class="carte reduite">
+        <div class="entete-carte"><span class="titre-analyse">{% t "engine/templates/engine/index.html:795:63" %} <span style="font-weight:400;color:var(--texte-tertiaire,#4a5060)">{% t "engine/templates/engine/index.html:795:126" %}</span></span><button class="btn-reduire">▸</button></div>
+        <div class="corps-carte">
+          <p style="font-size:11px;color:var(--muted);margin:0 0 6px">{% t "engine/templates/engine/index.html:797:71" %}</p>
+          <textarea id="cfg-contraintes-formule" rows="7" style="width:100%;font-family:monospace;font-size:11px;resize:vertical"></textarea>
+        </div>
+      </div>
+
+      <div class="carte reduite">
+        <div class="entete-carte"><span class="titre-analyse">{% t "engine/templates/engine/index.html:803:63" %} <span style="font-weight:400;color:var(--texte-tertiaire,#4a5060)">{% t "engine/templates/engine/index.html:803:132" %}</span></span><button class="btn-reduire">▸</button></div>
+        <div class="corps-carte">
+          <p style="font-size:11px;color:var(--muted);margin:0 0 8px">{% t "engine/templates/engine/index.html:805:71" %} <code>import</code> {% t "engine/templates/engine/index.html:805:151" %}</p>
+          <input id="cfg-modules-formule" type="text" style="width:100%;font-family:monospace;font-size:11px" placeholder="{% t 'engine/templates/engine/index.html:806:124' %}">
+        </div>
+      </div>
+
+      <div class="carte reduite">
+        <div class="entete-carte"><span class="titre-analyse">{% t "engine/templates/engine/index.html:811:63" %} <span style="font-weight:400;color:var(--texte-tertiaire,#4a5060)">{% t "engine/templates/engine/index.html:811:140" %}</span></span><button class="btn-reduire">▸</button></div>
+        <div class="corps-carte">
+          <p style="font-size:11px;color:var(--muted);margin:0 0 8px">{% t "engine/templates/engine/index.html:813:71" %}</p>
+          <div class="CodeMirror-editeur" style="border:1px solid var(--border);border-radius:6px;overflow:hidden">
+            <textarea id="cfg-script-exemple-formule-colonne" rows="10" style="width:100%;font-family:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;font-size:11px"></textarea>
+          </div>
+          <div style="display:flex;flex-wrap:wrap;justify-content:flex-end;gap:6px;margin-top:6px">
+            <button id="btn-copier-exemple-formule-colonne" type="button" style="background:transparent;border:1px solid var(--border);color:var(--muted);font-size:11px;padding:4px 10px;border-radius:5px;cursor:pointer">{% t "engine/templates/engine/index.html:818:221" %}</button>
+            <button id="btn-import-exemple-formule-colonne" type="button" style="background:transparent;border:1px solid var(--border);color:var(--muted);font-size:11px;padding:4px 10px;border-radius:5px;cursor:pointer">{% t "engine/templates/engine/index.html:819:221" %}</button>
+            <button id="btn-restaurer-exemple-formule-colonne" type="button" style="background:transparent;border:1px solid var(--border);color:var(--muted);font-size:11px;padding:4px 10px;border-radius:5px;cursor:pointer">{% t "engine/templates/engine/index.html:820:224" %}</button>
+          </div>
+        </div>
+      </div>
+
+      <div class="carte reduite">
+        <div class="entete-carte"><span class="titre-analyse">{% t "engine/templates/engine/index.html:826:63" %} <span style="font-weight:400;color:var(--texte-tertiaire,#4a5060)">{% t "engine/templates/engine/index.html:826:138" %}</span></span><button class="btn-reduire">▸</button></div>
+        <div class="corps-carte">
+          <p style="font-size:11px;color:var(--muted);margin:0 0 8px">{% t "engine/templates/engine/index.html:828:71" %}</p>
+          <div class="CodeMirror-editeur" style="border:1px solid var(--border);border-radius:6px;overflow:hidden">
+            <textarea id="cfg-script-exemple-formule-table" rows="10" style="width:100%;font-family:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;font-size:11px"></textarea>
+          </div>
+          <div style="display:flex;flex-wrap:wrap;justify-content:flex-end;gap:6px;margin-top:6px">
+            <button id="btn-copier-exemple-formule-table" type="button" style="background:transparent;border:1px solid var(--border);color:var(--muted);font-size:11px;padding:4px 10px;border-radius:5px;cursor:pointer">{% t "engine/templates/engine/index.html:833:219" %}</button>
+            <button id="btn-import-exemple-formule-table" type="button" style="background:transparent;border:1px solid var(--border);color:var(--muted);font-size:11px;padding:4px 10px;border-radius:5px;cursor:pointer">{% t "engine/templates/engine/index.html:834:219" %}</button>
+            <button id="btn-restaurer-exemple-formule-table" type="button" style="background:transparent;border:1px solid var(--border);color:var(--muted);font-size:11px;padding:4px 10px;border-radius:5px;cursor:pointer">{% t "engine/templates/engine/index.html:835:222" %}</button>
+          </div>
+        </div>
+      </div>
+
+    </div><!-- fin #cfg-panel-formule -->
+
+    <!-- ═══ CANAL GRAPHIQUE BI ═══ -->
+    <div id="cfg-panel-graphique-bi" style="display:none">
+
+      <div class="carte reduite">
+        <div class="entete-carte"><span class="titre-analyse">{% t "engine/templates/engine/index.html:846:63" %} <span style="font-weight:400;color:var(--texte-tertiaire,#4a5060)">{% t "engine/templates/engine/index.html:846:125" %}</span></span><button class="btn-reduire">▸</button></div>
+        <div class="corps-carte">
+          <textarea id="cfg-role-graphique-bi" rows="4" style="width:100%;font-family:monospace;font-size:11px;resize:vertical"></textarea>
+        </div>
+      </div>
+
+      <div class="carte reduite">
+        <div class="entete-carte"><span class="titre-analyse">{% t "engine/templates/engine/index.html:853:63" %} <span style="font-weight:400;color:var(--texte-tertiaire,#4a5060)">{% t "engine/templates/engine/index.html:853:123" %}</span></span><button class="btn-reduire">▸</button></div>
+        <div class="corps-carte">
+          <p style="font-size:11px;color:var(--muted);margin:0 0 6px">{% t "engine/templates/engine/index.html:855:71" %}</p>
+          <textarea id="cfg-regle-graphique-bi" rows="8" style="width:100%;font-family:monospace;font-size:11px;resize:vertical"></textarea>
+        </div>
+      </div>
+
+      <div class="carte reduite">
+        <div class="entete-carte"><span class="titre-analyse">{% t "engine/templates/engine/index.html:861:63" %} <span style="font-weight:400;color:var(--texte-tertiaire,#4a5060)">{% t "engine/templates/engine/index.html:861:126" %}</span></span><button class="btn-reduire">▸</button></div>
+        <div class="corps-carte">
+          <p style="font-size:11px;color:var(--muted);margin:0 0 6px">{% t "engine/templates/engine/index.html:863:71" %}</p>
+          <textarea id="cfg-contraintes-graphique-bi" rows="7" style="width:100%;font-family:monospace;font-size:11px;resize:vertical"></textarea>
+        </div>
+      </div>
+
+      <div class="carte reduite">
+        <div class="entete-carte"><span class="titre-analyse">{% t "engine/templates/engine/index.html:869:63" %} <span style="font-weight:400;color:var(--texte-tertiaire,#4a5060)">{% t "engine/templates/engine/index.html:869:132" %}</span></span><button class="btn-reduire">▸</button></div>
+        <div class="corps-carte">
+          <p style="font-size:11px;color:var(--muted);margin:0 0 8px">{% t "engine/templates/engine/index.html:871:71" %} <code>import</code> {% t "engine/templates/engine/index.html:871:151" %}</p>
+          <input id="cfg-modules-graphique-bi" type="text" style="width:100%;font-family:monospace;font-size:11px" placeholder="{% t 'engine/templates/engine/index.html:872:129' %}">
+        </div>
+      </div>
+
+      <div class="carte reduite">
+        <div class="entete-carte"><span class="titre-analyse">{% t "engine/templates/engine/index.html:877:63" %} <span style="font-weight:400;color:var(--texte-tertiaire,#4a5060)">{% t "engine/templates/engine/index.html:877:147" %}</span></span><button class="btn-reduire">▸</button></div>
+        <div class="corps-carte">
+          <p style="font-size:11px;color:var(--muted);margin:0 0 8px">{% t "engine/templates/engine/index.html:879:71" %}</p>
+          <div class="CodeMirror-editeur" style="border:1px solid var(--border);border-radius:6px;overflow:hidden">
+            <textarea id="cfg-script-exemple-graphique-bi-colonne" rows="10" style="width:100%;font-family:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;font-size:11px"></textarea>
+          </div>
+          <div style="display:flex;flex-wrap:wrap;justify-content:flex-end;gap:6px;margin-top:6px">
+            <button id="btn-copier-exemple-graphique-bi-colonne" type="button" style="background:transparent;border:1px solid var(--border);color:var(--muted);font-size:11px;padding:4px 10px;border-radius:5px;cursor:pointer">{% t "engine/templates/engine/index.html:884:226" %}</button>
+            <button id="btn-import-exemple-graphique-bi-colonne" type="button" style="background:transparent;border:1px solid var(--border);color:var(--muted);font-size:11px;padding:4px 10px;border-radius:5px;cursor:pointer">{% t "engine/templates/engine/index.html:885:226" %}</button>
+            <button id="btn-restaurer-exemple-graphique-bi-colonne" type="button" style="background:transparent;border:1px solid var(--border);color:var(--muted);font-size:11px;padding:4px 10px;border-radius:5px;cursor:pointer">{% t "engine/templates/engine/index.html:886:229" %}</button>
+          </div>
+        </div>
+      </div>
+
+      <div class="carte reduite">
+        <div class="entete-carte"><span class="titre-analyse">{% t "engine/templates/engine/index.html:892:63" %} <span style="font-weight:400;color:var(--texte-tertiaire,#4a5060)">{% t "engine/templates/engine/index.html:892:151" %}</span></span><button class="btn-reduire">▸</button></div>
+        <div class="corps-carte">
+          <p style="font-size:11px;color:var(--muted);margin:0 0 8px">{% t "engine/templates/engine/index.html:894:71" %}</p>
+          <div class="CodeMirror-editeur" style="border:1px solid var(--border);border-radius:6px;overflow:hidden">
+            <textarea id="cfg-script-exemple-graphique-bi-multiples" rows="10" style="width:100%;font-family:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;font-size:11px"></textarea>
+          </div>
+          <div style="display:flex;flex-wrap:wrap;justify-content:flex-end;gap:6px;margin-top:6px">
+            <button id="btn-copier-exemple-graphique-bi-multiples" type="button" style="background:transparent;border:1px solid var(--border);color:var(--muted);font-size:11px;padding:4px 10px;border-radius:5px;cursor:pointer">{% t "engine/templates/engine/index.html:899:228" %}</button>
+            <button id="btn-import-exemple-graphique-bi-multiples" type="button" style="background:transparent;border:1px solid var(--border);color:var(--muted);font-size:11px;padding:4px 10px;border-radius:5px;cursor:pointer">{% t "engine/templates/engine/index.html:900:228" %}</button>
+            <button id="btn-restaurer-exemple-graphique-bi-multiples" type="button" style="background:transparent;border:1px solid var(--border);color:var(--muted);font-size:11px;padding:4px 10px;border-radius:5px;cursor:pointer">{% t "engine/templates/engine/index.html:901:231" %}</button>
+          </div>
+        </div>
+      </div>
+
+    </div><!-- fin #cfg-panel-graphique-bi -->
+
+    <!-- ═══ CANAL COUCHE D'ONTOLOGIE ═══ -->
+    <div id="cfg-panel-couche-ontologie" style="display:none">
+
+      <div class="carte reduite">
+        <div class="entete-carte"><span class="titre-analyse">{% t "engine/templates/engine/index.html:912:63" %} <span style="font-weight:400;color:var(--texte-tertiaire,#4a5060)">{% t "engine/templates/engine/index.html:912:131" %}</span></span><button class="btn-reduire">▸</button></div>
+        <div class="corps-carte">
+          <textarea id="cfg-role-couche-ontologie" rows="4" style="width:100%;font-family:monospace;font-size:11px;resize:vertical"></textarea>
+        </div>
+      </div>
+
+      <div class="carte reduite">
+        <div class="entete-carte"><span class="titre-analyse">{% t "engine/templates/engine/index.html:919:63" %} <span style="font-weight:400;color:var(--texte-tertiaire,#4a5060)">{% t "engine/templates/engine/index.html:919:123" %}</span></span><button class="btn-reduire">▸</button></div>
+        <div class="corps-carte">
+          <textarea id="cfg-regle-couche-ontologie" rows="8" style="width:100%;font-family:monospace;font-size:11px;resize:vertical"></textarea>
+        </div>
+      </div>
+
+      <div class="carte reduite">
+        <div class="entete-carte"><span class="titre-analyse">{% t "engine/templates/engine/index.html:926:63" %} <span style="font-weight:400;color:var(--texte-tertiaire,#4a5060)">{% t "engine/templates/engine/index.html:926:126" %}</span></span><button class="btn-reduire">▸</button></div>
+        <div class="corps-carte">
+          <p style="font-size:11px;color:var(--muted);margin:0 0 6px">{% t "engine/templates/engine/index.html:928:71" %}</p>
+          <textarea id="cfg-contraintes-couche-ontologie" rows="7" style="width:100%;font-family:monospace;font-size:11px;resize:vertical"></textarea>
+        </div>
+      </div>
+
+      <div class="carte reduite">
+        <div class="entete-carte"><span class="titre-analyse">{% t "engine/templates/engine/index.html:934:63" %} <span style="font-weight:400;color:var(--texte-tertiaire,#4a5060)">{% t "engine/templates/engine/index.html:934:132" %}</span></span><button class="btn-reduire">▸</button></div>
+        <div class="corps-carte">
+          <p style="font-size:11px;color:var(--muted);margin:0 0 8px">{% t "engine/templates/engine/index.html:936:71" %} <code>import</code> {% t "engine/templates/engine/index.html:936:151" %}</p>
+          <input id="cfg-modules-couche-ontologie" type="text" style="width:100%;font-family:monospace;font-size:11px" placeholder="{% t 'engine/templates/engine/index.html:937:133' %}">
+        </div>
+      </div>
+
+      <div class="carte reduite">
+        <div class="entete-carte"><span class="titre-analyse">{% t "engine/templates/engine/index.html:942:63" %} <span style="font-weight:400;color:var(--texte-tertiaire,#4a5060)">{% t "engine/templates/engine/index.html:942:143" %}</span></span><button class="btn-reduire">▸</button></div>
+        <div class="corps-carte">
+          <p style="font-size:11px;color:var(--muted);margin:0 0 8px">{% t "engine/templates/engine/index.html:944:71" %}</p>
+          <div class="CodeMirror-editeur" style="border:1px solid var(--border);border-radius:6px;overflow:hidden">
+            <textarea id="cfg-script-exemple-couche-ontologie" rows="14" style="width:100%;font-family:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;font-size:11px"></textarea>
+          </div>
+          <div style="display:flex;flex-wrap:wrap;justify-content:flex-end;gap:6px;margin-top:6px">
+            <button id="btn-copier-exemple-couche-ontologie" type="button" style="background:transparent;border:1px solid var(--border);color:var(--muted);font-size:11px;padding:4px 10px;border-radius:5px;cursor:pointer">{% t "engine/templates/engine/index.html:949:222" %}</button>
+            <button id="btn-import-exemple-couche-ontologie" type="button" style="background:transparent;border:1px solid var(--border);color:var(--muted);font-size:11px;padding:4px 10px;border-radius:5px;cursor:pointer">{% t "engine/templates/engine/index.html:950:222" %}</button>
+            <button id="btn-restaurer-exemple-couche-ontologie" type="button" style="background:transparent;border:1px solid var(--border);color:var(--muted);font-size:11px;padding:4px 10px;border-radius:5px;cursor:pointer">{% t "engine/templates/engine/index.html:951:225" %}</button>
+          </div>
+        </div>
+      </div>
+
+    </div><!-- fin #cfg-panel-couche-ontologie -->
+
+    <!-- ═══ CANAL MODÈLE IA ═══ -->
+    <div id="cfg-panel-modele-ia" style="display:none">
+
+      <div class="carte reduite">
+        <div class="entete-carte"><span class="titre-analyse">{% t "engine/templates/engine/index.html:modele_ia:role_titre" %} <span style="font-weight:400;color:var(--texte-tertiaire,#4a5060)">{% t "engine/templates/engine/index.html:modele_ia:role_sub" %}</span></span><button class="btn-reduire">▸</button></div>
+        <div class="corps-carte">
+          <textarea id="cfg-role-modele-ia" rows="4" style="width:100%;font-family:monospace;font-size:11px;resize:vertical"></textarea>
+        </div>
+      </div>
+
+      <div class="carte reduite">
+        <div class="entete-carte"><span class="titre-analyse">{% t "engine/templates/engine/index.html:919:63" %} <span style="font-weight:400;color:var(--texte-tertiaire,#4a5060)">{% t "engine/templates/engine/index.html:modele_ia:regle_sub" %}</span></span><button class="btn-reduire">▸</button></div>
+        <div class="corps-carte">
+          <textarea id="cfg-regle-modele-ia" rows="8" style="width:100%;font-family:monospace;font-size:11px;resize:vertical"></textarea>
+        </div>
+      </div>
+
+      <div class="carte reduite">
+        <div class="entete-carte"><span class="titre-analyse">{% t "engine/templates/engine/index.html:926:63" %} <span style="font-weight:400;color:var(--texte-tertiaire,#4a5060)">{% t "engine/templates/engine/index.html:modele_ia:contraintes_sub" %}</span></span><button class="btn-reduire">▸</button></div>
+        <div class="corps-carte">
+          <p style="font-size:11px;color:var(--muted);margin:0 0 6px">{% t "engine/templates/engine/index.html:928:71" %}</p>
+          <textarea id="cfg-contraintes-modele-ia" rows="7" style="width:100%;font-family:monospace;font-size:11px;resize:vertical"></textarea>
+        </div>
+      </div>
+
+      <div class="carte reduite">
+        <div class="entete-carte"><span class="titre-analyse">{% t "engine/templates/engine/index.html:934:63" %} <span style="font-weight:400;color:var(--texte-tertiaire,#4a5060)">{% t "engine/templates/engine/index.html:modele_ia:modules_sub" %}</span></span><button class="btn-reduire">▸</button></div>
+        <div class="corps-carte">
+          <p style="font-size:11px;color:var(--muted);margin:0 0 8px">{% t "engine/templates/engine/index.html:936:71" %} <code>import</code> {% t "engine/templates/engine/index.html:936:151" %}</p>
+          <input id="cfg-modules-modele-ia" type="text" style="width:100%;font-family:monospace;font-size:11px" placeholder="{% t 'engine/templates/engine/index.html:modele_ia:modules_ph' %}">
+        </div>
+      </div>
+
+      <div class="carte reduite">
+        <div class="entete-carte"><span class="titre-analyse">{% t "engine/templates/engine/index.html:modele_ia:script_titre" %} <span style="font-weight:400;color:var(--texte-tertiaire,#4a5060)">{% t "engine/templates/engine/index.html:modele_ia:script_sub" %}</span></span><button class="btn-reduire">▸</button></div>
+        <div class="corps-carte">
+          <p style="font-size:11px;color:var(--muted);margin:0 0 8px">{% t "engine/templates/engine/index.html:modele_ia:script_hint" %}</p>
+          <div class="CodeMirror-editeur" style="border:1px solid var(--border);border-radius:6px;overflow:hidden">
+            <textarea id="cfg-script-exemple-modele-ia" rows="14" style="width:100%;font-family:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;font-size:11px"></textarea>
+          </div>
+          <div style="display:flex;flex-wrap:wrap;justify-content:flex-end;gap:6px;margin-top:6px">
+            <button id="btn-copier-exemple-modele-ia" type="button" style="background:transparent;border:1px solid var(--border);color:var(--muted);font-size:11px;padding:4px 10px;border-radius:5px;cursor:pointer">{% t "engine/templates/engine/index.html:modele_ia:btn_copier" %}</button>
+            <button id="btn-import-exemple-modele-ia" type="button" style="background:transparent;border:1px solid var(--border);color:var(--muted);font-size:11px;padding:4px 10px;border-radius:5px;cursor:pointer">{% t "engine/templates/engine/index.html:modele_ia:btn_importer" %}</button>
+            <button id="btn-restaurer-exemple-modele-ia" type="button" style="background:transparent;border:1px solid var(--border);color:var(--muted);font-size:11px;padding:4px 10px;border-radius:5px;cursor:pointer">{% t "engine/templates/engine/index.html:modele_ia:btn_restaurer" %}</button>
+          </div>
+        </div>
+      </div>
+
+    </div><!-- fin #cfg-panel-modele-ia -->
+
+    <div id="cfg-panel-tache" style="display:none">
+
+      <div class="carte reduite">
+        <div class="entete-carte"><span class="titre-analyse">{% t "engine/templates/engine/index.html:tache:role_titre" %} <span style="font-weight:400;color:var(--texte-tertiaire,#4a5060)">{% t "engine/templates/engine/index.html:tache:role_sub" %}</span></span><button class="btn-reduire">▸</button></div>
+        <div class="corps-carte">
+          <textarea id="cfg-role-tache" rows="4" style="width:100%;font-family:monospace;font-size:11px;resize:vertical"></textarea>
+        </div>
+      </div>
+
+      <div class="carte reduite">
+        <div class="entete-carte"><span class="titre-analyse">{% t "engine/templates/engine/index.html:919:63" %} <span style="font-weight:400;color:var(--texte-tertiaire,#4a5060)">{% t "engine/templates/engine/index.html:tache:regle_sub" %}</span></span><button class="btn-reduire">▸</button></div>
+        <div class="corps-carte">
+          <textarea id="cfg-regle-tache" rows="8" style="width:100%;font-family:monospace;font-size:11px;resize:vertical"></textarea>
+        </div>
+      </div>
+
+      <div class="carte reduite">
+        <div class="entete-carte"><span class="titre-analyse">{% t "engine/templates/engine/index.html:926:63" %} <span style="font-weight:400;color:var(--texte-tertiaire,#4a5060)">{% t "engine/templates/engine/index.html:tache:contraintes_sub" %}</span></span><button class="btn-reduire">▸</button></div>
+        <div class="corps-carte">
+          <p style="font-size:11px;color:var(--muted);margin:0 0 6px">{% t "engine/templates/engine/index.html:tache:contraintes_hint" %}</p>
+          <textarea id="cfg-contraintes-tache" rows="7" style="width:100%;font-family:monospace;font-size:11px;resize:vertical"></textarea>
+        </div>
+      </div>
+
+      <div class="carte reduite">
+        <div class="entete-carte"><span class="titre-analyse">{% t "engine/templates/engine/index.html:934:63" %} <span style="font-weight:400;color:var(--texte-tertiaire,#4a5060)">{% t "engine/templates/engine/index.html:tache:modules_sub" %}</span></span><button class="btn-reduire">▸</button></div>
+        <div class="corps-carte">
+          <p style="font-size:11px;color:var(--muted);margin:0 0 8px">{% t "engine/templates/engine/index.html:tache:modules_hint" %} </p>
+          <input id="cfg-modules-tache" type="text" style="width:100%;font-family:monospace;font-size:11px" placeholder="{% t 'engine/templates/engine/index.html:tache:modules_ph' %}">
+        </div>
+      </div>
+
+      <div class="carte reduite">
+        <div class="entete-carte"><span class="titre-analyse">{% t "engine/templates/engine/index.html:tache:script_titre" %} <span style="font-weight:400;color:var(--texte-tertiaire,#4a5060)">{% t "engine/templates/engine/index.html:tache:script_sub" %}</span></span><button class="btn-reduire">▸</button></div>
+        <div class="corps-carte">
+          <p style="font-size:11px;color:var(--muted);margin:0 0 8px">{% t "engine/templates/engine/index.html:tache:script_hint" %}</p>
+          <div class="CodeMirror-editeur" style="border:1px solid var(--border);border-radius:6px;overflow:hidden">
+            <textarea id="cfg-script-exemple-tache" rows="14" style="width:100%;font-family:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;font-size:11px"></textarea>
+          </div>
+          <div style="display:flex;flex-wrap:wrap;justify-content:flex-end;gap:6px;margin-top:6px">
+            <button id="btn-copier-exemple-tache" type="button" style="background:transparent;border:1px solid var(--border);color:var(--muted);font-size:11px;padding:4px 10px;border-radius:5px;cursor:pointer">{% t "engine/templates/engine/index.html:tache:btn_copier" %}</button>
+            <button id="btn-import-exemple-tache" type="button" style="background:transparent;border:1px solid var(--border);color:var(--muted);font-size:11px;padding:4px 10px;border-radius:5px;cursor:pointer">{% t "engine/templates/engine/index.html:tache:btn_importer" %}</button>
+            <button id="btn-restaurer-exemple-tache" type="button" style="background:transparent;border:1px solid var(--border);color:var(--muted);font-size:11px;padding:4px 10px;border-radius:5px;cursor:pointer">{% t "engine/templates/engine/index.html:tache:btn_restaurer" %}</button>
+          </div>
+        </div>
+      </div>
+
+    </div><!-- fin #cfg-panel-tache -->
+    </div><!-- fin .cfg-canaux -->
+
+    <!-- Actions -->
+    <div style="display:flex;flex-direction:column;gap:8px;margin-top:14px">
+      <button id="btn-charger-exemple-config" type="button" style="background:transparent;border:1px solid var(--border);color:var(--muted);font-size:11px;padding:6px 10px;border-radius:5px;cursor:pointer;width:100%;text-align:center">{% t "engine/templates/engine/index.html:960:236" %}</button>
+      <div style="display:flex;gap:8px;justify-content:flex-end">
+        <button id="btn-annuler-config-ia">{% t "engine/templates/engine/index.html:962:44" %}</button>
+        <button class="principal" id="btn-sauvegarder-config-ia">{% t "engine/templates/engine/index.html:963:66" %}</button>
+      </div>
+    </div>
+
+  </div>
+</div>
+
+{% i18n_js %}
+<script>
+// Script d'exemple par défaut injecté côté serveur (depuis
+// engine.inference.EXEMPLE_SCRIPT_PYTHON) — sert au bouton
+// "Restaurer l'exemple" de la modale Config IA.
+window.TYPES_NUMERIQUES         = "{{ TYPES_NUMERIQUES|escapejs }}";
+window.EXEMPLE_SCRIPT_PYTHON    = "{{ EXEMPLE_SCRIPT_PYTHON|escapejs }}";
+window.EXEMPLE_SCRIPT_DOCUMENT  = "{{ EXEMPLE_SCRIPT_DOCUMENT|escapejs }}";
+window.EXEMPLE_FORMULE_COLONNE  = "{{ EXEMPLE_FORMULE_COLONNE|escapejs }}";
+window.EXEMPLE_FORMULE_TABLE    = "{{ EXEMPLE_FORMULE_TABLE|escapejs }}";
+window.EXEMPLE_GRAPHIQUE_BI_COLONNE   = "{{ EXEMPLE_GRAPHIQUE_BI_COLONNE|escapejs }}";
+window.EXEMPLE_GRAPHIQUE_BI_MULTIPLES = "{{ EXEMPLE_GRAPHIQUE_BI_MULTIPLES|escapejs }}";
+window.EXEMPLE_COUCHE_ONTOLOGIE = "{{ EXEMPLE_COUCHE_ONTOLOGIE|escapejs }}";
+window.EXEMPLE_MODELE_IA = "{{ EXEMPLE_MODELE_IA|escapejs }}";
+window.EXEMPLE_TACHE = "{{ EXEMPLE_TACHE|escapejs }}";
+window.MSG_MODELE_IA_COPIE = "{% t 'engine/templates/engine/index.html:modele_ia:copie_ok' %}";
+window.MSG_TACHE_COPIE = "{% t 'engine/templates/engine/index.html:tache:copie_ok' %}";
+// Permissions dynamiques (agent) : null = pas de restriction (comportement
+// par défaut, inchangé pour l'admin et les agents sans droits configurés).
+window.VUES_AUTORISEES = {{ vues_autorisees_json|safe }};
+// Liens vers les fonctionnalités non accordées à cet agent : masqués (le serveur les refuse de toute façon).
+document.addEventListener("DOMContentLoaded", () => {
+  if (!Array.isArray(window.VUES_AUTORISEES) || !window.VUES_AUTORISEES.length) return;
+  const pages = {"/ontologie/":"ontologie","/blockchain/":"blockchain","/messagerie/":"messagerie","/publicites/":"publicites",
+    "/agenda/":"agenda","/chatbot/":"chatbot","/taches/":"taches","/sms/":"sms","/recommandations/":"recommandations",
+    "/flux/":"flux","/finances/":"finances","/paiement-config/":"paiements","/wallets-clients/":"wallet","/partages-agents/":"partages_agents"};
+  document.querySelectorAll("a[href]").forEach(a => {
+    const h = (a.getAttribute("href") || "").split(/[?#]/)[0];
+    if (pages[h] && !window.VUES_AUTORISEES.includes(pages[h])) a.style.display = "none";
+  });
+});
+</script>
+<script src="{% static 'engine/js/telechargement.js' %}"></script>
+<script src="{% static 'engine/js/notifications_navigateur.js' %}"></script>
+<script src="{% static 'engine/js/notifications_cloche.js' %}"></script>
+<script src="{% static 'engine/js/gy_couleur.js' %}"></script>
+<script src="{% static 'engine/js/selecteur_couleur.js' %}"></script>
+<script src="{% static 'engine/js/apparence_tables.js' %}"></script>
+<script src="{% static 'engine/js/programme_kpi.js' %}"></script>
+<script src="{% static 'engine/js/selecteur_lieu.js' %}"></script>
+<script>window.APERCU_PDFJS={lib:"{% static 'engine/vendor/pdfjs/pdf.min.js' %}",worker:"{% static 'engine/vendor/pdfjs/pdf.worker.min.js' %}",base:"{% static 'engine/vendor/pdfjs/' %}"};</script><script src="{% static 'engine/js/apercu_fichier.js' %}"></script>
+<script src="{% static 'engine/js/champ_tenseur.js' %}"></script>
+<script src="{% static 'engine/js/index_1.js' %}"></script>
+<script src="{% static 'engine/js/formulaire_theme.js' %}"></script>
+<script src="{% static 'engine/js/formulaire_conditionnel.js' %}"></script>
+<script src="{% static 'engine/js/formulaire_conditionnel_index.js' %}"></script>
+<script src="{% static 'engine/js/maj_table.js' %}"></script>
+<script src="{% static 'engine/js/entetes_bascule.js' %}"></script>
+<script src="{% static 'engine/js/fiche_objet.js' %}"></script>
+<script src="{% static 'engine/js/grille_tableur.js' %}"></script>
+<script src="{% static 'engine/js/index_2.js' %}"></script>
+
+
+<!-- Guidage contextuel -->
+<div id="guide-tooltip"></div>
+<script src="{% static 'engine/js/index_3.js' %}"></script>
+
+<script src="{% static 'engine/js/index_4.js' %}"></script>
+
+<script src="{% static 'engine/js/index_5.js' %}"></script>
+
+<script src="{% static 'engine/js/index_7.js' %}"></script>
+<script src="{% static 'engine/js/icones.js' %}"></script>
+</body>
+</html>

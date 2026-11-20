@@ -1,0 +1,357 @@
+{% extends "engine/page_simple.html" %}
+{% load i18n_extras %}
+{% block classe_page %}page-reco{% endblock %}
+{% block titre %}{% t "engine/templates/engine/recommandations.html:3:18" %}{% endblock %}
+{% block contenu %}
+<header class="reco-pouls" id="c-synthese">
+  <div class="pouls-tete">
+    <div class="pouls-risque" aria-live="polite"><b id="pouls-risque">–</b><span>/ 100</span></div>
+    <div class="pouls-texte">
+      <h2>{% t "engine/templates/engine/recommandations.html:10:11" %}</h2>
+      <p id="decision-synthese"></p>
+    </div>
+  </div>
+  <div class="pouls-niveaux" id="niveaux" role="group" aria-label="{% t 'engine/templates/engine/recommandations.html:14:68' %}"></div>
+  <div class="pouls-barres" id="pouls-barres" role="list" aria-label="{% t 'engine/templates/engine/recommandations.html:15:71' %}"></div>
+  <div class="pouls-pied">
+    <div id="fusion-resume" class="chiffres"></div>
+    <div class="pouls-actions">
+      <button id="btn-recalculer" type="button" class="principal">{% t "engine/templates/engine/recommandations.html:10:45" %}</button>
+      <a class="btn" href="/api/fusion/" target="_blank" rel="noopener">{% t "engine/templates/engine/recommandations.html:11:97" %}</a>
+    </div>
+  </div>
+  <p class="pouls-date" id="fusion-date">{% t "engine/templates/engine/recommandations.html:6:42" %}</p>
+  <p class="pouls-avert" id="fusion-avert"></p>
+</header>
+<nav class="reco-nav" aria-label="{% t 'engine/templates/engine/recommandations.html:26:35' %}">
+  <a href="#c-reco">{% t "engine/templates/engine/recommandations.html:27:21" %}</a><a href="#c-strategie">{% t "engine/templates/engine/recommandations.html:14:7" %}</a><a href="#c-suivi">{% t "engine/templates/engine/recommandations.html:27:145" %}</a><a href="#c-reglages">{% t "engine/templates/engine/recommandations.html:27:176" %}</a><a href="#c-regles">{% t "engine/templates/engine/recommandations.html:27:208" %}</a>
+</nav>
+<section class="reco-section" id="c-reco">
+  <div class="section-tete">
+    <h2>{% t "engine/templates/engine/recommandations.html:30:7" %} <small id="reco-total"></small></h2>
+    <div class="filtres">
+      <select id="filtre-gravite" aria-label="{% t 'engine/templates/engine/recommandations.html:33:47' %}"><option value="">{% t "engine/templates/engine/recommandations.html:32:50" %}</option></select>
+      <select id="filtre-categorie" aria-label="{% t 'engine/templates/engine/recommandations.html:34:49' %}"><option value="">{% t "engine/templates/engine/recommandations.html:33:52" %}</option></select>
+    </div>
+  </div>
+  <div id="reco-liste"></div>
+</section>
+<section class="reco-section" id="c-strategie">
+  <div class="section-tete"><h2>{% t "engine/templates/engine/recommandations.html:14:7" %}</h2></div>
+  <p class="guide-hint">{% t "engine/templates/engine/recommandations.html:15:25" %}</p>
+  <div id="besoin-zone" class="strat-bloc">
+    <h3>{% t "engine/templates/engine/recommandations.html:17:13" %}</h3>
+    <p class="guide-hint">{% t "engine/templates/engine/recommandations.html:18:48" %}</p>
+    <div id="besoin-champs" class="besoin-champs"></div>
+  </div>
+  <h3 class="strat-titre">{% t "engine/templates/engine/recommandations.html:21:25" %}</h3>
+  <div id="opt-liste"></div>
+  <div class="barre-actions">
+    <button id="btn-opt-ajouter" type="button">{% t "engine/templates/engine/recommandations.html:24:48" %}</button>
+    <button id="btn-opt-decider" type="button" class="principal">{% t "engine/templates/engine/recommandations.html:25:48" %}</button>
+  </div>
+  <div id="strat-resultat"></div>
+</section>
+<section class="reco-section" id="c-suivi">
+  <div class="section-tete"><h2>{% t "engine/templates/engine/recommandations.html:38:7" %} <small id="suivi-total"></small></h2></div>
+  <div id="suivi-liste" class="guide-hint">{% t "engine/templates/engine/recommandations.html:39:44" %}</div>
+</section>
+<section class="reco-section" id="c-reglages">
+  <div class="section-tete"><h2>{% t "engine/templates/engine/recommandations.html:42:7" %}</h2></div>
+  <p class="guide-hint">{% t "engine/templates/engine/recommandations.html:43:25" %}</p>
+  <div id="reglages-champs" class="reglages-champs"></div>
+  <div class="barre-actions">
+    <button id="btn-reglages-enregistrer" type="button" class="principal">{% t "engine/templates/engine/recommandations.html:46:57" %}</button>
+    <button id="btn-reglages-defaut" type="button">{% t "engine/templates/engine/recommandations.html:47:52" %}</button>
+    <button id="btn-reglages-diagnostic" type="button">{% t "engine/templates/engine/recommandations.html:48:56" %}</button>
+  </div>
+  <div id="reglages-diagnostic" class="guide-hint"></div>
+</section>
+<section class="reco-section" id="c-regles">
+  <div class="section-tete"><h2>{% t "engine/templates/engine/recommandations.html:53:7" %} <small id="regles-total"></small></h2></div>
+  <div id="regles-liste" class="guide-hint"></div>
+</section>
+{% endblock %}
+{% block script %}{% i18n_js %}<script>
+const GRAVITES = {critique: [tj("engine/templates/engine/recommandations.html:js:lbl_critique"), "var(--danger,#e5484d)"], attention: [tj("engine/templates/engine/recommandations.html:js:lbl_attention"), "var(--forme-orange,#f5a524)"], info: ["Information", "var(--forme-bleu,#3b82f6)"]};
+const CATEGORIES = {manque: tj("engine/templates/engine/recommandations.html:js:lbl_manque"), surplus: "Surplus", tendance: tj("engine/templates/engine/recommandations.html:js:lbl_tendance"), diminution: tj("engine/templates/engine/recommandations.html:js:lbl_diminution"), concentration: "Concentration",
+  anomalie: tj("engine/templates/engine/recommandations.html:js:lbl_anomalie"), obsolescence: "Obsolescence", isolement: tj("engine/templates/engine/recommandations.html:js:lbl_isolement"), objectif: tj("engine/templates/engine/recommandations.html:js:lbl_objectif"), integrite: tj("engine/templates/engine/recommandations.html:js:61:113"),
+  dysfonctionnement: tj("engine/templates/engine/recommandations.html:js:lbl_dysfonctionnement"), couverture: tj("engine/templates/engine/recommandations.html:js:lbl_couverture")};
+const LIBELLES_RESUME = {tables: tj("engine/templates/engine/recommandations.html:js:63:35"), lignes: tj("engine/templates/engine/recommandations.html:js:63:53"), colonnes: tj("engine/templates/engine/recommandations.html:js:63:73"), liens: tj("engine/templates/engine/recommandations.html:js:lbl_liens"), kpis: "KPI", blocs: tj("engine/templates/engine/recommandations.html:js:lbl_blocs"), taches: tj("engine/templates/engine/recommandations.html:js:63:138"), modeles_ia: tj("engine/templates/engine/recommandations.html:js:63:160")};
+const EFFETS = {en_cours: tj("engine/templates/engine/recommandations.html:js:64:28"), resolu: tj("engine/templates/engine/recommandations.html:js:64:48"), ameliore: tj("engine/templates/engine/recommandations.html:js:64:68"), persiste: tj("engine/templates/engine/recommandations.html:js:64:90"), aggrave: tj("engine/templates/engine/recommandations.html:js:64:111")};
+let DONNEES = null;
+
+function el(tag, props, ...enfants) {
+  const e = document.createElement(tag);
+  Object.entries(props || {}).forEach(([k, v]) => k === "style" ? e.style.cssText = v : (k === "role" || k.startsWith("aria-")) ? e.setAttribute(k, v) : e[k] = v);
+  enfants.flat().forEach(c => c != null && e.append(c));
+  return e;
+}
+function remplirFiltre(sel, dictionnaire, compteurs) {
+  const courant = sel.value;
+  sel.length = 1;
+  Object.entries(dictionnaire).forEach(([code, lib]) => {
+    const texte = Array.isArray(lib) ? lib[0] : lib;
+    sel.append(el("option", {value: code, textContent: `${texte} (${compteurs[code] || 0})`}));
+  });
+  sel.value = courant;
+}
+// Urgence d'une recommandation : le verdict du moteur de décision, sinon déduit de la gravité.
+const NIVEAUX = {agir: tj("engine/templates/engine/recommandations.html:js:100:27"), decider: tj("engine/templates/engine/recommandations.html:js:100:61"), surveiller: tj("engine/templates/engine/recommandations.html:js:100:100")};
+const GRAVITE_VERS_NIVEAU = {critique: "agir", attention: "decider", info: "surveiller"};
+const RISQUE_PAR_DEFAUT = {agir: 85, decider: 55, surveiller: 25};
+let FILTRE_NIVEAU = "";
+const niveau = r => (r.decision && NIVEAUX[r.decision.verdict]) ? r.decision.verdict : (GRAVITE_VERS_NIVEAU[r.gravite] || "surveiller");
+const risque = r => r.decision ? r.decision.risque : RISQUE_PAR_DEFAUT[niveau(r)];
+
+function boutonLancer(r) {
+  const enCours = (DONNEES.suivi || []).some(a => a.code === r.code && a.cible_type === r.cible.type && a.cible_id === r.cible.id && a.effet === "en_cours");
+  const b = el("button", {type: "button", className: "principal", textContent: enCours ? tj("engine/templates/engine/recommandations.html:js:84:67") : tj("engine/templates/engine/recommandations.html:js:lbl_lancer"), disabled: enCours});
+  b.onclick = async () => {
+    b.disabled = true;
+    try { await api("/api/recommandations/lancer/", {code: r.code, cible: r.cible}); toast(tj("engine/templates/engine/recommandations.html:js:87:93")); await charger(true); }
+    catch (e) { b.disabled = false; }
+  };
+  return b;
+}
+function afficherSuivi() {
+  const suivi = DONNEES.suivi || [];
+  $("suivi-total").textContent = suivi.length ? String(suivi.length) : "";
+  if (!suivi.length) return;
+  $("suivi-liste").className = "suivi";
+  $("suivi-liste").replaceChildren(...suivi.map(a => el("div", {className: tj("engine/templates/engine/recommandations.html:js:122:77") + a.effet},
+    el("span", {className: "suivi-effet", textContent: EFFETS[a.effet] || a.effet}),
+    el("strong", {textContent: a.nom || a.cible_type}),
+    el("span", {className: "suivi-detail", textContent: `${a.code} · ${new Date(a.ts * 1000).toLocaleString((window.I18N_LOCALE||"fr-FR"))}`}))));
+}
+// Détail chiffré du moteur de décision (engine/decision.py) : probabilité, impact et raisons.
+function detailDecision(r) {
+  const d = r.decision;
+  if (!d) return null;
+  return el("p", {className: "reco-trace", textContent: tj("engine/templates/engine/recommandations.html:js:108:6", {v1: d.risque, v2: Math.round(d.probabilite * 100), v3: Math.round(d.impact * 100)}).replace(/^ · /, "")
+    + (d.pourquoi.length ? " · " + d.pourquoi.join(" · ") : "")});
+}
+function afficherDecision() {
+  const d = DONNEES.decision, recs = DONNEES.recommandations;
+  $("pouls-risque").textContent = d ? String(Math.round(d.resume.risque_global)) : "–";
+  const pire = d && d.objets_a_risque[0];
+  $("decision-synthese").textContent = pire
+    ? tj("engine/templates/engine/recommandations.html:js:117:69", {v1: pire.nom, v2: pire.risque_cumule, v3: pire.accumulation ? tj("engine/templates/engine/recommandations.html:js:117:152") : ""}).replace(/^ · /, "")
+    : (recs.length ? "" : tj("engine/templates/engine/recommandations.html:js:139:131"));
+  const compte = {agir: 0, decider: 0, surveiller: 0};
+  recs.forEach(r => compte[niveau(r)]++);
+  $("niveaux").replaceChildren(...Object.entries(NIVEAUX).map(([code, lib]) => {
+    const b = el("button", {type: "button", className: "niveau n-" + code + (FILTRE_NIVEAU === code ? " actif" : ""), "aria-pressed": String(FILTRE_NIVEAU === code)},
+      el("b", {textContent: String(compte[code])}), el("span", {textContent: lib}));
+    b.onclick = () => { FILTRE_NIVEAU = FILTRE_NIVEAU === code ? "" : code; afficherDecision(); afficherListe(); };
+    return b;
+  }));
+  // La bande : un trait par recommandation (dans l'ordre de priorité), haut = risque fort ; un clic mène à la ligne.
+  $("pouls-barres").replaceChildren(...recs.slice(0, 90).map((r, i) => {
+    const t = el("button", {type: "button", className: "trait n-" + niveau(r), title: `${r.titre} — ${risque(r)} / 100`,
+                            style: `height:${Math.max(14, Math.min(100, risque(r)))}%`, "aria-label": r.titre, role: "listitem"});
+    t.onclick = () => allerAReco(i);
+    return t;
+  }));
+}
+function allerAReco(i) {
+  const r = DONNEES.recommandations[i], g = $("filtre-gravite"), c = $("filtre-categorie");
+  if ((g.value && r.gravite !== g.value) || (c.value && r.categorie !== c.value) || (FILTRE_NIVEAU && niveau(r) !== FILTRE_NIVEAU)) {
+    g.value = c.value = ""; FILTRE_NIVEAU = ""; afficherDecision(); afficherListe();
+  }
+  const cible = $("reco-" + i); if (!cible) return;
+  cible.scrollIntoView({block: "center", behavior: matchMedia("(prefers-reduced-motion: reduce)").matches ? "auto" : "smooth"});
+  cible.classList.add("repere"); setTimeout(() => cible.classList.remove("repere"), 1600);
+  const d = cible.querySelector("details"); if (d) d.open = true;
+}
+function ligneReco(r, i) {
+  const niv = niveau(r), [libGravite] = GRAVITES[r.gravite] || [""];
+  const preuves = Object.entries(r.preuves || {}).map(([k, v]) => `${k} : ${typeof v === "object" ? JSON.stringify(v) : v}`).join(" · ");
+  const pourquoi = (r.decision || preuves) ? el("details", {className: "reco-pourquoi"}, el("summary", {textContent: tj("engine/templates/engine/recommandations.html:js:170:119")}),
+      detailDecision(r), preuves ? el("p", {className: "reco-preuves", textContent: preuves}) : null) : null;
+  return el("article", {className: "reco n-" + niv, id: "reco-" + i},
+    el("div", {className: "reco-corps"},
+      el("h3", {textContent: r.titre}),
+      el("p", {className: "reco-message", textContent: r.message}),
+      r.action ? el("p", {className: "reco-action", textContent: (r.type === "action" ? "Action : " : tj("engine/templates/engine/recommandations.html:js:129:78")) + r.action}) : null,
+      el("p", {className: "reco-meta"},
+        el("span", {textContent: libGravite}), el("span", {textContent: CATEGORIES[r.categorie] || r.categorie}),
+        el("span", {textContent: r.type === "action" ? "Action" : tj("engine/templates/engine/recommandations.html:js:127:66")})),
+      pourquoi),
+    el("div", {className: "reco-cote"},
+      el("div", {className: "jauge", role: "img", "aria-label": tj("engine/templates/engine/recommandations.html:js:182:66", {v1: risque(r)})}, el("i", {style: `width:${Math.max(4, Math.min(100, risque(r)))}%`})),
+      el("span", {className: "jauge-valeur", textContent: String(risque(r))}),
+      r.type === "action" ? boutonLancer(r) : null));
+}
+function afficherListe() {
+  const g = $("filtre-gravite").value, c = $("filtre-categorie").value;
+  const liste = DONNEES.recommandations.map((r, i) => [r, i]).filter(([r]) => (!g || r.gravite === g) && (!c || r.categorie === c) && (!FILTRE_NIVEAU || niveau(r) === FILTRE_NIVEAU));
+  $("reco-total").textContent = liste.length === DONNEES.recommandations.length ? String(liste.length) : tj("engine/templates/engine/recommandations.html:js:n_sur_total", {v1: liste.length, v2: DONNEES.recommandations.length});
+  if (!liste.length) {
+    $("reco-liste").replaceChildren(el("p", {className: "guide-hint", textContent: DONNEES.recommandations.length ? tj("engine/templates/engine/recommandations.html:js:139:89") : tj("engine/templates/engine/recommandations.html:js:139:131")}));
+    return;
+  }
+  // Groupes dans l'ordre d'urgence ; au sein d'un groupe, l'ordre de priorité du moteur est conservé.
+  const blocs = [];
+  Object.entries(NIVEAUX).forEach(([code, lib]) => {
+    const dedans = liste.filter(([r]) => niveau(r) === code);
+    if (dedans.length) blocs.push(el("div", {className: "groupe n-" + code}, el("h3", {className: "groupe-titre"}, lib, el("small", {textContent: String(dedans.length)})), ...dedans.map(([r, i]) => ligneReco(r, i))));
+  });
+  $("reco-liste").replaceChildren(...blocs);
+}
+function afficherRegles() {
+  const parCat = {};
+  DONNEES.catalogue.forEach(r => (parCat[r.categorie] = parCat[r.categorie] || []).push(r.code));
+  $("regles-total").textContent = String(DONNEES.regles);
+  $("regles-liste").className = "regles";
+  $("regles-liste").replaceChildren(...Object.entries(parCat).map(([cat, codes]) =>
+    el("div", {className: "regle-groupe"}, el("strong", {textContent: CATEGORIES[cat] || cat}), el("span", {textContent: codes.join(", ")}))));
+}
+function afficher() {
+  const f = DONNEES.fusion;
+  $("fusion-date").textContent = tj("engine/templates/engine/recommandations.html:js:150:35") + new Date(f.genere_le).toLocaleString((window.I18N_LOCALE||"fr-FR"));
+  $("fusion-resume").replaceChildren(...Object.entries(LIBELLES_RESUME).map(([k, lib]) =>
+    el("div", {className: "chiffre"}, el("b", {textContent: String(f.resume[k] ?? 0)}), el("span", {textContent: lib}))));
+  $("fusion-avert").textContent = f.avertissements.length ? tj("engine/templates/engine/recommandations.html:js:155:62") + f.avertissements.join(" ; ") : "";
+  remplirFiltre($("filtre-gravite"), GRAVITES, DONNEES.par_gravite);
+  remplirFiltre($("filtre-categorie"), CATEGORIES, DONNEES.par_categorie);
+  afficherDecision();
+  afficherListe();
+  afficherSuivi();
+  afficherRegles();
+}
+async function charger(forcer) {
+  $("btn-recalculer").disabled = true;
+  try {
+    DONNEES = await api("/api/recommandations/" + (forcer ? "?forcer=1" : ""));
+    afficher();
+  } finally { $("btn-recalculer").disabled = false; }
+}
+$("btn-recalculer").onclick = () => charger(true).then(() => toast(tj("engine/templates/engine/recommandations.html:js:170:69")));
+$("filtre-gravite").onchange = $("filtre-categorie").onchange = () => afficherListe();
+charger(false);
+// ── Décision stratégique (engine/strategie.py) ──
+const EFFORTS = {1: tj("engine/templates/engine/recommandations.html:js:174:22"), 2: tj("engine/templates/engine/recommandations.html:js:174:39"), 3: tj("engine/templates/engine/recommandations.html:js:lbl_moyen"), 4: tj("engine/templates/engine/recommandations.html:js:lbl_lourd"), 5: tj("engine/templates/engine/recommandations.html:js:174:75")};
+const VERDICTS_STRAT = {rien_a_faire: tj("engine/templates/engine/recommandations.html:js:175:40"), choisir: tj("engine/templates/engine/recommandations.html:js:lbl_choix_net"), choisir_avec_reserve: tj("engine/templates/engine/recommandations.html:js:175:100"), arbitrage_serre: tj("engine/templates/engine/recommandations.html:js:175:139"), attendre: tj("engine/templates/engine/recommandations.html:js:lbl_attendre")};
+let CIBLES = null, LEVIERS = [];
+function carteOption() {
+  const cibles = el("select", {multiple: true, size: 4, className: "opt-cibles"},
+    ...(CIBLES || []).map(c => el("option", {value: c.id, textContent: `${c.nom} (${c.type})`})));
+  const effort = el("select", {className: "opt-effort"}, ...Object.entries(EFFORTS).map(([v, l]) => el("option", {value: v, textContent: l, selected: v === "3"})));
+  const levier = el("select", {className: "opt-levier"}, el("option", {value: "", textContent: tj("engine/templates/engine/recommandations.html:js:181:97")}),
+    ...LEVIERS.map(l => el("option", {value: l.id, textContent: l.libelle})));
+  const retirer = el("button", {type: "button", textContent: tj("engine/templates/engine/recommandations.html:js:lbl_retirer")});
+  const c = el("div", {className: "opt"},
+    el("input", {className: "opt-nom", placeholder: tj("engine/templates/engine/recommandations.html:js:185:54"), maxLength: 80}),
+    el("label", {className: "guide-hint"}, "Levier : ", levier),
+    el("label", {className: "guide-hint"}, "Effort : ", effort),
+    el("label", {className: "guide-hint"}, tj("engine/templates/engine/recommandations.html:js:188:45"), cibles), retirer);
+  retirer.onclick = () => c.remove();
+  return c;
+}
+function ajouterOption(depuisClic) {
+  try {
+    const c = carteOption();
+    $("opt-liste").append(c);
+    if (depuisClic === true) { c.scrollIntoView({block: "nearest"}); c.querySelector(".opt-nom").focus(); }   // pas de saut de page au chargement
+  } catch (e) { toast(tj("engine/templates/engine/recommandations.html:js:198:24") + (e.message || e), true); }
+}
+function lireOptions() {
+  return [...document.querySelectorAll("#opt-liste .opt")].map(c => ({
+    libelle: c.querySelector(".opt-nom").value.trim(), levier: c.querySelector(".opt-levier").value, effort: +c.querySelector(".opt-effort").value,
+    cibles: [...c.querySelector(".opt-cibles").selectedOptions].map(o => o.value)})).filter(o => o.libelle);
+}
+function boutonChoisir(r, nom) {
+  const b = el("button", {type: "button", className: "petit", textContent: tj("engine/templates/engine/recommandations.html:js:206:57")});
+  b.onclick = async () => {
+    b.disabled = true;
+    try {
+      await api("/api/decision-strategique/choisir/", {recommandation_id: r.recommandation_id, option: nom});
+      b.textContent = tj("engine/templates/engine/recommandations.html:js:211:24");
+      toast(tj("engine/templates/engine/recommandations.html:js:212:14"));
+    } catch (e) { b.disabled = false; }  // le message d'erreur est déjà affiché par api()
+  };
+  return b;
+}
+function afficherStrategie(r) {
+  const pct = x => Math.round(x * 100) + " %";
+  $("strat-resultat").replaceChildren(
+    el("div", {className: "strat-verdict"},
+      el("strong", {textContent: (VERDICTS_STRAT[r.verdict] || r.verdict) + (r.recommandation ? " : " + r.recommandation : "")}),
+      r.generees ? el("p", {textContent: tj("engine/templates/engine/recommandations.html:js:222:43") + (r.bilan_criteres ? tj("engine/templates/engine/recommandations.html:js:222:131", {v1: r.bilan_criteres.releves, v2: r.bilan_criteres.evalues}) : "."), className: "guide-hint"}) : null,
+      ...r.a_ta_place.map(t => el("p", {textContent: t})),
+      r.preparatifs.length ? el("p", {textContent: tj("engine/templates/engine/recommandations.html:js:224:53") + r.preparatifs.map(p => p.titre).join(" ; "), className: "strat-avert"}) : null,
+      ...r.avertissements.map(a => el("p", {textContent: a, className: "strat-avert"}))),
+    ...r.options.map(o => el("div", {className: "strat-option"},
+      el("strong", {textContent: o.nom}), r.recommandation_id ? boutonChoisir(r, o.nom) : null, tj("engine/templates/engine/recommandations.html:js:227:98", {v1: pct(o.proba_premiere), v2: o.utilite, v3: o.utilite_p10, v4: o.utilite_p90, v5: o.regret})
+      + tj("engine/templates/engine/recommandations.html:js:228:10", {v1: pct(o.composantes.risque), v2: pct(o.composantes.potentiel), v3: pct(o.composantes.confiance)})
+      + ((o.criteres || []).length ? tj("engine/templates/engine/recommandations.html:js:229:39", {v1: o.criteres.join(", ")}) : "")
+      + (Object.keys(o.criteres_mesures || {}).length ? tj("engine/templates/engine/recommandations.html:js:230:58") + Object.entries(o.criteres_mesures).sort((a, b) => b[1] - a[1]).slice(0, 4).map(([c, v]) => `${c} ${pct(v)}`).join(", ") : ""))));
+}
+$("btn-opt-ajouter").onclick = () => ajouterOption(true);
+$("btn-opt-decider").onclick = async () => {
+  const options = lireOptions();
+  if (!options.length) { toast(tj("engine/templates/engine/recommandations.html:js:235:33"), true); return; }
+  $("btn-opt-decider").disabled = true;
+  try { afficherStrategie(await api("/api/decision-strategique/", {options})); }
+  catch (e) { /* message déjà affiché par api() */ }
+  finally { $("btn-opt-decider").disabled = false; }
+};
+function construireBesoin() {
+  const sel = el("select", {multiple: true, size: 4, id: "besoin-cibles"},
+    ...(CIBLES || []).map(c => el("option", {value: c.id, textContent: `${c.nom} (${c.type})`})));
+  const bouton = el("button", {type: "button", textContent: tj("engine/templates/engine/recommandations.html:js:244:62")});
+  bouton.onclick = async () => {
+    const besoin = [...sel.selectedOptions].map(o => o.value);
+    bouton.disabled = true;
+    try { afficherStrategie(await api("/api/decision-strategique/", {generer: true, besoin})); }
+    catch (e) { /* message déjà affiché par api() */ }
+    finally { bouton.disabled = false; }
+  };
+  $("besoin-champs").replaceChildren(sel, bouton);
+}
+// ── Réglages de la mesure des critères (engine/reglages_criteres.py) ──
+const ETATS_CRITERE = {vivante: tj("engine/templates/engine/recommandations.html:js:critere_vivante"), morte: tj("engine/templates/engine/recommandations.html:js:critere_morte"), saturee: tj("engine/templates/engine/recommandations.html:js:255:83"), "sans objet": tj("engine/templates/engine/recommandations.html:js:255:122")};
+let REGLAGES = null;
+function afficherReglages() {
+  const champs = REGLAGES.definitions.map(d => {
+    const saisie = el("input", {type: "number", id: "rg-" + d.cle, min: d.min, max: d.max, step: d.entier ? 1 : "any",
+                                value: REGLAGES.valeurs[d.cle] ?? "", placeholder: d.auto ? "auto" : String(d.defaut)});
+    return el("label", {className: "reglage", title: d.aide},
+              el("strong", {textContent: d.libelle}), saisie,
+              el("span", {className: "guide-hint", textContent: tj("engine/templates/engine/recommandations.html:js:263:66", {v1: d.aide, v2: d.auto ? "auto" : d.defaut, v3: d.min, v4: d.max})}));
+  });
+  $("reglages-champs").replaceChildren(...champs);
+}
+function lireReglages() {
+  const r = {};
+  REGLAGES.definitions.forEach(d => { const v = $("rg-" + d.cle).value.trim(); r[d.cle] = v === "" ? "" : Number(v); });
+  return r;
+}
+async function chargerReglages() { REGLAGES = await api("/api/recommandations/reglages/"); afficherReglages(); }
+$("btn-reglages-enregistrer").onclick = async () => {
+  try { REGLAGES = await api("/api/recommandations/reglages/", {reglages: lireReglages()}); afficherReglages(); toast(tj("engine/templates/engine/recommandations.html:js:274:120")); }
+  catch (e) { /* message déjà affiché par api() */ }
+};
+$("btn-reglages-defaut").onclick = async () => {
+  try { REGLAGES = await api("/api/recommandations/reglages/", {reinitialiser: true}); afficherReglages(); toast(tj("engine/templates/engine/recommandations.html:js:278:115")); }
+  catch (e) { /* message déjà affiché par api() */ }
+};
+$("btn-reglages-diagnostic").onclick = async () => {
+  const bouton = $("btn-reglages-diagnostic");
+  bouton.disabled = true;
+  try {
+    const d = await api("/api/recommandations/reglages/?diagnostic=1");
+    const lignes = Object.entries(d.diagnostic || {}).map(([code, v]) => el("tr", {},
+      el("td", {textContent: code}), el("td", {textContent: ETATS_CRITERE[v.etat] || v.etat}),
+      el("td", {textContent: `${v.non_nuls} / ${v.objets}`}), el("td", {textContent: v.mediane}), el("td", {textContent: v.max})));
+    const echelles = Object.entries(d.echelles_utilisees || {}).map(([k, v]) => `${k} = ${v}`).join(" · ");
+    $("reglages-diagnostic").replaceChildren(el("div", {textContent: tj("engine/templates/engine/recommandations.html:js:290:71") + echelles}),
+      el("table", {className: "diag"},
+        el("tr", {}, ...[tj("engine/templates/engine/recommandations.html:js:292:27"), tj("engine/templates/engine/recommandations.html:js:292:38"), tj("engine/templates/engine/recommandations.html:js:292:46"), tj("engine/templates/engine/recommandations.html:js:292:65"), "Max"].map(t => el("th", {textContent: t}))), ...lignes));
+  } catch (e) { /* message déjà affiché par api() */ }
+  finally { bouton.disabled = false; }
+};
+chargerReglages().catch(() => {});
+api("/api/decision-strategique/").then(d => { CIBLES = d.cibles; LEVIERS = d.leviers || []; construireBesoin(); ajouterOption(); ajouterOption(); }).catch(() => { CIBLES = []; });
+</script>{% endblock %}

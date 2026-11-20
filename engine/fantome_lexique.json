@@ -1,0 +1,1050 @@
+{
+ "_aide": "Graines faibles par langue et par domaine (mots, mesures, dimensions optionnels). Ajouter une langue ou des mots ici suffit : aucun code a modifier. Le reseau apprend seul les mots absents de ce fichier.",
+ "en": {
+  "sante": {
+   "libelle": "health",
+   "mots": [
+    "patient",
+    "sick",
+    "consultation",
+    "diagnosis",
+    "treatment",
+    "medicine",
+    "prescription",
+    "hospital",
+    "clinic",
+    "symptom",
+    "vaccine",
+    "doctor",
+    "health"
+   ],
+   "mesures": [
+    "weight",
+    "blood pressure",
+    "glucose",
+    "temperature",
+    "dose",
+    "duration",
+    "age",
+    "cost"
+   ],
+   "dimensions": [
+    "service",
+    "diagnosis",
+    "doctor",
+    "sex",
+    "treatment",
+    "status"
+   ]
+  },
+  "finance": {
+   "libelle": "finance",
+   "mots": [
+    "budget",
+    "expense",
+    "revenue",
+    "income",
+    "cash",
+    "invoice",
+    "payment",
+    "account",
+    "balance",
+    "credit",
+    "debt",
+    "bank",
+    "amount",
+    "accounting",
+    "tax",
+    "rate"
+   ],
+   "mesures": [
+    "amount",
+    "balance",
+    "total",
+    "expense",
+    "revenue",
+    "income",
+    "value"
+   ],
+   "dimensions": [
+    "category",
+    "account",
+    "type",
+    "status",
+    "mode"
+   ]
+  },
+  "ventes": {
+   "libelle": "sales",
+   "mots": [
+    "sale",
+    "sales",
+    "customer",
+    "order",
+    "product",
+    "item",
+    "price",
+    "quantity",
+    "stock",
+    "basket",
+    "shop",
+    "store",
+    "discount",
+    "quote",
+    "turnover"
+   ],
+   "mesures": [
+    "total",
+    "price",
+    "amount",
+    "quantity",
+    "margin",
+    "discount"
+   ],
+   "dimensions": [
+    "product",
+    "category",
+    "customer",
+    "seller",
+    "region",
+    "status"
+   ]
+  },
+  "logistique": {
+   "libelle": "logistics",
+   "mots": [
+    "delivery",
+    "parcel",
+    "shipping",
+    "transport",
+    "vehicle",
+    "driver",
+    "route",
+    "warehouse",
+    "shipment",
+    "trip",
+    "distance",
+    "fleet",
+    "fuel"
+   ],
+   "mesures": [
+    "distance",
+    "duration",
+    "weight",
+    "cost",
+    "fuel",
+    "delay"
+   ],
+   "dimensions": [
+    "vehicle",
+    "driver",
+    "zone",
+    "status",
+    "destination"
+   ]
+  },
+  "rh": {
+   "libelle": "human resources",
+   "mots": [
+    "employee",
+    "staff",
+    "salary",
+    "payroll",
+    "position",
+    "leave",
+    "absence",
+    "recruitment",
+    "contract",
+    "department",
+    "training",
+    "agent",
+    "personnel"
+   ],
+   "mesures": [
+    "salary",
+    "seniority",
+    "hours",
+    "absence",
+    "score",
+    "age"
+   ],
+   "dimensions": [
+    "department",
+    "position",
+    "contract",
+    "sex",
+    "status"
+   ]
+  },
+  "education": {
+   "libelle": "education",
+   "mots": [
+    "student",
+    "pupil",
+    "class",
+    "grade",
+    "course",
+    "school",
+    "exam",
+    "subject",
+    "teacher",
+    "enrollment",
+    "report card",
+    "average",
+    "level"
+   ],
+   "mesures": [
+    "grade",
+    "average",
+    "absence",
+    "age",
+    "hours"
+   ],
+   "dimensions": [
+    "class",
+    "subject",
+    "level",
+    "teacher",
+    "sex"
+   ]
+  },
+  "agriculture": {
+   "libelle": "agriculture",
+   "mots": [
+    "harvest",
+    "crop",
+    "plot",
+    "field",
+    "sowing",
+    "yield",
+    "livestock",
+    "irrigation",
+    "fertilizer",
+    "seed",
+    "farm",
+    "rain",
+    "season"
+   ],
+   "mesures": [
+    "yield",
+    "area",
+    "harvest",
+    "rain",
+    "weight",
+    "cost"
+   ],
+   "dimensions": [
+    "crop",
+    "plot",
+    "season",
+    "species",
+    "zone"
+   ]
+  },
+  "immobilier": {
+   "libelle": "real estate",
+   "mots": [
+    "rent",
+    "housing",
+    "tenant",
+    "lease",
+    "building",
+    "apartment",
+    "property",
+    "landlord",
+    "agency"
+   ],
+   "mesures": [
+    "rent",
+    "area",
+    "charges",
+    "price",
+    "duration"
+   ],
+   "dimensions": [
+    "type",
+    "district",
+    "status",
+    "building"
+   ]
+  },
+  "service": {
+   "libelle": "customer service",
+   "mots": [
+    "ticket",
+    "complaint",
+    "incident",
+    "request",
+    "support",
+    "satisfaction",
+    "intervention",
+    "priority",
+    "resolution",
+    "helpdesk"
+   ],
+   "mesures": [
+    "duration",
+    "delay",
+    "satisfaction",
+    "score",
+    "cost"
+   ],
+   "dimensions": [
+    "priority",
+    "status",
+    "category",
+    "agent",
+    "channel"
+   ]
+  }
+ },
+ "es": {
+  "sante": {
+   "libelle": "salud",
+   "mots": [
+    "paciente",
+    "enfermo",
+    "consulta",
+    "diagnostico",
+    "tratamiento",
+    "medicamento",
+    "receta",
+    "hospital",
+    "clinica",
+    "sintoma",
+    "vacuna",
+    "medico",
+    "salud"
+   ]
+  },
+  "finance": {
+   "libelle": "finanzas",
+   "mots": [
+    "presupuesto",
+    "gasto",
+    "ingreso",
+    "factura",
+    "pago",
+    "cuenta",
+    "saldo",
+    "credito",
+    "deuda",
+    "banco",
+    "monto",
+    "contabilidad",
+    "impuesto",
+    "tesoreria"
+   ]
+  },
+  "ventes": {
+   "libelle": "ventas",
+   "mots": [
+    "venta",
+    "ventas",
+    "cliente",
+    "pedido",
+    "producto",
+    "articulo",
+    "precio",
+    "cantidad",
+    "existencias",
+    "tienda",
+    "descuento",
+    "presupuesto"
+   ]
+  },
+  "logistique": {
+   "libelle": "logistica",
+   "mots": [
+    "entrega",
+    "paquete",
+    "envio",
+    "transporte",
+    "vehiculo",
+    "conductor",
+    "ruta",
+    "almacen",
+    "viaje",
+    "distancia",
+    "flota",
+    "combustible"
+   ]
+  },
+  "rh": {
+   "libelle": "recursos humanos",
+   "mots": [
+    "empleado",
+    "personal",
+    "salario",
+    "nomina",
+    "puesto",
+    "vacaciones",
+    "ausencia",
+    "contratacion",
+    "contrato",
+    "departamento",
+    "formacion"
+   ]
+  },
+  "education": {
+   "libelle": "educacion",
+   "mots": [
+    "alumno",
+    "estudiante",
+    "clase",
+    "nota",
+    "curso",
+    "escuela",
+    "examen",
+    "materia",
+    "profesor",
+    "matricula",
+    "boletin",
+    "promedio"
+   ]
+  },
+  "agriculture": {
+   "libelle": "agricultura",
+   "mots": [
+    "cosecha",
+    "cultivo",
+    "parcela",
+    "siembra",
+    "rendimiento",
+    "ganado",
+    "riego",
+    "fertilizante",
+    "semilla",
+    "granja",
+    "lluvia",
+    "temporada"
+   ]
+  },
+  "immobilier": {
+   "libelle": "inmobiliaria",
+   "mots": [
+    "alquiler",
+    "vivienda",
+    "inquilino",
+    "contrato",
+    "edificio",
+    "apartamento",
+    "propiedad",
+    "inmueble",
+    "agencia"
+   ]
+  },
+  "service": {
+   "libelle": "atencion al cliente",
+   "mots": [
+    "ticket",
+    "reclamo",
+    "queja",
+    "incidente",
+    "solicitud",
+    "soporte",
+    "satisfaccion",
+    "intervencion",
+    "prioridad",
+    "resolucion"
+   ]
+  }
+ },
+ "pt": {
+  "sante": {
+   "libelle": "saude",
+   "mots": [
+    "paciente",
+    "doente",
+    "consulta",
+    "diagnostico",
+    "tratamento",
+    "medicamento",
+    "receita",
+    "hospital",
+    "clinica",
+    "sintoma",
+    "vacina",
+    "medico",
+    "saude"
+   ]
+  },
+  "finance": {
+   "libelle": "financas",
+   "mots": [
+    "orcamento",
+    "despesa",
+    "receita",
+    "fatura",
+    "pagamento",
+    "conta",
+    "saldo",
+    "credito",
+    "divida",
+    "banco",
+    "valor",
+    "contabilidade",
+    "imposto",
+    "tesouraria"
+   ]
+  },
+  "ventes": {
+   "libelle": "vendas",
+   "mots": [
+    "venda",
+    "vendas",
+    "cliente",
+    "pedido",
+    "produto",
+    "artigo",
+    "preco",
+    "quantidade",
+    "estoque",
+    "loja",
+    "desconto",
+    "orcamento"
+   ]
+  },
+  "logistique": {
+   "libelle": "logistica",
+   "mots": [
+    "entrega",
+    "encomenda",
+    "envio",
+    "transporte",
+    "veiculo",
+    "motorista",
+    "rota",
+    "armazem",
+    "viagem",
+    "distancia",
+    "frota",
+    "combustivel"
+   ]
+  },
+  "rh": {
+   "libelle": "recursos humanos",
+   "mots": [
+    "funcionario",
+    "empregado",
+    "salario",
+    "folha",
+    "cargo",
+    "ferias",
+    "falta",
+    "recrutamento",
+    "contrato",
+    "departamento",
+    "formacao"
+   ]
+  },
+  "education": {
+   "libelle": "educacao",
+   "mots": [
+    "aluno",
+    "estudante",
+    "turma",
+    "nota",
+    "curso",
+    "escola",
+    "exame",
+    "disciplina",
+    "professor",
+    "matricula",
+    "boletim",
+    "media"
+   ]
+  },
+  "agriculture": {
+   "libelle": "agricultura",
+   "mots": [
+    "colheita",
+    "cultura",
+    "parcela",
+    "semeadura",
+    "rendimento",
+    "gado",
+    "irrigacao",
+    "fertilizante",
+    "semente",
+    "fazenda",
+    "chuva",
+    "safra"
+   ]
+  },
+  "immobilier": {
+   "libelle": "imobiliario",
+   "mots": [
+    "aluguel",
+    "moradia",
+    "inquilino",
+    "contrato",
+    "edificio",
+    "apartamento",
+    "propriedade",
+    "imovel",
+    "agencia"
+   ]
+  },
+  "service": {
+   "libelle": "atendimento",
+   "mots": [
+    "ticket",
+    "reclamacao",
+    "incidente",
+    "pedido",
+    "suporte",
+    "satisfacao",
+    "intervencao",
+    "prioridade",
+    "resolucao"
+   ]
+  }
+ },
+ "ar": {
+  "sante": {
+   "libelle": "الصحة",
+   "mots": [
+    "مريض",
+    "استشارة",
+    "تشخيص",
+    "علاج",
+    "دواء",
+    "وصفة",
+    "مستشفى",
+    "عيادة",
+    "اعراض",
+    "لقاح",
+    "طبيب",
+    "صحة"
+   ]
+  },
+  "finance": {
+   "libelle": "المالية",
+   "mots": [
+    "ميزانية",
+    "مصروف",
+    "ايراد",
+    "دخل",
+    "فاتورة",
+    "دفع",
+    "حساب",
+    "رصيد",
+    "ائتمان",
+    "دين",
+    "بنك",
+    "مبلغ",
+    "محاسبة",
+    "ضريبة"
+   ]
+  },
+  "ventes": {
+   "libelle": "المبيعات",
+   "mots": [
+    "بيع",
+    "مبيعات",
+    "زبون",
+    "عميل",
+    "طلب",
+    "منتج",
+    "سعر",
+    "كمية",
+    "مخزون",
+    "متجر",
+    "خصم"
+   ]
+  },
+  "logistique": {
+   "libelle": "اللوجستيات",
+   "mots": [
+    "توصيل",
+    "طرد",
+    "شحن",
+    "نقل",
+    "مركبة",
+    "سائق",
+    "مسار",
+    "مستودع",
+    "رحلة",
+    "مسافة",
+    "اسطول",
+    "وقود"
+   ]
+  },
+  "rh": {
+   "libelle": "الموارد البشرية",
+   "mots": [
+    "موظف",
+    "عامل",
+    "راتب",
+    "اجر",
+    "وظيفة",
+    "اجازة",
+    "غياب",
+    "توظيف",
+    "عقد",
+    "قسم",
+    "تدريب"
+   ]
+  },
+  "education": {
+   "libelle": "التعليم",
+   "mots": [
+    "طالب",
+    "تلميذ",
+    "فصل",
+    "درجة",
+    "دورة",
+    "مدرسة",
+    "امتحان",
+    "مادة",
+    "معلم",
+    "تسجيل",
+    "معدل",
+    "طلاب",
+    "تلاميذ",
+    "طالبة"
+   ]
+  },
+  "agriculture": {
+   "libelle": "الزراعة",
+   "mots": [
+    "حصاد",
+    "محصول",
+    "قطعة",
+    "بذر",
+    "انتاجية",
+    "ماشية",
+    "ري",
+    "سماد",
+    "بذور",
+    "مزرعة",
+    "مطر",
+    "موسم"
+   ]
+  },
+  "immobilier": {
+   "libelle": "العقارات",
+   "mots": [
+    "ايجار",
+    "سكن",
+    "مستاجر",
+    "عقد",
+    "مبنى",
+    "شقة",
+    "ملكية",
+    "عقار",
+    "وكالة"
+   ]
+  },
+  "service": {
+   "libelle": "خدمة العملاء",
+   "mots": [
+    "تذكرة",
+    "شكوى",
+    "حادث",
+    "طلب",
+    "دعم",
+    "رضا",
+    "تدخل",
+    "اولوية",
+    "حل"
+   ]
+  }
+ },
+ "ru": {
+  "sante": {
+   "libelle": "здоровье",
+   "mots": [
+    "пациент",
+    "больной",
+    "консультация",
+    "диагноз",
+    "лечение",
+    "лекарство",
+    "рецепт",
+    "больница",
+    "клиника",
+    "симптом",
+    "вакцина",
+    "врач",
+    "здоровье"
+   ]
+  },
+  "finance": {
+   "libelle": "финансы",
+   "mots": [
+    "бюджет",
+    "расход",
+    "доход",
+    "выручка",
+    "счет",
+    "платеж",
+    "оплата",
+    "баланс",
+    "кредит",
+    "долг",
+    "банк",
+    "сумма",
+    "бухгалтерия",
+    "налог"
+   ]
+  },
+  "ventes": {
+   "libelle": "продажи",
+   "mots": [
+    "продажа",
+    "продажи",
+    "клиент",
+    "заказ",
+    "товар",
+    "продукт",
+    "цена",
+    "количество",
+    "склад",
+    "магазин",
+    "скидка"
+   ]
+  },
+  "logistique": {
+   "libelle": "логистика",
+   "mots": [
+    "доставка",
+    "посылка",
+    "отправка",
+    "транспорт",
+    "автомобиль",
+    "водитель",
+    "маршрут",
+    "склад",
+    "рейс",
+    "расстояние",
+    "парк",
+    "топливо"
+   ]
+  },
+  "rh": {
+   "libelle": "персонал",
+   "mots": [
+    "сотрудник",
+    "работник",
+    "зарплата",
+    "оклад",
+    "должность",
+    "отпуск",
+    "отсутствие",
+    "найм",
+    "контракт",
+    "отдел",
+    "обучение"
+   ]
+  },
+  "education": {
+   "libelle": "образование",
+   "mots": [
+    "ученик",
+    "студент",
+    "класс",
+    "оценка",
+    "курс",
+    "школа",
+    "экзамен",
+    "предмет",
+    "учитель",
+    "зачисление",
+    "успеваемость"
+   ]
+  },
+  "agriculture": {
+   "libelle": "сельское хозяйство",
+   "mots": [
+    "урожай",
+    "культура",
+    "участок",
+    "посев",
+    "урожайность",
+    "скот",
+    "полив",
+    "удобрение",
+    "семена",
+    "ферма",
+    "дождь",
+    "сезон"
+   ]
+  },
+  "immobilier": {
+   "libelle": "недвижимость",
+   "mots": [
+    "аренда",
+    "жилье",
+    "арендатор",
+    "договор",
+    "здание",
+    "квартира",
+    "собственность",
+    "недвижимость",
+    "агентство"
+   ]
+  },
+  "service": {
+   "libelle": "поддержка клиентов",
+   "mots": [
+    "тикет",
+    "жалоба",
+    "инцидент",
+    "запрос",
+    "поддержка",
+    "удовлетворенность",
+    "вмешательство",
+    "приоритет",
+    "решение"
+   ]
+  }
+ },
+ "zh": {
+  "sante": {
+   "libelle": "健康",
+   "mots": [
+    "患者",
+    "病人",
+    "诊断",
+    "治疗",
+    "药",
+    "处方",
+    "医院",
+    "诊所",
+    "症状",
+    "疫苗",
+    "医生",
+    "健康"
+   ]
+  },
+  "finance": {
+   "libelle": "财务",
+   "mots": [
+    "预算",
+    "支出",
+    "收入",
+    "发票",
+    "付款",
+    "账户",
+    "余额",
+    "信贷",
+    "债务",
+    "银行",
+    "金额",
+    "会计",
+    "税"
+   ]
+  },
+  "ventes": {
+   "libelle": "销售",
+   "mots": [
+    "销售",
+    "客户",
+    "订单",
+    "产品",
+    "商品",
+    "价格",
+    "数量",
+    "库存",
+    "商店",
+    "折扣",
+    "报价"
+   ]
+  },
+  "logistique": {
+   "libelle": "物流",
+   "mots": [
+    "配送",
+    "包裹",
+    "运输",
+    "车辆",
+    "司机",
+    "路线",
+    "仓库",
+    "行程",
+    "距离",
+    "车队",
+    "燃料"
+   ]
+  },
+  "rh": {
+   "libelle": "人力资源",
+   "mots": [
+    "员工",
+    "职员",
+    "工资",
+    "薪资",
+    "职位",
+    "休假",
+    "缺勤",
+    "招聘",
+    "合同",
+    "部门",
+    "培训"
+   ]
+  },
+  "education": {
+   "libelle": "教育",
+   "mots": [
+    "学生",
+    "班级",
+    "成绩",
+    "课程",
+    "学校",
+    "考试",
+    "科目",
+    "教师",
+    "老师",
+    "注册",
+    "平均分"
+   ]
+  },
+  "agriculture": {
+   "libelle": "农业",
+   "mots": [
+    "收成",
+    "作物",
+    "地块",
+    "播种",
+    "产量",
+    "牲畜",
+    "灌溉",
+    "肥料",
+    "种子",
+    "农场",
+    "降雨",
+    "季节"
+   ]
+  },
+  "immobilier": {
+   "libelle": "房地产",
+   "mots": [
+    "租金",
+    "住房",
+    "租户",
+    "租约",
+    "楼",
+    "公寓",
+    "房产",
+    "物业",
+    "中介"
+   ]
+  },
+  "service": {
+   "libelle": "客户服务",
+   "mots": [
+    "工单",
+    "投诉",
+    "事件",
+    "请求",
+    "支持",
+    "满意度",
+    "干预",
+    "优先级",
+    "解决"
+   ]
+  }
+ }
+}

@@ -1,0 +1,13 @@
+{% load i18n_extras %}
+<div class="verif-etapes-bloc" style="margin-top:10px;padding-top:8px;border-top:1px solid var(--border,#333)">
+  <div style="font-weight:600;font-size:12px">{% t "engine/templates/engine/_ussd_verif_etapes.html:2:47" %}</div>
+  <input type="text" placeholder="{% t 'engine/templates/engine/_ussd_verif_etapes.html:3:35' %}" class="verif-init" style="width:100%;margin:6px 0">
+  <div class="etapes-list" style="display:flex;flex-direction:column;gap:4px"></div>
+  <button type="button" onclick="ajouterEtape(this)" style="margin-top:4px">{% t "engine/templates/engine/_ussd_verif_etapes.html:5:77" %}</button>
+  <div style="display:flex;align-items:center;gap:6px;margin-top:6px">
+    <span style="font-size:12px;color:var(--muted)">{% t "engine/templates/engine/_ussd_verif_etapes.html:7:53" %}</span>
+    <input type="number" min="1" step="1" value="5" class="verif-intervalle" style="width:60px;padding:4px">
+  </div>
+  <button type="button" onclick="testerSequence(this)" style="width:100%;margin-top:6px">{% t "engine/templates/engine/_ussd_verif_etapes.html:10:90" %}</button>
+  <div class="verif-resultat" style="font-size:11px;margin-top:6px;color:var(--muted)"></div>
+</div>

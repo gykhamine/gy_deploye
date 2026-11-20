@@ -1,0 +1,23 @@
+{% load static %}<!DOCTYPE html>
+{% load i18n_extras %}
+<head>
+<link rel="stylesheet" href="{% static 'engine/css/app.css' %}"><link rel="stylesheet" href="{% url 'engine:marque_css' %}"><script src="{% static 'engine/js/marque.js' %}" defer></script><script src="{% static 'engine/js/gestes_tactiles.js' %}" defer></script>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>{% t "engine/templates/engine_pages/index/rapport-ia.html:6:8" %}</title>
+{% i18n_js %}
+<script src="{% static 'engine/js/dialogues.js' %}"></script>
+</head>
+<body class="page-index">
+<div id="app-isolated" style="padding:24px;max-width:1200px;margin:0 auto">
+  <h1>{% t "engine/templates/engine_pages/index/rapport-ia.html:13:7" %}</h1>
+  <div id="toast-conteneur"></div>
+  <p style="color:var(--muted)">{% t "engine/templates/engine_pages/index/rapport-ia.html:15:33" %}</p>
+</div>
+<script>
+const CONTEXTE_ACTIF = "rapport_ia";
+const CSRF = document.cookie.match(/gy_csrftoken=([^;]+)/)?.[1] || "";
+</script>
+<script src="{% static 'engine/js/icones.js' %}"></script>
+</body>
+</html>

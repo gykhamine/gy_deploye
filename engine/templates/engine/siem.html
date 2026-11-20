@@ -1,0 +1,49 @@
+{% load i18n_extras %}{% load static %}<!DOCTYPE html>
+<html lang="{{ langue_html|default:'fr' }}">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="robots" content="noindex,nofollow">
+<title>{% t "engine/templates/engine/siem.html:7:14" %}</title>
+<link rel="stylesheet" href="{% static 'engine/css/app.css' %}"><link rel="stylesheet" href="{% url 'engine:marque_css' %}"><script src="{% static 'engine/js/marque.js' %}" defer></script><script src="{% static 'engine/js/gestes_tactiles.js' %}" defer></script>
+<script src="{% static 'engine/js/dialogues.js' %}"></script>
+</head>
+<body class="page-siem page-decideur">
+<div class="header">{% include "engine/_marque_entete.html" %}
+</div>
+<div class="layout">
+  <p class="aide" style="margin-bottom:16px">{% t "engine/templates/engine/siem.html:35:39" %}</p>
+  <details class="recherche" id="sm-rech">
+    <summary>{% t "engine/templates/engine/siem.html:rech:titre" %}<span id="sm-rech-resume"></span></summary>
+    <form method="get" class="rech-form" id="sm-rech-form">
+      <label>{% t "engine/templates/engine/siem.html:rech:texte" %}<input type="search" id="sm-rech-q" name="q" placeholder="{% t "engine/templates/engine/siem.html:rech:texte_ph" %}" autocomplete="off"></label>
+      <label>{% t "engine/templates/engine/siem.html:rech:types" %}<select name="types" id="sm-rech-types" multiple size="4"></select></label>
+      <label>{% t "engine/templates/engine/siem.html:rech:champ" %}<input type="text" name="champ" placeholder="{% t "engine/templates/engine/siem.html:rech:champ_ph" %}"></label>
+      <label>{% t "engine/templates/engine/siem.html:rech:valeur" %}<input type="text" name="valeur" placeholder="{% t "engine/templates/engine/siem.html:rech:valeur_ph" %}"></label>
+      <label>{% t "engine/templates/engine/siem.html:rech:bloc_min" %}<input type="number" min="0" name="bloc_min"></label>
+      <label>{% t "engine/templates/engine/siem.html:rech:bloc_max" %}<input type="number" min="0" name="bloc_max"></label>
+      <label>{% t "engine/templates/engine/siem.html:rech:du" %}<input type="date" name="du"></label>
+      <label>{% t "engine/templates/engine/siem.html:rech:au" %}<input type="date" name="au"></label>
+      <label class="rech-case"><input type="checkbox" name="avec_masques" value="1">{% t "engine/templates/engine/siem.html:rech:avec_masques" %}</label>
+      <div class="rech-actions">
+        <button type="submit">{% t "engine/templates/engine/siem.html:rech:chercher" %}</button>
+        <a class="btn petit" href="?">{% t "engine/templates/engine/siem.html:rech:reinit" %}</a>
+        <button type="button" class="danger" id="sm-rech-masquer">{% t "engine/templates/engine/siem.html:rech:masquer" %}</button>
+        <span class="rech-nav" hidden><button type="button" data-nav="-1" title="{% t "engine/templates/engine/siem.html:rech:precedent" %}">▲</button><span class="rech-compteur"></span><button type="button" data-nav="1" title="{% t "engine/templates/engine/siem.html:rech:suivant" %}">▼</button></span>
+      </div>
+    </form>
+  </details>
+  <div id="sm-bandeaux"></div>
+  <div id="sm-app" data-plus="{% t 'engine/templates/engine/documents_administratifs.html:plus_actions' %}">{% t "engine/templates/engine/siem.html:37:26" %}</div>
+</div>
+<div id="sm-reauth"><div class="boite">
+  <b>{% t "engine/templates/engine/siem.html:40:12" %}</b>
+  <p style="font-size:13px;color:var(--muted)">{% tf "engine/templates/engine/siem.html:41:55" v1=delai_reauth %}</p>
+  <input type="password" id="sm-mdp" autocomplete="current-password" placeholder="{% t "engine/templates/engine/siem.html:42:89" %}">
+  <div class="barre-actions"><button type="button" class="principal" id="sm-reauth-ok">{% t "engine/templates/engine/siem.html:43:71" %}</button></div>
+  <div id="sm-reauth-msg" class="dc-ko" style="font-size:12px;min-height:16px"></div>
+</div></div>
+{% i18n_js %}
+<script src="{% static 'engine/js/siem.js' %}"></script>
+</body>
+</html>

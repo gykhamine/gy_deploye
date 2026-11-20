@@ -1,0 +1,374 @@
+{% load static %}
+{% load i18n_extras %}
+<!DOCTYPE html>
+<html lang="{{ langue_html|default:'fr' }}">
+<head>
+<link rel="stylesheet" href="{% static 'engine/css/app.css' %}"><link rel="stylesheet" href="{% url 'engine:marque_css' %}"><script src="{% static 'engine/js/marque.js' %}" defer></script><script src="{% static 'engine/js/gestes_tactiles.js' %}" defer></script>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>{% tf "engine/templates/engine/partages_agents.html:8:8" v1=entreprise.nom %}</title>
+<script src="{% static 'engine/js/dialogues.js' %}"></script>
+</head>
+<body class="page-partages_agents">
+
+<a href="{% url 'engine:profile' %}" class="retour">{% t "engine/templates/engine/partages_agents.html:11:53" %}</a>
+<h1>{% t "engine/templates/engine/partages_agents.html:12:5" %}</h1>
+<p class="sous-titre">
+  {% t "engine/templates/engine/partages_agents.html:15:3" %}<br>
+  {% t "engine/templates/engine/partages_agents.html:16:3" %} <strong>{% t "engine/templates/engine/partages_agents.html:15:74" %}</strong> {% t "engine/templates/engine/partages_agents.html:15:97" %}<br>
+  {% t "engine/templates/engine/partages_agents.html:17:3" %}
+</p>
+
+<h2>{% t "engine/templates/engine/partages_agents.html:19:5" %}</h2>
+<div class="carte-table">
+  <table>
+    <thead>
+      <tr>
+        <th>{% t "engine/templates/engine/partages_agents.html:24:13" %}</th>
+        <th>{% t "engine/templates/engine/partages_agents.html:25:13" %}</th>
+        <th>{% t "engine/templates/engine/partages_agents.html:26:13" %}</th>
+        <th>{% t "engine/templates/engine/partages_agents.html:27:13" %}</th>
+        <th>{% t "engine/templates/engine/partages_agents.html:28:13" %}</th>
+        <th></th>
+      </tr>
+    </thead>
+    <tbody id="corps-partages">
+      <tr><td colspan="6" class="vide">{% t "engine/templates/engine/partages_agents.html:33:40" %}</td></tr>
+    </tbody>
+  </table>
+</div>
+
+<h2>{% t "engine/templates/engine/partages_agents.html:38:5" %}</h2>
+<div class="carte-form">
+  <div class="grille-form">
+
+    <!-- Entreprise cible -->
+    <div class="champ">
+      <label>{% t "engine/templates/engine/partages_agents.html:44:14" %}</label>
+      <div class="recherche-wrap">
+        <input type="text" id="f-recherche-agent" placeholder="{% t 'engine/templates/engine/partages_agents.html:46:64' %}" autocomplete="off" oninput="rechercherAgent()">
+        <div class="dropdown-results" id="dropdown-agents"></div>
+      </div>
+      <span class="hint" id="hint-agent">{% t "engine/templates/engine/partages_agents.html:49:42" %}</span>
+      <input type="hidden" id="f-entreprise-cible-id">
+    </div>
+
+    <!-- Type d'objet -->
+    <div class="champ">
+      <label>{% t "engine/templates/engine/partages_agents.html:55:14" %}</label>
+      <select id="f-type" onchange="changerType()">
+        <option value="table">{% t "engine/templates/engine/partages_agents.html:57:31" %}</option>
+        <option value="dashboard">{% t "engine/templates/engine/partages_agents.html:58:35" %}</option>
+        <option value="ontologie">{% t "engine/templates/engine/partages_agents.html:59:35" %}</option>
+        <option value="colonne">{% t "engine/templates/engine/partages_agents.html:60:33" %}</option>
+      </select>
+    </div>
+
+    <!-- Sélecteur d'objet dynamique -->
+    <div class="champ" style="grid-column:1/-1">
+      <label id="label-objet">{% t "engine/templates/engine/partages_agents.html:66:31" %}</label>
+      <select id="f-objet">
+        <option value="">{% t "engine/templates/engine/partages_agents.html:68:26" %}</option>
+      </select>
+      <span class="hint" id="hint-objet"></span>
+    </div>
+
+  </div>
+  <button class="btn-principal" id="btn-partager" onclick="creerPartage()" disabled>{% t "engine/templates/engine/partages_agents.html:74:85" %}</button>
+</div>
+
+<div id="toast"></div>
+
+{% i18n_js %}
+<script>
+const MON_ID = {{ entreprise.id }};
+function csrf(){ return document.cookie.match(/gy_csrftoken=([^;]+)/)?.[1] || ""; }
+
+// ── Toast ──────────────────────────────────────────────────────────────────
+function toast(msg, err=false){
+  const t = document.getElementById("toast");
+  t.textContent = msg;
+  t.style.background = err ? "var(--fond-danger,#2e1a1a)" : "var(--fond-succes,#1a2e1a)";
+  t.style.color = err ? "var(--danger,#e74c3c)" : "var(--texte-succes,#7fd99a)";
+  t.style.borderColor = err ? "var(--bordure-erreur,#4e2e2e)" : "var(--bordure-succes,#2e4e2e)";
+  t.classList.add("visible");
+  setTimeout(() => t.classList.remove("visible"), 2800);
+}
+
+// ── Chargement des objets selon le type ────────────────────────────────────
+const LABELS = {
+  table: tj("engine/templates/engine/partages_agents.html:js:97:11"),
+  dashboard: tj("engine/templates/engine/partages_agents.html:js:98:15"),
+  ontologie: tj("engine/templates/engine/partages_agents.html:js:99:15"),
+  colonne: tj("engine/templates/engine/partages_agents.html:js:100:13"),
+};
+const HINTS = {
+  table: tj("engine/templates/engine/partages_agents.html:js:103:11"),
+  dashboard: tj("engine/templates/engine/partages_agents.html:js:104:15"),
+  ontologie: tj("engine/templates/engine/partages_agents.html:js:105:15"),
+  colonne: tj("engine/templates/engine/partages_agents.html:js:106:13"),
+};
+
+let objetsCache = {};
+
+async function changerType(){
+  const type = document.getElementById("f-type").value;
+  document.getElementById("label-objet").textContent = LABELS[type];
+  document.getElementById("hint-objet").textContent = HINTS[type];
+  const sel = document.getElementById("f-objet");
+  sel.innerHTML = `<option value="">${tj("engine/templates/engine/partages_agents.html:js:116:38")}</option>`;
+  verifierPret();
+
+  if(objetsCache[type]){
+    peuplerObjets(objetsCache[type], type);
+    return;
+  }
+
+  try {
+    let items = [];
+    if(type === "table"){
+      const r = await fetch("/api/tables/?systeme=1");
+      const d = await r.json();
+      items = (d.tables || []).map(t => ({id: t.id, nom: t.nom}));
+    } else if(type === "dashboard"){
+      // Récupérer tous les tableaux de toutes les tables
+      const rt = await fetch("/api/tables/?systeme=1");
+      const dt = await rt.json();
+      const reponses = await Promise.all((dt.tables || []).map(async t => {   // en parallèle : les tables système sont nombreuses
+        try { return [t, await (await fetch(`/api/tables/${t.id}/tableaux-bord-bi/`)).json()]; } catch(e) { return [t, {}]; }
+      }));
+      for(const [t, dd] of reponses){
+        for(const tb of (dd.tableaux_bord_bi || [])){
+          items.push({id: tb.id, nom: `${t.nom} / ${tb.nom}`});
+        }
+      }
+    } else if(type === "ontologie"){
+      const r = await fetch("/api/ontologie/pages/");
+      const d = await r.json();
+      items = (d.pages_ontologie || []).map(p => ({id: p.id, nom: p.nom}));
+    } else if(type === "colonne"){
+      // Toutes les colonnes sont partageables : celles déjà rattachées à un
+      // GroupePartage réutilisent ce groupe (une seule entrée par groupe,
+      // même s'il rassemble plusieurs champs) ; les colonnes "normales"
+      // apparaissent aussi — le groupe sera créé automatiquement à la
+      // création du partage (voir api_partages_inter_agents, champ_id).
+      const r = await fetch("/api/tables/?systeme=1");
+      const d = await r.json();
+      const vus = new Set();
+      for(const t of (d.tables || [])){
+        for(const c of (t.champs || [])){
+          if(c.groupe_partage_id){
+            if(vus.has(c.groupe_partage_id)) continue;
+            vus.add(c.groupe_partage_id);
+            items.push({id: `grp:${c.groupe_partage_id}`, nom: `${t.nom} › ${c.nom}`});
+          } else {
+            items.push({id: `champ:${c.id}`, nom: `${tj("engine/templates/engine/partages_agents.html:js:165:52", {v1: t.nom, v2: c.nom})}`});
+          }
+        }
+      }
+    }
+    objetsCache[type] = items;
+    peuplerObjets(items, type);
+  } catch(e){
+    sel.innerHTML = `<option value="">${tj("engine/templates/engine/partages_agents.html:js:169:40")}</option>`;
+  }
+}
+
+function peuplerObjets(items, type){
+  const sel = document.getElementById("f-objet");
+  if(!items.length){
+    sel.innerHTML = `<option value="">${tj("engine/templates/engine/partages_agents.html:js:176:40")}</option>`;
+  } else {
+    sel.innerHTML = `<option value="">${tj("engine/templates/engine/partages_agents.html:js:178:40")}</option>` +
+      items.map(i => `<option value="${i.id}">${escHtml(i.nom)}</option>`).join("");
+  }
+  sel.onchange = verifierPret;
+  verifierPret();
+}
+
+// ── Recherche d'agent ──────────────────────────────────────────────────────
+let timerAgent = null;
+let agentSelectionne = null;
+
+function rechercherAgent(){
+  clearTimeout(timerAgent);
+  agentSelectionne = null;
+  document.getElementById("f-entreprise-cible-id").value = "";
+  const q = document.getElementById("f-recherche-agent").value.trim();
+  const hint = document.getElementById("hint-agent");
+  const dd = document.getElementById("dropdown-agents");
+  hint.textContent = "";
+  hint.className = "hint";
+  dd.innerHTML = "";
+  dd.classList.remove("ouvert");
+  verifierPret();
+  if(q.length < 2) return;
+
+  timerAgent = setTimeout(async () => {
+    try {
+      const r = await fetch(`/api/entreprises/rechercher/?q=${encodeURIComponent(q)}`);
+      if(!r.ok) throw new Error();
+      const d = await r.json();
+      const resultats = (d.entreprises || []).filter(e => e.id !== MON_ID);
+      if(!resultats.length){
+        hint.textContent = tj("engine/templates/engine/partages_agents.html:js:210:29");
+        hint.className = "hint err";
+        return;
+      }
+      dd.innerHTML = resultats.map(e =>
+        `<div class="dropdown-item" onclick="choisirAgent(${e.id}, '${escHtml(e.nom).replace(/'/g,"\\'")}')">
+          <span class="di-nom">${escHtml(e.nom)}</span>
+          <span class="di-id">#${e.id}</span>
+        </div>`
+      ).join("");
+      dd.classList.add("ouvert");
+    } catch(e){
+      hint.textContent = tj("engine/templates/engine/partages_agents.html:js:222:27");
+      hint.className = "hint err";
+    }
+  }, 280);
+}
+
+function choisirAgent(id, nom){
+  agentSelectionne = {id, nom};
+  document.getElementById("f-entreprise-cible-id").value = id;
+  document.getElementById("f-recherche-agent").value = nom;
+  document.getElementById("dropdown-agents").classList.remove("ouvert");
+  const hint = document.getElementById("hint-agent");
+  hint.textContent = tj("engine/templates/engine/partages_agents.html:js:234:23", {v1: nom, v2: id});
+  hint.className = "hint ok";
+  verifierPret();
+}
+
+// Fermer le dropdown en cliquant ailleurs
+document.addEventListener("click", (e) => {
+  if(!e.target.closest(".recherche-wrap"))
+    document.getElementById("dropdown-agents").classList.remove("ouvert");
+});
+
+// ── Vérification bouton ────────────────────────────────────────────────────
+function verifierPret(){
+  const ok = agentSelectionne && document.getElementById("f-objet").value;
+  document.getElementById("btn-partager").disabled = !ok;
+}
+
+// ── Créer le partage ───────────────────────────────────────────────────────
+async function creerPartage(){
+  const entrepriseCibleId = agentSelectionne?.id;
+  const typeObjet = document.getElementById("f-type").value;
+  const objetVal = document.getElementById("f-objet").value;
+  if(!entrepriseCibleId || !objetVal){ toast(tj("engine/templates/engine/partages_agents.html:js:256:47"), true); return; }
+
+  // Pour "colonne", la valeur encode soit un groupe existant (grp:<id>),
+  // soit un champ brut sans groupe (champ:<id>) — voir chargerObjets().
+  // Le back-end crée le GroupePartage à la volée dans ce second cas.
+  const corps = {entreprise_cible_id: entrepriseCibleId, type_objet: typeObjet};
+  if(objetVal.startsWith("champ:")) corps.champ_id = parseInt(objetVal.slice(6));
+  else if(objetVal.startsWith("grp:")) corps.objet_id = parseInt(objetVal.slice(4));
+  else corps.objet_id = parseInt(objetVal);
+
+  const btn = document.getElementById("btn-partager");
+  btn.disabled = true; btn.textContent = "…";
+  try {
+    const r = await fetch("{% url 'engine:api_partages_inter_agents' %}", {
+      method: "POST",
+      headers: {"Content-Type": "application/json", "X-CSRFToken": csrf()},
+      body: JSON.stringify(corps),
+    });
+    if(!r.ok){ const e = await r.json(); toast(e.erreur || tj("engine/templates/engine/partages_agents.html:js:274:61"), true); return; }
+    toast(tj("engine/templates/engine/partages_agents.html:js:275:12"));
+    // Reset
+    agentSelectionne = null;
+    document.getElementById("f-recherche-agent").value = "";
+    document.getElementById("f-entreprise-cible-id").value = "";
+    document.getElementById("hint-agent").textContent = tj("engine/templates/engine/partages_agents.html:js:280:58");
+    document.getElementById("hint-agent").className = "hint";
+    document.getElementById("f-objet").value = "";
+    await chargerPartages();
+  } catch(e){ toast(tj("engine/templates/engine/partages_agents.html:js:284:22"), true); }
+  finally { btn.textContent = tj("engine/templates/engine/partages_agents.html:js:285:32"); verifierPret(); }
+}
+
+// ── Charger la liste des partages ──────────────────────────────────────────
+const TYPE_LABEL = {
+  table: tj("engine/templates/engine/partages_agents.html:js:290:11"), dashboard: tj("engine/templates/engine/partages_agents.html:js:lbl_dashboard_bi"), ontologie: tj("engine/templates/engine/partages_agents.html:js:lbl_ontologie"), colonne: tj("engine/templates/engine/partages_agents.html:js:290:80")
+};
+
+async function chargerPartages(){
+  const r = await fetch("{% url 'engine:api_partages_inter_agents' %}");
+  const data = await r.json();
+  const corps = document.getElementById("corps-partages");
+  const partages = data.partages || [];
+  if(!partages.length){
+    corps.innerHTML = `<tr><td colspan="6" class="vide">${tj("engine/templates/engine/partages_agents.html:js:299:58")}</td></tr>`;
+    return;
+  }
+  corps.innerHTML = "";
+  const cacheNoms = {};
+  async function nomAgent(id){
+    if(cacheNoms[id]) return cacheNoms[id];
+    try{ const r=await fetch(`/api/entreprises/${id}/nom/`); const d=await r.json(); cacheNoms[id]=d.nom||`#${id}`; }
+    catch(e){ cacheNoms[id]=`#${id}`; }
+    return cacheNoms[id];
+  }
+  for(const p of partages){
+    const emis = p.entreprise_source_id === MON_ID;
+    const autreId = emis ? p.entreprise_cible_id : p.entreprise_source_id;
+    const nomAutre = await nomAgent(autreId);
+    const nomObjet = await resolveNomObjet(p);
+    const tr = document.createElement("tr");
+    tr.innerHTML = `
+      <td><span class="badge ${emis ? 'badge-emis' : 'badge-recu'}">${emis ? tj("engine/templates/engine/partages_agents.html:js:317:79") : tj("engine/templates/engine/partages_agents.html:js:317:90")}</span></td>
+      <td>${escHtml(nomAutre)}</td>
+      <td><span class="type-pill">${TYPE_LABEL[p.type_objet] || p.type_objet}</span></td>
+      <td>${escHtml(nomObjet)}</td>
+      <td><span class="badge ${p.actif ? 'badge-actif' : 'badge-inactif'}">${p.actif ? tj("engine/templates/engine/partages_agents.html:js:321:89") : tj("engine/templates/engine/partages_agents.html:js:321:99")}</span></td>
+      <td>${emis
+        ? `<button class="btn-sm${p.actif ? " danger" : ""}" onclick="togglePartage(${p.id}, ${!p.actif})">${p.actif ? tj("engine/templates/engine/partages_agents.html:js:323:121") : tj("engine/templates/engine/partages_agents.html:js:323:136")}</button>`
+        : ""}</td>`;
+    corps.appendChild(tr);
+  }
+}
+
+// Résolution du nom de l'objet partagé
+const cacheObjets = {};
+async function resolveNomObjet(p){
+  const key = `${p.type_objet}-${p.objet_id}`;
+  if(cacheObjets[key]) return cacheObjets[key];
+  let nom = `#${p.objet_id}`;
+  try {
+    if(p.type_objet === "table"){
+      // Les tables d'une autre entreprise ne sont pas accessibles via /api/tables/
+      // On tente quand même (partage reçu = la table est visible par nous)
+      const r = await fetch(`/api/tables/${p.objet_id}/stats/`);
+      if(r.ok){ const d = await r.json(); nom = d.table_nom || d.nom || nom; }
+    } else if(p.type_objet === "dashboard"){
+      const r = await fetch(`/api/tableaux-bord-bi/${p.objet_id}/`);
+      if(r.ok){ const d = await r.json(); nom = d.tableau_bord_bi?.nom || nom; }
+    } else if(p.type_objet === "ontologie"){
+      const r = await fetch(`/api/ontologie/pages/${p.objet_id}/`);
+      if(r.ok){ const d = await r.json(); nom = d.page_ontologie?.nom || nom; }
+    }
+  } catch(e){}
+  cacheObjets[key] = nom;
+  return nom;
+}
+
+async function togglePartage(id, actif){
+  await fetch(`/api/partages-agents/${id}/`, {
+    method: "PATCH", headers: {"Content-Type":"application/json","X-CSRFToken":csrf()},
+    body: JSON.stringify({actif}),
+  });
+  toast(actif ? tj("engine/templates/engine/partages_agents.html:js:358:18") : tj("engine/templates/engine/partages_agents.html:js:358:40"));
+  await chargerPartages();
+}
+
+function escHtml(s){ return String(s).replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;").replace(/"/g,"&quot;"); }
+
+// ── Init ───────────────────────────────────────────────────────────────────
+chargerPartages();
+changerType();
+</script>
+<script src="{% static 'engine/js/icones.js' %}"></script>
+</body>
+</html>

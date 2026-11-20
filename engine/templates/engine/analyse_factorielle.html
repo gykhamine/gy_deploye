@@ -1,0 +1,26 @@
+{% extends "engine/analyse_base.html" %}
+{% load i18n_extras %}
+{% load static %}
+{% block titre_page %}{% t "engine/templates/engine/analyse_factorielle.html:3:23" %}{% endblock %}
+{% block titre %}🧭 {{ table.nom }} — ACP · ACM · AFC{% endblock %}
+{% block cle %}factorielle{% endblock %}
+{% block options %}
+  <div class="geo-section">{% t "engine/templates/engine/analyse_factorielle.html:7:28" %}</div>
+  <div class="geo-bloc">
+    <label class="geo-champ">{% t "engine/templates/engine/analyse_factorielle.html:9:30" %}
+      <select id="o-methode">{% for k, n in catalogue.methodes.items %}<option value="{{ k }}">{{ n }}</option>{% endfor %}</select></label>
+    <label class="geo-case"><input type="checkbox" id="o-reduire" checked> {% t "engine/templates/engine/analyse_factorielle.html:11:76" %}</label>
+  </div>
+  <div class="geo-section">{% t "engine/templates/engine/analyse_factorielle.html:13:28" %}</div>
+  <div class="geo-bloc">
+    <div class="geo-note"><b>{% t "engine/templates/engine/analyse_factorielle.html:16:30" %}</b> : {% t "engine/templates/engine/analyse_factorielle.html:15:40" %} <b>{% t "engine/templates/engine/analyse_factorielle.html:16:108" %}</b> : {% t "engine/templates/engine/analyse_factorielle.html:15:86" %} <b>{% t "engine/templates/engine/analyse_factorielle.html:16:186" %}</b> : {% t "engine/templates/engine/analyse_factorielle.html:15:135" %}</div>
+    <div class="geo-note">{% t "engine/templates/engine/analyse_factorielle.html:16:27" %}</div>
+  </div>
+{% endblock %}
+{% block contenu %}
+  <div class="sx-barre">
+    <button class="geo-btn principal" id="lancer" style="max-width:240px">{% t "engine/templates/engine/analyse_factorielle.html:21:75" %}</button>
+  </div>
+{% endblock %}
+{% block script %}{% i18n_js %}<script src="{% static 'engine/js/gy_couleur.js' %}"></script>
+<script src="{% static 'engine/js/analyse_factorielle.js' %}"></script>{% endblock %}

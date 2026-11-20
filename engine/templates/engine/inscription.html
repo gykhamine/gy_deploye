@@ -1,0 +1,118 @@
+{% load static %}
+{% load i18n_extras %}
+<!DOCTYPE html>
+<html lang="{{ langue_html|default:'fr' }}">
+<head>
+<link rel="stylesheet" href="{% static 'engine/css/app.css' %}"><link rel="stylesheet" href="{% url 'engine:marque_css' %}"><script src="{% static 'engine/js/marque.js' %}" defer></script><script src="{% static 'engine/js/gestes_tactiles.js' %}" defer></script>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>{% if entreprise_cible %}{% tf "engine/templates/engine/inscription.html:9:33" v1=entreprise_cible.nom %}{% else %}{% t "engine/templates/engine/inscription.html:9:79" %} — {% t "engine/templates/engine/index.html:15:86" %}{% endif %}</title>
+{% i18n_js %}
+<script src="{% static 'engine/js/dialogues.js' %}"></script>
+</head>
+<body class="page-inscription">
+
+<div class="login-container">
+  <div class="login-card">
+    <div class="login-logo">
+      <img src="{% static 'engine/img/logo_agent_gy.png' %}" alt="{% t 'engine/templates/engine/inscription.html:15:67' %}">
+      <h1>{% t "engine/templates/engine/inscription.html:16:11" %}</h1>
+      {% if entreprise_cible %}
+        <p>{% t "engine/templates/engine/inscription.html:18:12" %}</p>
+      {% else %}
+        <p>{% t "engine/templates/engine/inscription.html:21:12" %}</p>
+      {% endif %}
+    </div>
+
+    {% if slug_rejoindre and not entreprise_cible %}
+      <!-- Lien invalide ou inscription fermée -->
+      <div class="alerte-fermee">
+        {% t "engine/templates/engine/inscription.html:29:9" %}<br>
+        <a class="btn petit" href="/login/">{% t "engine/templates/engine/inscription.html:29:27" %}</a> · <a class="btn petit" href="/inscription/">{% t "engine/templates/engine/inscription.html:29:67" %}</a>
+      </div>
+    {% else %}
+
+      {% if formulaire.non_field_errors %}
+        <div class="erreur-global">
+          {% for err in formulaire.non_field_errors %}{{ err }} {% endfor %}
+        </div>
+      {% endif %}
+
+      <form method="post" action="{% url 'engine:inscription' %}{% if slug_rejoindre %}?rejoindre={{ slug_rejoindre }}{% endif %}">
+        {% csrf_token %}
+        {% if slug_rejoindre %}<input type="hidden" name="rejoindre" value="{{ slug_rejoindre }}">{% endif %}
+
+        {% if not entreprise_cible %}
+          <div class="section-label">{% t "engine/templates/engine/inscription.html:44:38" %}</div>
+          <div class="groupe-champ">
+            <label for="id_entreprise_nom">{{ formulaire.entreprise_nom.label }}</label>
+            {{ formulaire.entreprise_nom }}
+            {% for e in formulaire.entreprise_nom.errors %}<div class="erreurs-champ">{{ e }}</div>{% endfor %}
+          </div>
+          <div class="sep"></div>
+        {% endif %}
+
+        <div class="section-label">{% t "engine/templates/engine/inscription.html:53:36" %}</div>
+
+        <div class="row">
+          <div class="groupe-champ">
+            <label for="id_first_name">{{ formulaire.first_name.label }}</label>
+            {{ formulaire.first_name }}
+            {% for e in formulaire.first_name.errors %}<div class="erreurs-champ">{{ e }}</div>{% endfor %}
+          </div>
+          <div class="groupe-champ">
+            <label for="id_last_name">{{ formulaire.last_name.label }}</label>
+            {{ formulaire.last_name }}
+            {% for e in formulaire.last_name.errors %}<div class="erreurs-champ">{{ e }}</div>{% endfor %}
+          </div>
+        </div>
+
+        <div class="row">
+          <div class="groupe-champ">
+            <label for="id_indicatif_pays">{{ formulaire.indicatif_pays.label }}</label>
+            {{ formulaire.indicatif_pays }}
+            {% for e in formulaire.indicatif_pays.errors %}<div class="erreurs-champ">{{ e }}</div>{% endfor %}
+          </div>
+          <div class="groupe-champ">
+            <label for="id_telephone">{{ formulaire.telephone.label }}</label>
+            {{ formulaire.telephone }}
+            {% for e in formulaire.telephone.errors %}<div class="erreurs-champ">{{ e }}</div>{% endfor %}
+          </div>
+        </div>
+
+        <div class="groupe-champ">
+          <label for="id_username">{{ formulaire.username.label }}</label>
+          {{ formulaire.username }}
+          {% for e in formulaire.username.errors %}<div class="erreurs-champ">{{ e }}</div>{% endfor %}
+        </div>
+
+        <div class="row">
+          <div class="groupe-champ">
+            <label for="id_password">{{ formulaire.password.label }}</label>
+            {{ formulaire.password }}
+            {% for e in formulaire.password.errors %}<div class="erreurs-champ">{{ e }}</div>{% endfor %}
+          </div>
+          <div class="groupe-champ">
+            <label for="id_password_confirmation">{{ formulaire.password_confirmation.label }}</label>
+            {{ formulaire.password_confirmation }}
+            {% for e in formulaire.password_confirmation.errors %}<div class="erreurs-champ">{{ e }}</div>{% endfor %}
+          </div>
+        </div>
+
+        <p class="guide-hint">{% t "engine/templates/engine/inscription.html:100:31" %}</p>
+  <button type="submit" class="btn-connexion">
+          {% t "engine/templates/engine/inscription.html:103:82" %}
+        </button>
+      </form>
+
+    {% endif %}
+
+    <div class="login-footer">
+      <p>{% t "engine/templates/engine/inscription.html:109:10" %} <a class="btn petit" href="/login/">{% t "engine/templates/engine/inscription.html:109:45" %}</a></p>
+    </div>
+  </div>
+</div>
+
+<script src="{% static 'engine/js/icones.js' %}"></script>
+</body>
+</html>

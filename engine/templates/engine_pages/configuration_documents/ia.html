@@ -1,0 +1,728 @@
+{% load static %}<!DOCTYPE html>
+{% load i18n_extras %}
+<head>
+<link rel="stylesheet" href="{% static 'engine/css/app.css' %}"><link rel="stylesheet" href="{% url 'engine:marque_css' %}"><script src="{% static 'engine/js/marque.js' %}" defer></script><script src="{% static 'engine/js/gy_couleur.js' %}"></script><script src="{% static 'engine/js/gestes_tactiles.js' %}" defer></script>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>{% t "engine/templates/engine_pages/configuration_documents/ia.html:6:8" %}</title>
+<script src="{% static 'engine/js/dialogues.js' %}"></script>
+</head>
+<body class="page-configuration_documents">
+
+<div class="header">
+
+</div>
+
+<div id="toast"></div>
+
+<div class="layout">
+
+
+  <!-- ── Réglages obligatoires sur TOUT document (logo, couleurs, nom) ── -->
+  <div class="carte">
+    <h2>{% t "engine/templates/engine_pages/configuration_documents/ia.html:24:9" %}</h2>
+    <p class="guide-hint">{% t "engine/templates/engine_pages/configuration_documents/ia.html:25:27" %}</p>
+    <p style="font-size:12px;color:var(--muted);margin-bottom:14px">{% t "engine/templates/engine_pages/configuration_documents/ia.html:26:69" %}</p>
+    <p id="avis-branding-agent" style="display:none;font-size:12px;color:var(--danger);margin-bottom:14px;padding:8px 10px;border:1px solid var(--bordure-danger,#4a2b28);background:var(--fond-danger-profond,#2d1416);border-radius:6px">{% t "engine/templates/engine_pages/configuration_documents/ia.html:27:187" %}</p>
+
+    <fieldset id="fieldset-branding" style="border:none;padding:0;margin:0">
+
+    <div class="champ" style="margin-bottom:16px">
+      <label>{% t "engine/templates/engine_pages/configuration_documents/ia.html:32:14" %}</label>
+      <input type="text" id="nom-affichage-document" placeholder="{% t 'engine/templates/engine_pages/configuration_documents/ia.html:33:67' %}">
+    </div>
+
+    <!-- ── Aperçu live : montre où s'applique chaque couleur, dans l'ordre
+         où elles apparaissent sur le document réel (fond → en-tête → corps
+         → pied de page), pour guider la configuration plutôt que de
+         présenter 8 pastilles de couleur sans contexte. ── -->
+    <div class="apercu-doc-cadre" style="border-radius:8px;margin-bottom:16px" id="apercu-fond-cadre">
+      <div class="apercu-doc" id="apercu-doc">
+        <div class="zone z-entete" id="apercu-entete"><span class="zone-label">{% t "engine/templates/engine_pages/configuration_documents/ia.html:42:80" %}</span></div>
+        <div class="zone z-corps" id="apercu-corps">
+          <span class="zone-label" style="color:var(--doc-texte-zone,#000000)">{% t "engine/templates/engine_pages/configuration_documents/ia.html:44:55" %}</span>
+          <div class="ligne"></div><div class="ligne"></div><div class="ligne"></div>
+        </div>
+        <div class="zone z-pied" id="apercu-pied"><span class="zone-label" style="color:var(--doc-texte-zone,#000000)">{% t "engine/templates/engine_pages/configuration_documents/ia.html:47:95" %}</span></div>
+      </div>
+    </div>
+
+    <div class="zones-branding">
+
+      <div class="zone-branding">
+        <div class="zone-titre"><span class="pastille" style="background:var(--fond-noir,#000000)"></span>{% t "engine/templates/engine_pages/configuration_documents/ia.html:54:87" %}</div>
+        <div class="champs-zone">
+          <div class="champ"><label>{% t "engine/templates/engine_pages/configuration_documents/ia.html:56:37" %}</label><input type="color" id="couleur-fond-document"></div>
+        </div>
+      </div>
+
+      <div class="zone-branding">
+        <div class="zone-titre"><span class="pastille" style="background:var(--doc-entete,#1f2937)"></span>{% t "engine/templates/engine_pages/configuration_documents/ia.html:61:90" %}</div>
+        <div class="champs-zone">
+          <div class="champ"><label>{% t "engine/templates/engine_pages/configuration_documents/ia.html:63:37" %}</label><input type="color" id="couleur-entete-document"></div>
+          <div class="champ"><label>{% t "engine/templates/engine_pages/configuration_documents/ia.html:64:37" %}</label><input type="color" id="couleur-accent-document"></div>
+        </div>
+      </div>
+
+      <div class="zone-branding">
+        <div class="zone-titre"><span class="pastille" style="background:var(--doc-lignes,#f3f4f6)"></span>{% t "engine/templates/engine_pages/configuration_documents/ia.html:69:90" %}</div>
+        <div class="champs-zone">
+          <div class="champ"><label>{% t "engine/templates/engine_pages/configuration_documents/ia.html:71:37" %}</label><input type="color" id="couleur-corps-document"></div>
+          <div class="champ"><label>{% t "engine/templates/engine_pages/configuration_documents/ia.html:72:37" %}</label><input type="color" id="couleur-texte-document"></div>
+          <div class="champ"><label>{% t "engine/templates/engine_pages/configuration_documents/ia.html:73:37" %}</label><input type="color" id="couleur-tableau-entete-document"></div>
+          <div class="champ"><label>{% t "engine/templates/engine_pages/configuration_documents/ia.html:74:37" %}</label><input type="color" id="couleur-lignes-alternees-document"></div>
+        </div>
+      </div>
+
+      <div class="zone-branding">
+        <div class="zone-titre"><span class="pastille" style="background:var(--doc-pied,#f3f4f6);border-color:var(--border)"></span>{% t "engine/templates/engine_pages/configuration_documents/ia.html:79:117" %}</div>
+        <div class="champs-zone">
+          <div class="champ"><label>{% t "engine/templates/engine_pages/configuration_documents/ia.html:81:37" %}</label><input type="color" id="couleur-pied-page-document"></div>
+        </div>
+      </div>
+
+      <div class="zone-branding">
+        <div class="zone-titre"><span class="pastille" style="background:var(--texte-nav,#9fb4c2);border-color:var(--border)"></span>{% t "engine/templates/engine_pages/configuration_documents/ia.html:87:117" %}</div>
+        <div class="champs-zone">
+          <div class="champ"><label>{% t "engine/templates/engine_pages/configuration_documents/ia.html:89:37" %}</label>
+            <select id="police-document"><option value="helvetica">{% t "engine/templates/engine_pages/configuration_documents/ia.html:90:68" %}</option><option value="times">{% t "engine/templates/engine_pages/configuration_documents/ia.html:90:127" %}</option><option value="courier">{% t "engine/templates/engine_pages/configuration_documents/ia.html:90:184" %}</option></select></div>
+          <div class="champ"><label>{% t "engine/templates/engine_pages/configuration_documents/ia.html:91:37" %}</label><input type="text" id="texte-pied-page-document" maxlength="150" placeholder="{% t 'engine/templates/engine_pages/configuration_documents/ia.html:91:144' %}"></div>
+          <label class="ligne-checkbox"><input type="checkbox" id="numeroter-pages-document"> {% t "engine/templates/engine_pages/configuration_documents/ia.html:92:95" %}</label>
+          <p style="font-size:11px;color:var(--muted);margin:6px 0 0">{% t "engine/templates/engine_pages/configuration_documents/ia.html:93:71" %}</p>
+        </div>
+      </div>
+
+    </div>
+
+    <div class="sep grille">
+      <label class="ligne-checkbox"><input type="checkbox" id="afficher-logo-document"> {% t "engine/templates/engine_pages/configuration_documents/ia.html:88:89" %}</label>
+      <div class="champ"><label>{% t "engine/templates/engine_pages/configuration_documents/ia.html:89:33" %}</label>
+        <select id="position-logo-document">
+          <option value="gauche">{% t "engine/templates/engine_pages/configuration_documents/ia.html:91:34" %}</option>
+          <option value="centre">{% t "engine/templates/engine_pages/configuration_documents/ia.html:92:34" %}</option>
+          <option value="droite">{% t "engine/templates/engine_pages/configuration_documents/ia.html:93:34" %}</option>
+        </select>
+      </div>
+      <div style="display:flex;align-items:center;gap:8px;font-size:11px;color:var(--muted)">
+        <div class="apercu-vignette" id="logo-apercu"><span>🏢</span></div>
+        <span id="logo-statut">{% t "engine/templates/engine_pages/configuration_documents/ia.html:98:32" %}</span>
+      </div>
+    </div>
+    <p class="aide">{% t "engine/templates/engine_pages/configuration_documents/ia.html:101:21" %}</p>
+    </fieldset>
+
+    <div style="margin-top:14px">
+      <button class="principal" id="btn-sauvegarder-global">{% t "engine/templates/engine_pages/configuration_documents/ia.html:105:61" %}</button>
+    </div>
+  </div>
+
+  <!-- ── Onglets par contexte ── -->
+  <div class="onglets" id="onglets-contexte">
+    {% for valeur, libelle in contextes %}
+    <button class="onglet" data-contexte="{{ valeur }}">{{ libelle }}</button>
+    {% endfor %}
+  </div>
+
+  <!-- ── Bandeau de contexte actif : les cartes ci-dessous (Cachet,
+       Signatures, Sections) sont PARTAGÉES visuellement entre les 3 onglets
+       mais chargent/sauvegardent une valeur INDÉPENDANTE par contexte — ce
+       bandeau évite de confondre "ce que je configure pour telle table"
+       avec "ce que je configure pour le document généré par IA". ── -->
+  <div id="bandeau-contexte" style="display:flex;align-items:center;gap:8px;background:var(--fond-bandeau,#0f1216);border:1px solid var(--border);border-radius:8px;padding:10px 14px;margin-bottom:20px;font-size:12px">
+    <span style="color:var(--muted)">{% t "engine/templates/engine_pages/configuration_documents/ia.html:122:38" %}</span>
+    <strong id="bandeau-contexte-libelle" style="color:var(--accent)">—</strong>
+    <span style="color:var(--muted)">{% t "engine/templates/engine_pages/configuration_documents/ia.html:124:38" %}</span>
+  </div>
+
+  <!-- ── Étape 1 : Cible — table ou carte concernée. Sélection UNIQUE,
+       appliquée à TOUS les réglages qui suivent (photo, cachet, signatures).
+       Placée en premier : les cartes suivantes s'y réfèrent (« ci-dessus »),
+       le client doit donc la voir et la choisir avant de configurer quoi
+       que ce soit qui en dépend. ── -->
+  <div class="carte" id="carte-cible-table">
+    <h2><span class="etape-num">1</span>{% t "engine/templates/engine_pages/configuration_documents/ia.html:133:41" %} <span style="font-weight:400;color:var(--muted);text-transform:none;letter-spacing:0">· <span id="badge-contexte-cible">—</span></span></h2>
+    <p class="aide" style="margin-top:-8px;margin-bottom:12px" id="aide-table-cachet-document"></p>
+    <div class="grille" style="margin-bottom:8px">
+      <div class="champ"><label id="libelle-table-cachet-document">{% t "engine/templates/engine_pages/configuration_documents/ia.html:136:68" %}</label>
+        <select id="table-cachet-document"><option value="">{% t "engine/templates/engine_pages/configuration_documents/ia.html:137:61" %}</option></select>
+      </div>
+      <div class="champ" id="champ-type-cachet-document" style="display:none">
+        <label>{% t "engine/templates/engine_pages/configuration_documents/ia.html:140:16" %}</label>
+        <select id="type-cachet-document"><option value="">{% t "engine/templates/engine_pages/configuration_documents/ia.html:141:60" %}</option></select>
+        <p class="aide" style="margin-top:4px">{% t "engine/templates/engine_pages/configuration_documents/ia.html:142:48" %}</p>
+      </div>
+      <div class="champ" id="champ-carte-precise-cachet-document" style="display:none;grid-column:1/-1">
+        <label>{% t "engine/templates/engine_pages/configuration_documents/ia.html:145:16" %}</label>
+        <select id="carte-precise-cachet-document"><option value="">{% t "engine/templates/engine_pages/configuration_documents/ia.html:146:69" %}</option></select>
+        <p class="aide" style="margin-top:4px">{% t "engine/templates/engine_pages/configuration_documents/ia.html:147:48" %}</p>
+      </div>
+    </div>
+
+    <!-- Photo d'identité : uniquement pour un export « PDF de table »
+         (contexte 'table'), s'applique à la table choisie ci-dessus. -->
+    <div class="sep" id="bloc-photo-identite-table" style="display:none">
+      <label class="ligne-checkbox" style="margin-bottom:8px"><input type="checkbox" id="afficher-photo-identite-table" disabled> {% t "engine/templates/engine_pages/configuration_documents/ia.html:154:131" %}</label>
+      <div style="display:flex;align-items:center;gap:8px">
+        <div class="apercu-vignette" id="photo-identite-table-apercu"><span>🪪</span></div>
+        <button class="petit" type="button" id="btn-photo-identite-table-choisir" disabled onclick="document.getElementById('photo-identite-table-fichier').click()">📁</button>
+        <button class="petit danger" type="button" id="btn-photo-identite-table-retirer" disabled>✕</button>
+        <input type="file" id="photo-identite-table-fichier" accept=".png,.jpg,.jpeg,.jfif,.webp,.gif,.apng,.svg,.bmp,.tif,.tiff,.ico,.avif,.heic,.heif,.jp2,.tga,.ppm,.pgm" style="display:none">
+      </div>
+      <p class="aide" style="margin-top:6px">{% t "engine/templates/engine_pages/configuration_documents/ia.html:161:46" %}</p>
+    </div>
+  </div>
+
+  <!-- ── Étape 2 : Photo de l'entité (contexte 'ia' uniquement — voir
+       chargerContexte). Vient après la sélection car sa carte y renvoie
+       le client vers l'alternative « par table ». ── -->
+  <div class="carte" id="carte-photo-entite">
+    <h2><span class="etape-num">2</span>{% t "engine/templates/engine_pages/configuration_documents/ia.html:169:41" %} <span class="badge-contexte" style="font-weight:400;color:var(--muted);text-transform:none;letter-spacing:0">{% t "engine/templates/engine_pages/configuration_documents/ia.html:169:168" %}</span></h2>
+    <p class="aide" style="margin-top:-8px;margin-bottom:12px">{% t "engine/templates/engine_pages/configuration_documents/ia.html:170:64" %}</p>
+    <div class="grille" style="margin-bottom:8px">
+      <label class="ligne-checkbox"><input type="checkbox" id="afficher-photo-entite"> {% t "engine/templates/engine_pages/configuration_documents/ia.html:172:88" %}</label>
+      <div class="champ"><label>{% t "engine/templates/engine_pages/configuration_documents/ia.html:173:33" %}</label>
+        <select id="position-photo-entite">
+          <option value="entete">{% t "engine/templates/engine_pages/configuration_documents/ia.html:175:34" %}</option>
+          <option value="partie_destinataire">{% t "engine/templates/engine_pages/configuration_documents/ia.html:176:47" %}</option>
+        </select>
+      </div>
+      <div style="display:flex;align-items:center;gap:8px">
+        <div class="apercu-vignette" id="photo-entite-apercu"><span>🪪</span></div>
+        <button class="petit" type="button" onclick="document.getElementById('photo-entite-fichier').click()">📁</button>
+        <button class="petit danger" type="button" onclick="supprimerImageCachet('image_entite')">✕</button>
+        <input type="file" id="photo-entite-fichier" accept=".png,.jpg,.jpeg,.jfif,.webp,.gif,.apng,.svg,.bmp,.tif,.tiff,.ico,.avif,.heic,.heif,.jp2,.tga,.ppm,.pgm" style="display:none" onchange="televerserImageCachet('image_entite', this)">
+      </div>
+    </div>
+    <p class="aide">{% t "engine/templates/engine_pages/configuration_documents/ia.html:186:21" %}</p>
+  </div>
+
+  <!-- ── Étape 3 : Cachet (par contexte) ── -->
+  <div class="carte">
+    <h2><span class="etape-num">3</span>{% t "engine/templates/engine_pages/configuration_documents/ia.html:191:41" %} <span style="font-weight:400;color:var(--muted);text-transform:none;letter-spacing:0">{% t "engine/templates/engine_pages/configuration_documents/ia.html:191:134" %} <span id="badge-contexte-cachet">—</span></span></h2>
+    <label class="ligne-checkbox" style="margin-bottom:12px"><input type="checkbox" id="afficher-cachet-document"> {% t "engine/templates/engine_pages/configuration_documents/ia.html:192:116" %}</label>
+    <div class="grille" style="margin-bottom:12px">
+      <div class="champ"><label>{% t "engine/templates/engine_pages/configuration_documents/ia.html:194:33" %}</label><input type="text" id="cachet-texte-actif" maxlength="40" placeholder="{% t 'engine/templates/engine_pages/configuration_documents/ia.html:194:130' %}"></div>
+      <div class="champ"><label>{% t "engine/templates/engine_pages/configuration_documents/ia.html:195:33" %}</label><input type="text" id="cachet-texte-inactif" maxlength="40" placeholder="{% t 'engine/templates/engine_pages/configuration_documents/ia.html:195:134' %}"></div>
+      <div class="champ"><label>{% t "engine/templates/engine_pages/configuration_documents/ia.html:196:33" %}</label>
+        <select id="position-cachet-document">
+          <option value="entete">{% t "engine/templates/engine_pages/configuration_documents/ia.html:198:34" %}</option>
+          <option value="totaux">{% t "engine/templates/engine_pages/configuration_documents/ia.html:199:34" %}</option>
+          <option value="pied_page">{% t "engine/templates/engine_pages/configuration_documents/ia.html:200:37" %}</option>
+        </select>
+      </div>
+      <div class="champ"><label>{% t "engine/templates/engine_pages/configuration_documents/ia.html:203:33" %}</label>
+        <select id="champ-statut-cachet"><option value="">{% t "engine/templates/engine_pages/configuration_documents/ia.html:204:59" %}</option></select>
+      </div>
+    </div>
+    <p class="aide" style="margin:0 0 8px">{% t "engine/templates/engine_pages/configuration_documents/ia.html:207:44" %}</p>
+    <p class="aide" style="margin:0 0 12px">{% t "engine/templates/engine_pages/configuration_documents/ia.html:208:45" %}</p>
+    <div style="display:flex;gap:20px;flex-wrap:wrap">
+      <div>
+        <div class="aide" style="margin:0 0 6px">{% t "engine/templates/engine_pages/configuration_documents/ia.html:211:50" %}</div>
+        <div style="display:flex;align-items:center;gap:8px">
+          <div class="apercu-vignette" id="cachet-actif-apercu"><span>🔖</span></div>
+          <button class="petit" type="button" onclick="document.getElementById('cachet-actif-fichier').click()">📁</button>
+          <button class="petit danger" type="button" onclick="supprimerImageCachet('cachet_image_actif')">✕</button>
+          <input type="file" id="cachet-actif-fichier" accept=".png,.jpg,.jpeg,.jfif,.webp,.gif,.apng,.svg,.bmp,.tif,.tiff,.ico,.avif,.heic,.heif,.jp2,.tga,.ppm,.pgm" style="display:none" onchange="televerserImageCachet('cachet_image_actif', this)">
+        </div>
+      </div>
+      <div>
+        <div class="aide" style="margin:0 0 6px">{% t "engine/templates/engine_pages/configuration_documents/ia.html:220:50" %}</div>
+        <div style="display:flex;align-items:center;gap:8px">
+          <div class="apercu-vignette" id="cachet-inactif-apercu"><span>🔖</span></div>
+          <button class="petit" type="button" onclick="document.getElementById('cachet-inactif-fichier').click()">📁</button>
+          <button class="petit danger" type="button" onclick="supprimerImageCachet('cachet_image_inactif')">✕</button>
+          <input type="file" id="cachet-inactif-fichier" accept=".png,.jpg,.jpeg,.jfif,.webp,.gif,.apng,.svg,.bmp,.tif,.tiff,.ico,.avif,.heic,.heif,.jp2,.tga,.ppm,.pgm" style="display:none" onchange="televerserImageCachet('cachet_image_inactif', this)">
+        </div>
+      </div>
+    </div>
+    <p class="aide">{% t "engine/templates/engine_pages/configuration_documents/ia.html:229:21" %}</p>
+  </div>
+
+  <!-- ── Étape 4 : Signatures (globales, partagées entre contextes) ── -->
+  <div class="carte">
+    <h2><span class="etape-num">4</span>{% t "engine/templates/engine_pages/configuration_documents/ia.html:234:41" %} <span style="font-weight:400;color:var(--muted);text-transform:none;letter-spacing:0">{% t "engine/templates/engine_pages/configuration_documents/ia.html:234:138" %} <span id="badge-contexte-signatures">—</span></span></h2>
+    <div class="grille" style="margin-bottom:8px">
+      <label class="ligne-checkbox"><input type="checkbox" id="afficher-signatures-document"> {% t "engine/templates/engine_pages/configuration_documents/ia.html:236:95" %}</label>
+      <div class="champ"><label>{% t "engine/templates/engine_pages/configuration_documents/ia.html:237:33" %}</label>
+        <select id="position-signatures-document">
+          <option value="notes">{% t "engine/templates/engine_pages/configuration_documents/ia.html:239:33" %}</option>
+          <option value="pied_page">{% t "engine/templates/engine_pages/configuration_documents/ia.html:240:37" %}</option>
+        </select>
+      </div>
+    </div>
+    <p class="aide" style="margin-bottom:10px">{% t "engine/templates/engine_pages/configuration_documents/ia.html:244:48" %}</p>
+    <ul id="signatures-liste" style="list-style:none;display:flex;flex-direction:column;gap:6px;margin-bottom:10px"></ul>
+    <button class="petit" type="button" onclick="document.getElementById('signature-fichier').click()">{% t "engine/templates/engine_pages/configuration_documents/ia.html:246:104" %}</button>
+    <input type="file" id="signature-fichier" accept=".png,.jpg,.jpeg,.jfif,.webp,.gif,.apng,.svg,.bmp,.tif,.tiff,.ico,.avif,.heic,.heif,.jp2,.tga,.ppm,.pgm" style="display:none" onchange="ajouterSignature(this)">
+  </div>
+
+  <!-- ── Étape 5 : Sections actives ── -->
+  <div class="carte">
+    <h2><span class="etape-num">5</span>{% t "engine/templates/engine_pages/configuration_documents/ia.html:252:41" %} <span style="font-weight:400;color:var(--muted);text-transform:none;letter-spacing:0">· <span id="badge-contexte-sections">—</span></span></h2>
+    <p class="aide" style="margin-bottom:10px">{% t "engine/templates/engine_pages/configuration_documents/ia.html:253:48" %}</p>
+    <ul id="sections-liste" style="list-style:none;display:flex;flex-direction:column;gap:4px"></ul>
+  </div>
+
+  <div style="margin-bottom:40px">
+    <button class="principal" id="btn-sauvegarder-contexte">{% t "engine/templates/engine_pages/configuration_documents/ia.html:258:61" %}</button>
+  </div>
+
+</div>
+
+{% i18n_js %}
+<script>
+const CSRF = document.cookie.match(/gy_csrftoken=([^;]+)/)?.[1] || "{{ csrf_token }}";
+const CONTEXTE_ACTIF = "ia";
+const CONTEXTE_LABEL = tj("engine/templates/engine_pages/configuration_documents/ia.html:js:278:25");
+
+
+
+function toast(msg, err=false){
+  const t = document.getElementById("toast");
+  t.textContent = msg; t.className = err ? "err" : "";
+  t.style.display = "block";
+  clearTimeout(t._t);
+  t._t = setTimeout(() => t.style.display="none", 3500);
+}
+
+async function api(url, opts={}){
+  const res = await fetch(url, {
+    headers:{"Content-Type":"application/json","X-CSRFToken":CSRF},
+    ...opts
+  });
+  const data = await res.json().catch(()=>({}));
+  if(!res.ok){ toast(data.erreur||tj("engine/templates/engine_pages/configuration_documents/ia.html:js:296:36", {v1: res.status}), true); throw data; }
+  return data;
+}
+
+function apercuHtml(url, vide){
+  return url ? `<img src="${url}" alt="{% t 'engine/templates/engine_pages/configuration_documents/ia.html:a:302:39' %}">` : `<span>${vide}</span>`;
+}
+
+// ── État courant ────────────────────────────────────────────────────────
+let contexteActif = null;
+let derniereConfig = null;
+let tablesDisponibles = [];
+let signaturesActuelles = [];
+
+// ── Onglets ──────────────────────────────────────────────────────────────
+document.querySelectorAll("#onglets-contexte .onglet").forEach(btn => {
+  btn.onclick = () => changerContexte(btn.dataset.contexte);
+});
+
+function changerContexte(contexte){
+  contexteActif = contexte;
+  let libelle = contexte;
+  document.querySelectorAll("#onglets-contexte .onglet").forEach(b => {
+    const actif = b.dataset.contexte === contexte;
+    b.classList.toggle("actif", actif);
+    if (actif) libelle = b.textContent.trim();
+  });
+  // Bandeau + badges : rappellent sur CHAQUE carte partagée (Cachet,
+  // Signatures, Sections) que sa valeur est propre à l'onglet actif, pour
+  // ne jamais confondre un réglage de table avec celui du document IA.
+  document.getElementById("bandeau-contexte-libelle").textContent = libelle;
+  ["cachet", "signatures", "sections", "cible"].forEach(cible => {
+    const el = document.getElementById(`badge-contexte-${cible}`);
+    if (el) el.textContent = libelle;
+  });
+  // Photo de l'entité : uniquement pertinente pour la carte de document IA
+  // (contexte 'ia'). Le PDF de table utilise sa photo fixe propre à la
+  // table ; les reçus/liste employés n'ont aucune option photo.
+  document.getElementById("carte-photo-entite").style.display = (contexte === "ia") ? "" : "none";
+  // Photo d'identité par table : rattachée à la sélection UNIQUE de table
+  // ci-dessus, n'apparaît que pour un export « PDF de table ».
+  document.getElementById("bloc-photo-identite-table").style.display = (contexte === "table") ? "" : "none";
+  // Sélecteur UNIQUE table/carte : sert à la fois à restreindre le cachet
+  // ET, pour le contexte 'table', à choisir la table dont on règle la photo
+  // d'identité juste en dessous — on ne choisit plus la table deux fois.
+  const libelleTableCachet = document.getElementById("libelle-table-cachet-document");
+  libelleTableCachet.textContent = (contexte === "ia") ? tj("engine/templates/engine_pages/configuration_documents/ia.html:js:342:59") : tj("engine/templates/engine_pages/configuration_documents/ia.html:js:342:76");
+  const aideTableCachet = document.getElementById("aide-table-cachet-document");
+  aideTableCachet.textContent = (contexte === "table")
+    ? tj("engine/templates/engine_pages/configuration_documents/ia.html:js:345:8")
+    : (contexte === "ia")
+      ? tj("engine/templates/engine_pages/configuration_documents/ia.html:js:347:10")
+      : tj("engine/templates/engine_pages/configuration_documents/ia.html:js:348:10");
+  // Restriction du cachet par TYPE DE CARTE (facture/devis/…) : n'existe
+  // que pour le contexte 'ia' — un export de table ou un reçu système n'a
+  // pas de "type de carte". Se combine avec la table ci-dessus (ET logique).
+  document.getElementById("champ-type-cachet-document").style.display = (contexte === "ia") ? "" : "none";
+  // Restriction du cachet par CARTE PRÉCISE : même limite que le type — n'a
+  // de sens que pour une carte IA déjà générée, jamais pour un export de
+  // table ou un reçu système.
+  document.getElementById("champ-carte-precise-cachet-document").style.display = (contexte === "ia") ? "" : "none";
+  chargerContexte(contexte);
+}
+
+// ── Sections réordonnables ──────────────────────────────────────────────
+let sectionsToutes = [];
+let sectionsEtat = [];
+
+function sectionsInit(disponibles, libelles, actives){
+  const ordreActif = (actives && actives.length) ? actives : disponibles;
+  const inactives = disponibles.filter(s => !ordreActif.includes(s));
+  sectionsToutes = disponibles.map(s => ({slug: s, libelle: (libelles && libelles[s]) || s}));
+  sectionsEtat = [...ordreActif, ...inactives].map(s => ({slug: s, active: ordreActif.includes(s)}));
+  sectionsRendre();
+}
+function sectionsRendre(){
+  const ul = document.getElementById("sections-liste");
+  const libelleDe = slug => (sectionsToutes.find(s => s.slug === slug) || {}).libelle || slug;
+  ul.innerHTML = sectionsEtat.map((item, i) => `
+    <li class="section-item" data-slug="${item.slug}">
+      <input type="checkbox" ${item.active ? "checked" : ""} onchange="sectionToggle(${i})">
+      <span class="section-label">${libelleDe(item.slug)}</span>
+      <button type="button" onclick="sectionDeplacer(${i},-1)" ${i === 0 ? "disabled" : ""}>▲</button>
+      <button type="button" onclick="sectionDeplacer(${i},1)" ${i === sectionsEtat.length - 1 ? "disabled" : ""}>▼</button>
+    </li>
+  `).join("");
+}
+function sectionToggle(i){ sectionsEtat[i].active = !sectionsEtat[i].active; sectionsRendre(); }
+function sectionDeplacer(i, delta){
+  const j = i + delta;
+  if (j < 0 || j >= sectionsEtat.length) return;
+  [sectionsEtat[i], sectionsEtat[j]] = [sectionsEtat[j], sectionsEtat[i]];
+  sectionsRendre();
+}
+function sectionsValeur(){ return sectionsEtat.filter(s => s.active).map(s => s.slug); }
+
+// ── Signatures (globales — mêmes endpoints que l'ancienne config IA) ────
+function optionsTables(idSelectionne, texteToutes){
+  const toutes = `<option value="">— ${texteToutes || tj("engine/templates/engine_pages/configuration_documents/ia.html:js:394:56")} —</option>`;
+  const options = tablesDisponibles.map(t => `
+    <option value="${t.id}" ${String(idSelectionne||"") === String(t.id) ? "selected" : ""}>${(t.nom||"").replace(/</g,"&lt;")}</option>
+  `).join("");
+  return toutes + options;
+}
+
+// ── Photo d'identité par table (contexte 'table') ────────────────────────
+// Rattachée au sélecteur UNIQUE #table-cachet-document : plus de select
+// dédié — on sélectionne la table une seule fois, et ce réglage suit.
+function syncPhotoIdentiteDepuisCible(){
+  if (contexteActif !== "table") return;
+  const tableId = document.getElementById("table-cachet-document").value;
+  const table = tablesDisponibles.find(t => String(t.id) === String(tableId));
+  appliquerEtatPhotoIdentiteTable(table || null);
+}
+function appliquerEtatPhotoIdentiteTable(table){
+  const coche = document.getElementById("afficher-photo-identite-table");
+  const btnChoisir = document.getElementById("btn-photo-identite-table-choisir");
+  const btnRetirer = document.getElementById("btn-photo-identite-table-retirer");
+  const apercu = document.getElementById("photo-identite-table-apercu");
+  const actif = !!table;
+  coche.disabled = !actif;
+  btnChoisir.disabled = !actif;
+  btnRetirer.disabled = !actif;
+  coche.checked = actif && !!table.afficher_photo_identite_document;
+  apercu.innerHTML = (actif && table.photo_identite_url)
+    ? `<img src="${table.photo_identite_url}" alt="{% t 'engine/templates/engine_pages/configuration_documents/ia.html:a:422:51' %}" style="width:100%;height:100%;object-fit:cover">`
+    : `<span>🪪</span>`;
+}
+document.getElementById("table-cachet-document").onchange = syncPhotoIdentiteDepuisCible;
+document.getElementById("afficher-photo-identite-table").onchange = async (ev) => {
+  const tableId = document.getElementById("table-cachet-document").value;
+  if(!tableId) return;
+  const actif = ev.target.checked;
+  const fd = new FormData();
+  fd.append("afficher", actif ? "1" : "0");
+  try {
+    const res = await fetch(`/api/tables/${tableId}/photo-identite/`, {method:"POST", headers:{"X-CSRFToken":CSRF}, body:fd}).then(r=>r.json());
+    if (res.erreur) { toast(res.erreur, true); ev.target.checked = !actif; return; }
+    const t = tablesDisponibles.find(t => String(t.id) === String(tableId));
+    if(t) t.afficher_photo_identite_document = actif;
+    toast(actif ? tj("engine/templates/engine_pages/configuration_documents/ia.html:js:436:20") : tj("engine/templates/engine_pages/configuration_documents/ia.html:js:436:51"));
+  } catch(e) { toast(tj("engine/templates/engine_pages/configuration_documents/ia.html:js:437:23"), true); ev.target.checked = !actif; }
+};
+document.getElementById("photo-identite-table-fichier").onchange = async (ev) => {
+  const fichier = ev.target.files && ev.target.files[0];
+  const tableId = document.getElementById("table-cachet-document").value;
+  if (!fichier || !tableId) return;
+  const fd = new FormData();
+  fd.append("image", fichier);
+  try {
+    const res = await fetch(`/api/tables/${tableId}/photo-identite/`, {method:"POST", headers:{"X-CSRFToken":CSRF}, body:fd}).then(r=>r.json());
+    if (res.erreur) { toast(res.erreur, true); return; }
+    const t = tablesDisponibles.find(t => String(t.id) === String(tableId));
+    if(t){ t.photo_identite_url = res.photo_identite_url; t.afficher_photo_identite_document = res.afficher_photo_identite_document; }
+    appliquerEtatPhotoIdentiteTable(t);
+    toast(tj("engine/templates/engine_pages/configuration_documents/ia.html:js:451:12"));
+  } catch(e) { toast(tj("engine/templates/engine_pages/configuration_documents/ia.html:js:452:23"), true); }
+  ev.target.value = "";
+};
+document.getElementById("btn-photo-identite-table-retirer").onclick = async () => {
+  const tableId = document.getElementById("table-cachet-document").value;
+  if(!tableId) return;
+  const fd = new FormData();
+  fd.append("supprimer", "1");
+  try {
+    const res = await fetch(`/api/tables/${tableId}/photo-identite/`, {method:"POST", headers:{"X-CSRFToken":CSRF}, body:fd}).then(r=>r.json());
+    if (res.erreur) { toast(res.erreur, true); return; }
+    const t = tablesDisponibles.find(t => String(t.id) === String(tableId));
+    if(t){ t.photo_identite_url = null; }
+    appliquerEtatPhotoIdentiteTable(t);
+    toast(tj("engine/templates/engine_pages/configuration_documents/ia.html:js:466:12"));
+  } catch(e) { toast(tj("engine/templates/engine_pages/configuration_documents/ia.html:js:467:23"), true); }
+};
+
+function signaturesRendre(){
+  const ul = document.getElementById("signatures-liste");
+  if (!signaturesActuelles.length){
+    ul.innerHTML = `<li style="font-size:11px;color:var(--muted)">${tj("engine/templates/engine_pages/configuration_documents/ia.html:js:473:68")}</li>`;
+    return;
+  }
+  ul.innerHTML = signaturesActuelles.map(s => `
+    <li style="display:flex;align-items:center;gap:8px;padding:6px;border:1px solid var(--border);border-radius:6px;flex-wrap:wrap">
+      ${s.image_url ? `<img src="${s.image_url}" alt="signature" style="height:32px;object-fit:contain">` : ""}
+      <input type="text" value="${(s.nom||"").replace(/"/g,'&quot;')}" placeholder="{% t 'engine/templates/engine_pages/configuration_documents/ia.html:a:480:84' %}"
+             style="flex:1;min-width:120px;font-size:12px;padding:4px 6px;background:var(--fond-noir,#000000);color:var(--text);border:1px solid var(--border);border-radius:4px"
+             onchange="signatureModifier(${s.id}, {nom: this.value})">
+      <span style="font-size:11px;color:var(--muted);white-space:nowrap" title="${tj("engine/templates/engine_pages/configuration_documents/ia.html:js:482:82")}">🎯 ${s.document_nom ? s.document_nom.replace(/</g,"&lt;") : (s.demande_nom ? s.demande_nom.replace(/</g,"&lt;") : (s.table_nom || tj("engine/templates/engine_pages/configuration_documents/ia.html:js:482:279")).replace(/</g,"&lt;"))}</span>
+      <label style="font-size:11px;color:var(--muted);display:flex;align-items:center;gap:4px;white-space:nowrap">
+        <input type="checkbox" ${s.actif ? "checked" : ""} onchange="signatureModifier(${s.id}, {actif: this.checked})"> ${tj("engine/templates/engine_pages/configuration_documents/ia.html:js:484:123")}
+      </label>
+      <button class="petit danger" type="button" onclick="signatureSupprimer(${s.id})">✕</button>
+    </li>
+  `).join("");
+}
+async function ajouterSignature(input){
+  const fichier = input.files && input.files[0];
+  if (!fichier) return;
+  const fd = new FormData();
+  fd.append("image", fichier);
+  // Cible unique : la signature est créée directement rattachée à la table
+  // ET/OU à la carte précise choisies dans le sélecteur du haut — plus de
+  // champ de sélection séparé par signature. Pour une cible différente,
+  // changez d'abord la sélection du haut avant d'ajouter la signature
+  // suivante.
+  const tableIdCible = document.getElementById("table-cachet-document").value;
+  if (tableIdCible) fd.append("table_id", tableIdCible);
+  if (contexteActif === "ia") {
+    // Cible unique préfixée "doc-<id>" (carte de document) ou "ana-<id>"
+    // (carte d'analyse) — on n'envoie que le champ correspondant.
+    const cartePreciseCible = document.getElementById("carte-precise-cachet-document").value;
+    if (cartePreciseCible.startsWith("doc-")) fd.append("document_id", cartePreciseCible.slice(4));
+    else if (cartePreciseCible.startsWith("ana-")) fd.append("demande_id", cartePreciseCible.slice(4));
+  }
+  try{
+    const rep = await fetch("/api/config-ia/signatures/creer/", {method:"POST", headers:{"X-CSRFToken":CSRF}, body:fd}).then(r=>r.json());
+    if(rep.erreur){ toast(rep.erreur, true); return; }
+    signaturesActuelles.push(rep.signature);
+    signaturesRendre();
+    toast(tj("engine/templates/engine_pages/configuration_documents/ia.html:js:514:12"));
+  }catch(e){ toast(tj("engine/templates/engine_pages/configuration_documents/ia.html:js:515:21"), true); }
+  input.value = "";
+}
+async function signatureModifier(id, patch){
+  try{
+    await api(`/api/config-ia/signatures/${id}/modifier/`, {method:"POST", body:JSON.stringify(patch)});
+    const sig = signaturesActuelles.find(s => s.id === id);
+    if (sig) Object.assign(sig, patch);
+  }catch(e){}
+}
+async function signatureSupprimer(id){
+  try{
+    await api(`/api/config-ia/signatures/${id}/supprimer/`, {method:"POST"});
+    signaturesActuelles = signaturesActuelles.filter(s => s.id !== id);
+    signaturesRendre();
+  }catch(e){}
+}
+
+// ── Images à emplacement fixe (cachet + photo entité), propres au contexte ──
+const _APERCU_CIBLE_IMAGE = {
+  cachet_image_actif:   "cachet-actif-apercu",
+  cachet_image_inactif: "cachet-inactif-apercu",
+  image_entite:         "photo-entite-apercu",
+};
+function appliquerImageCachet(cible, url){
+  const div = document.getElementById(_APERCU_CIBLE_IMAGE[cible]);
+  if (div) div.innerHTML = apercuHtml(url, cible === "image_entite" ? "🪪" : "");
+}
+async function televerserImageCachet(cible, input){
+  const fichier = input.files && input.files[0];
+  if (!fichier) return;
+  const fd = new FormData();
+  fd.append("cible", cible);
+  fd.append("image", fichier);
+  try{
+    const rep = await fetch(`/api/configuration-documents/${contexteActif}/image/`, {method:"POST", headers:{"X-CSRFToken":CSRF}, body:fd}).then(r=>r.json());
+    if(rep.erreur){ toast(rep.erreur, true); return; }
+    appliquerImageCachet(cible, rep.image_url);
+    toast(tj("engine/templates/engine_pages/configuration_documents/ia.html:js:553:12"));
+  }catch(e){ toast(tj("engine/templates/engine_pages/configuration_documents/ia.html:js:554:21"), true); }
+  input.value = "";
+}
+async function supprimerImageCachet(cible){
+  const fd = new FormData();
+  fd.append("cible", cible);
+  try{
+    await fetch(`/api/configuration-documents/${contexteActif}/image/`, {method:"POST", headers:{"X-CSRFToken":CSRF}, body:fd});
+    appliquerImageCachet(cible, null);
+  }catch(e){}
+}
+
+// ── Aperçu live du branding : reflète immédiatement chaque couleur sur son
+// emplacement réel dans le document (fond → en-tête → corps → pied de page)
+// pour guider la configuration sans avoir à générer un PDF. ──────────────
+function rafraichirApercuBranding(){
+  const val = id => (document.getElementById(id) || {}).value;
+  document.getElementById("apercu-fond-cadre").style.background   = val("couleur-fond-document") || gyCouleur("--doc-fond","#ffffff");
+  document.getElementById("apercu-entete").style.background       = val("couleur-entete-document") || gyCouleur("--doc-entete","#1f2937");
+  document.getElementById("apercu-corps").style.background        = val("couleur-corps-document") || gyCouleur("--doc-fond","#ffffff");
+  document.getElementById("apercu-pied").style.background         = val("couleur-pied-page-document") || gyCouleur("--doc-pied","#f3f4f6");
+  const accent = val("couleur-accent-document") || gyCouleur("--doc-accent","#e8a33d");
+  document.getElementById("apercu-entete").style.borderBottom = `2px solid ${accent}`;
+  document.querySelectorAll("#apercu-corps .ligne").forEach(l => l.style.background = val("couleur-lignes-alternees-document") || gyCouleur("--ombre","#000000",.12));
+}
+["couleur-fond-document","couleur-entete-document","couleur-accent-document","couleur-corps-document",
+ "couleur-texte-document","couleur-tableau-entete-document","couleur-lignes-alternees-document",
+ "couleur-pied-page-document"].forEach(id => {
+  const el = document.getElementById(id);
+  if (el) el.addEventListener("input", rafraichirApercuBranding);
+});
+
+// ── Chargement / sauvegarde ──────────────────────────────────────────────
+async function chargerContexte(contexte){
+  try{
+    const cfg = await api(`/api/configuration-documents/${contexte}/`);
+    derniereConfig = cfg;
+
+    // Verrouillage du branding global : seul un admin peut le modifier —
+    // les agents le voient (transparence) mais ne peuvent pas l'éditer.
+    const estAdmin = !!cfg.est_admin;
+    document.getElementById("avis-branding-agent").style.display = estAdmin ? "none" : "block";
+    document.getElementById("fieldset-branding").disabled = !estAdmin;
+    const btnGlobal = document.getElementById("btn-sauvegarder-global");
+    btnGlobal.disabled = !estAdmin;
+    btnGlobal.style.opacity = estAdmin ? "1" : ".5";
+    btnGlobal.style.cursor = estAdmin ? "pointer" : "not-allowed";
+
+    // Branding global (identique quel que soit l'onglet, ré-affiché à chaque fois)
+    document.getElementById("nom-affichage-document").value  = cfg.nom_affichage_document || "";
+    document.getElementById("couleur-accent-document").value = cfg.couleur_accent_document || gyCouleurHex("--doc-accent","#e8a33d");
+    document.getElementById("couleur-entete-document").value = cfg.couleur_entete_document || gyCouleurHex("--doc-entete","#1f2937");
+    document.getElementById("couleur-tableau-entete-document").value   = cfg.couleur_tableau_entete_document || gyCouleurHex("--doc-tableau-entete","#0d1117");
+    document.getElementById("couleur-lignes-alternees-document").value = cfg.couleur_lignes_alternees_document || gyCouleurHex("--doc-lignes","#f3f4f6");
+    document.getElementById("couleur-texte-document").value  = cfg.couleur_texte_document || gyCouleurHex("--doc-texte-config","#1a1a2e");
+    document.getElementById("couleur-fond-document").value      = cfg.couleur_fond_document || gyCouleurHex("--doc-fond","#ffffff");
+    document.getElementById("couleur-corps-document").value     = cfg.couleur_corps_document || gyCouleurHex("--doc-fond","#ffffff");
+    document.getElementById("couleur-pied-page-document").value = cfg.couleur_pied_page_document || gyCouleurHex("--doc-pied","#f3f4f6");
+    rafraichirApercuBranding();
+    document.getElementById("police-document").value = cfg.police_document || "helvetica";
+    document.getElementById("texte-pied-page-document").value = cfg.texte_pied_page_document || "";
+    document.getElementById("numeroter-pages-document").checked = cfg.numeroter_pages_document !== false;
+    document.getElementById("afficher-logo-document").checked = !!cfg.afficher_logo_document;
+    document.getElementById("position-logo-document").value   = cfg.position_logo_document || "gauche";
+    document.getElementById("logo-apercu").innerHTML = cfg.logo_url ? `<img src="${cfg.logo_url}" alt="logo">` : `<span>🏢</span>`;
+    document.getElementById("logo-statut").textContent = cfg.logo_url
+      ? tj("engine/templates/engine_pages/configuration_documents/ia.html:js:620:10", {v1: cfg.nom_entreprise || tj("engine/templates/engine_pages/configuration_documents/ia.html:js:620:50")})
+      : tj("engine/templates/engine_pages/configuration_documents/ia.html:js:621:10");
+
+    // Photo de l'entité (par contexte, image fixe)
+    document.getElementById("afficher-photo-entite").checked = !!cfg.afficher_photo_entite;
+    document.getElementById("position-photo-entite").value   = cfg.position_photo_entite || "entete";
+    appliquerImageCachet("image_entite", cfg.image_entite_url);
+
+    // Tables (sélecteur UNIQUE table/carte — alimente cachet + signatures)
+    tablesDisponibles = cfg.tables_disponibles || [];
+
+    // Cachet (par contexte)
+    document.getElementById("afficher-cachet-document").checked = !!cfg.afficher_cachet_document;
+    document.getElementById("cachet-texte-actif").value   = cfg.cachet_texte_actif || tj("engine/templates/engine_pages/configuration_documents/ia.html:js:633:88");
+    document.getElementById("cachet-texte-inactif").value = cfg.cachet_texte_inactif || tj("engine/templates/engine_pages/configuration_documents/ia.html:js:634:90");
+    document.getElementById("position-cachet-document").value = cfg.position_cachet_document || "totaux";
+    const selStatut = document.getElementById("champ-statut-cachet");
+    selStatut.innerHTML = tj("engine/templates/engine_pages/configuration_documents/ia.html:js:637:28") +
+      (cfg.champs_statut_disponibles || []).map(c => `<option value="${c.slug}">${c.label}</option>`).join("");
+    selStatut.value = cfg.champ_statut_cachet || "";
+    document.getElementById("table-cachet-document").innerHTML = optionsTables(cfg.table_cachet_document_id);
+    syncPhotoIdentiteDepuisCible();
+    const selTypeCachet = document.getElementById("type-cachet-document");
+    selTypeCachet.innerHTML = tj("engine/templates/engine_pages/configuration_documents/ia.html:js:643:32") +
+      (cfg.types_document_disponibles || []).map(t => `<option value="${t.slug}">${t.label}</option>`).join("");
+    selTypeCachet.value = cfg.type_document_cachet || "";
+    const selCartePrecise = document.getElementById("carte-precise-cachet-document");
+    // Cible unique combinant deux pipelines PDF mutuellement exclusifs :
+    // cartes de document ("doc-<id>") et cartes d'analyse ("ana-<id>"),
+    // toutes deux capables de générer un PDF — voir carte_precise_cachet.
+    const optionsDocuments = (cfg.documents_disponibles || [])
+      .map(d => `<option value="doc-${d.id}">${(d.label||"").replace(/</g,"&lt;")} · ${d.date}</option>`).join("");
+    const optionsAnalyses = (cfg.demandes_disponibles || [])
+      .map(d => `<option value="ana-${d.id}">${(d.label||"").replace(/</g,"&lt;")} · ${d.date}</option>`).join("");
+    selCartePrecise.innerHTML = tj("engine/templates/engine_pages/configuration_documents/ia.html:js:654:34")
+      + (optionsDocuments ? `<optgroup label="Cartes de document">${optionsDocuments}</optgroup>` : "")
+      + (optionsAnalyses ? `<optgroup label="Cartes d'analyse">${optionsAnalyses}</optgroup>` : "");
+    selCartePrecise.value = cfg.carte_precise_cachet || "";
+    appliquerImageCachet("cachet_image_actif", cfg.cachet_image_actif_url);
+    appliquerImageCachet("cachet_image_inactif", cfg.cachet_image_inactif_url);
+
+    // Signatures (globales)
+    document.getElementById("afficher-signatures-document").checked = !!cfg.afficher_signatures_document;
+    document.getElementById("position-signatures-document").value = cfg.position_signatures_document || "pied_page";
+    signaturesActuelles = cfg.signatures || [];
+    signaturesRendre();
+
+    // Sections actives (par contexte)
+    sectionsInit(cfg.sections_disponibles || [], cfg.sections_libelles || {}, cfg.sections_document || []);
+  }catch(e){
+    console.error("chargerContexte:", e);
+  }
+}
+
+document.getElementById("btn-sauvegarder-global").onclick = async () => {
+  const payload = {
+    nom_affichage_document:  document.getElementById("nom-affichage-document").value,
+    couleur_accent_document: document.getElementById("couleur-accent-document").value,
+    couleur_entete_document: document.getElementById("couleur-entete-document").value,
+    couleur_tableau_entete_document:   document.getElementById("couleur-tableau-entete-document").value,
+    couleur_lignes_alternees_document: document.getElementById("couleur-lignes-alternees-document").value,
+    couleur_texte_document:            document.getElementById("couleur-texte-document").value,
+    couleur_fond_document:      document.getElementById("couleur-fond-document").value,
+    couleur_corps_document:     document.getElementById("couleur-corps-document").value,
+    couleur_pied_page_document: document.getElementById("couleur-pied-page-document").value,
+    police_document: document.getElementById("police-document").value,
+    texte_pied_page_document: document.getElementById("texte-pied-page-document").value,
+    numeroter_pages_document: document.getElementById("numeroter-pages-document").checked,
+    afficher_logo_document:  document.getElementById("afficher-logo-document").checked,
+    position_logo_document:  document.getElementById("position-logo-document").value,
+  };
+  try{
+    await api(`/api/configuration-documents/${contexteActif}/sauvegarder/`, {method:"POST", body:JSON.stringify(payload)});
+    toast(tj("engine/templates/engine_pages/configuration_documents/ia.html:js:693:12"));
+  }catch(e){}
+};
+
+document.getElementById("btn-sauvegarder-contexte").onclick = async () => {
+  const surIa = contexteActif === "ia";
+  const payload = {
+    afficher_photo_entite:   surIa && document.getElementById("afficher-photo-entite").checked,
+    position_photo_entite:   document.getElementById("position-photo-entite").value,
+    sections_document:       sectionsValeur(),
+    afficher_cachet_document: document.getElementById("afficher-cachet-document").checked,
+    cachet_texte_actif:       document.getElementById("cachet-texte-actif").value,
+    cachet_texte_inactif:     document.getElementById("cachet-texte-inactif").value,
+    position_cachet_document: document.getElementById("position-cachet-document").value,
+    champ_statut_cachet:      document.getElementById("champ-statut-cachet").value,
+    table_cachet_document:    document.getElementById("table-cachet-document").value,
+    type_document_cachet:     document.getElementById("type-cachet-document").value,
+    document_cachet:          document.getElementById("carte-precise-cachet-document").value,
+    afficher_signatures_document: document.getElementById("afficher-signatures-document").checked,
+    position_signatures_document: document.getElementById("position-signatures-document").value,
+  };
+  try{
+    await api(`/api/configuration-documents/${contexteActif}/sauvegarder/`, {method:"POST", body:JSON.stringify(payload)});
+    toast(tj("engine/templates/engine_pages/configuration_documents/ia.html:js:716:12"));
+  }catch(e){}
+};
+
+// ── Initialisation : premier onglet ─────────────────────────────────────
+(function(){
+  const premier = document.querySelector("#onglets-contexte .onglet");
+  if (premier) changerContexte(premier.dataset.contexte);
+})();
+
+</script>
+<script src="{% static 'engine/js/icones.js' %}"></script>
+</body>
+</html>

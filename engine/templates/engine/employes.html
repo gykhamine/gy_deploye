@@ -1,0 +1,1025 @@
+{% load i18n_extras %}
+<!DOCTYPE html>
+{% load static %}
+<html lang="{{ langue_html|default:'fr' }}">
+<head>
+<link rel="stylesheet" href="{% static 'engine/css/app.css' %}"><link rel="stylesheet" href="{% url 'engine:marque_css' %}"><script src="{% static 'engine/js/marque.js' %}" defer></script><script src="{% static 'engine/js/gestes_tactiles.js' %}" defer></script>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>{% t "engine/templates/engine/employes.html:8:8" %}</title>
+<script src="{% static 'engine/js/dialogues.js' %}"></script>
+</head>
+<body class="page-employes">
+
+<div class="header">{% include "engine/_marque_entete.html" %}
+
+</div>
+
+<div id="toast"></div>
+
+<div class="layout">
+
+  <!-- Sécurité : clé de chiffrement des QR codes (nom, logo et coordonnées de l'entreprise : page Personnalisation) -->
+  <div class="carte">
+    <!-- Cle de chiffrement des QR codes (recherche securisee) — admin uniquement -->
+    <form method="post" style="display:flex;gap:10px;align-items:flex-end;flex-wrap:wrap">
+      {% csrf_token %}
+      <input type="hidden" name="action" value="maj_cle_chiffrement_qr">
+      <div style="flex:1;min-width:220px">
+        <label style="font-size:11px;color:var(--muted);text-transform:uppercase;letter-spacing:.04em;display:block;margin-bottom:5px">{% t "engine/templates/engine/employes.html:103:136" %}</label>
+        <input type="text" name="cle_chiffrement_qr" value="{{ entreprise.cle_chiffrement_qr }}" placeholder="{% t 'engine/templates/engine/employes.html:104:111' %}"
+          style="width:100%;background:var(--fond-noir,#000);color:var(--text);border:1px solid var(--border);border-radius:6px;padding:8px 11px;font:inherit;font-size:13px;outline:none"
+          onfocus="this.style.borderColor='var(--accent)'" onblur="this.style.borderColor='var(--border)'">
+        <p style="font-size:11px;color:var(--muted);margin-top:5px">{% t "engine/templates/engine/employes.html:107:69" %}</p>
+      </div>
+      <button type="submit" style="background:transparent;border:1px solid var(--accent);color:var(--accent);font:inherit;font-size:12px;padding:8px 16px;border-radius:6px;cursor:pointer;white-space:nowrap">{% t "engine/templates/engine/employes.html:109:208" %}</button>
+    </form>
+
+  </div>
+
+  <!-- Inscription publique -->
+  <div class="carte" id="carte-inscription">
+    <div style="display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:12px;margin-bottom:14px">
+      <h2 style="margin:0">{% t "engine/templates/engine/employes.html:117:28" %}</h2>
+      <label style="display:flex;align-items:center;gap:10px;cursor:pointer;user-select:none">
+        <span style="font-size:13px;color:var(--muted)" id="lbl-etat-inscription">{% t "engine/templates/engine/employes.html:119:83" %}</span>
+        <div class="toggle-wrap" id="toggle-inscription" onclick="toggleInscription()">
+          <div class="toggle-pill"><div class="toggle-knob"></div></div>
+        </div>
+      </label>
+    </div>
+    <div id="bloc-lien-inscription" style="display:none;font-size:12px;color:var(--muted)">
+      {% t "engine/templates/engine/employes.html:127:7" %}
+    </div>
+    <div id="bloc-inscription-fermee" style="font-size:12px;color:var(--muted)">
+      {% t "engine/templates/engine/employes.html:130:7" %}
+    </div>
+  </div>
+
+  <!-- Accès API externe -->
+  <div class="carte" id="carte-api">
+    <div style="display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:12px;margin-bottom:14px">
+      <h2 style="margin:0">{% t "engine/templates/engine/employes.html:api_titre" %}</h2>
+      <label style="display:flex;align-items:center;gap:10px;cursor:pointer;user-select:none">
+        <span style="font-size:13px;color:var(--muted)" id="lbl-etat-api">{% t "engine/templates/engine/employes.html:119:83" %}</span>
+        <div class="toggle-wrap" id="toggle-api" onclick="toggleApi()">
+          <div class="toggle-pill"><div class="toggle-knob"></div></div>
+        </div>
+      </label>
+    </div>
+    <div id="bloc-api-ouverte" style="display:none;font-size:12px;color:var(--muted)">
+      {% t "engine/templates/engine/employes.html:api_info_ouverte" %}
+    </div>
+    <div id="bloc-api-fermee" style="display:none;font-size:12px;color:var(--muted)">
+      {% t "engine/templates/engine/employes.html:api_info_fermee" %}
+    </div>
+  </div>
+
+  <!-- Formulaire ajout -->
+  <div class="carte">
+    <h2>{% t "engine/templates/engine/employes.html:135:9" %}</h2>
+    <form id="form-creer" autocomplete="off">
+      {% csrf_token %}
+      <div class="grille">
+        <div class="champ">
+          <label>{% t "engine/templates/engine/employes.html:140:18" %}</label>
+          <input name="first_name" type="text" placeholder="{% t 'engine/templates/engine/employes.html:141:61' %}">
+        </div>
+        <div class="champ">
+          <label>{% t "engine/templates/engine/employes.html:144:18" %}</label>
+          <input name="last_name" type="text" placeholder="{% t 'engine/templates/engine/employes.html:145:60' %}">
+        </div>
+        <div class="champ">
+          <label>{% t "engine/templates/engine/employes.html:148:18" %}</label>
+          <input name="username" type="text" placeholder="{% t 'engine/templates/engine/employes.html:149:59' %}" required autocomplete="off">
+        </div>
+        <div class="champ">
+          <label>{% t "engine/templates/engine/employes.html:152:18" %}</label>
+          <input name="password" type="password" placeholder="••••••••" required autocomplete="new-password">
+        </div>
+        <div class="champ">
+          <label>{% t "engine/templates/engine/employes.html:156:18" %}</label>
+          <select name="indicatif_pays">
+            <option value="+242">{% t "engine/templates/engine/employes.html:158:34" %}</option>
+            <option value="+243">{% t "engine/templates/engine/employes.html:159:34" %}</option>
+            <option value="+237">{% t "engine/templates/engine/employes.html:160:34" %}</option>
+            <option value="+241">{% t "engine/templates/engine/employes.html:161:34" %}</option>
+            <option value="+236">{% t "engine/templates/engine/employes.html:162:34" %}</option>
+            <option value="+240">{% t "engine/templates/engine/employes.html:163:34" %}</option>
+            <option value="+235">{% t "engine/templates/engine/employes.html:164:34" %}</option>
+            <option value="+221">{% t "engine/templates/engine/employes.html:165:34" %}</option>
+            <option value="+225">{% t "engine/templates/engine/employes.html:166:34" %}</option>
+            <option value="+223">{% t "engine/templates/engine/employes.html:167:34" %}</option>
+            <option value="+226">{% t "engine/templates/engine/employes.html:168:34" %}</option>
+            <option value="+227">{% t "engine/templates/engine/employes.html:169:34" %}</option>
+            <option value="+228">{% t "engine/templates/engine/employes.html:170:34" %}</option>
+            <option value="+229">{% t "engine/templates/engine/employes.html:171:34" %}</option>
+            <option value="+224">{% t "engine/templates/engine/employes.html:172:34" %}</option>
+            <option value="+245">{% t "engine/templates/engine/employes.html:173:34" %}</option>
+            <option value="+238">{% t "engine/templates/engine/employes.html:174:34" %}</option>
+            <option value="+232">{% t "engine/templates/engine/employes.html:175:34" %}</option>
+            <option value="+231">{% t "engine/templates/engine/employes.html:176:34" %}</option>
+            <option value="+220">{% t "engine/templates/engine/employes.html:177:34" %}</option>
+            <option value="+222">{% t "engine/templates/engine/employes.html:178:34" %}</option>
+            <option value="+233">{% t "engine/templates/engine/employes.html:179:34" %}</option>
+            <option value="+234">{% t "engine/templates/engine/employes.html:180:34" %}</option>
+            <option value="+251">{% t "engine/templates/engine/employes.html:181:34" %}</option>
+            <option value="+254">{% t "engine/templates/engine/employes.html:182:34" %}</option>
+            <option value="+255">{% t "engine/templates/engine/employes.html:183:34" %}</option>
+            <option value="+256">{% t "engine/templates/engine/employes.html:184:34" %}</option>
+            <option value="+250">{% t "engine/templates/engine/employes.html:185:34" %}</option>
+            <option value="+257">{% t "engine/templates/engine/employes.html:186:34" %}</option>
+            <option value="+216">{% t "engine/templates/engine/employes.html:187:34" %}</option>
+            <option value="+212">{% t "engine/templates/engine/employes.html:188:34" %}</option>
+            <option value="+213">{% t "engine/templates/engine/employes.html:189:34" %}</option>
+            <option value="+20">{% t "engine/templates/engine/employes.html:190:33" %}</option>
+            <option value="+33">{% t "engine/templates/engine/employes.html:191:33" %}</option>
+            <option value="+32">{% t "engine/templates/engine/employes.html:192:33" %}</option>
+            <option value="+41">{% t "engine/templates/engine/employes.html:193:33" %}</option>
+            <option value="+1">{% t "engine/templates/engine/employes.html:194:32" %}</option>
+            <option value="+44">{% t "engine/templates/engine/employes.html:195:33" %}</option>
+            <option value="+49">{% t "engine/templates/engine/employes.html:196:33" %}</option>
+            <option value="+34">{% t "engine/templates/engine/employes.html:197:33" %}</option>
+            <option value="+351">{% t "engine/templates/engine/employes.html:198:34" %}</option>
+            <option value="+55">{% t "engine/templates/engine/employes.html:199:33" %}</option>
+            <option value="+86">{% t "engine/templates/engine/employes.html:200:33" %}</option>
+            <option value="+91">{% t "engine/templates/engine/employes.html:201:33" %}</option>
+            <option value="+261">{% t "engine/templates/engine/employes.html:202:34" %}</option>
+            <option value="+258">{% t "engine/templates/engine/employes.html:203:34" %}</option>
+            <option value="+260">{% t "engine/templates/engine/employes.html:204:34" %}</option>
+            <option value="+263">{% t "engine/templates/engine/employes.html:205:34" %}</option>
+            <option value="+267">{% t "engine/templates/engine/employes.html:206:34" %}</option>
+            <option value="+264">{% t "engine/templates/engine/employes.html:207:34" %}</option>
+            <option value="+27">{% t "engine/templates/engine/employes.html:208:33" %}</option>
+            <option value="+268">{% t "engine/templates/engine/employes.html:209:34" %}</option>
+            <option value="+266">{% t "engine/templates/engine/employes.html:210:34" %}</option>
+            <option value="+265">{% t "engine/templates/engine/employes.html:211:34" %}</option>
+            <option value="+269">{% t "engine/templates/engine/employes.html:212:34" %}</option>
+            <option value="+230">{% t "engine/templates/engine/employes.html:213:34" %}</option>
+            <option value="+248">{% t "engine/templates/engine/employes.html:214:34" %}</option>
+            <option value="+253">{% t "engine/templates/engine/employes.html:215:34" %}</option>
+            <option value="+252">{% t "engine/templates/engine/employes.html:216:34" %}</option>
+            <option value="+249">{% t "engine/templates/engine/employes.html:217:34" %}</option>
+            <option value="+211">{% t "engine/templates/engine/employes.html:218:34" %}</option>
+            <option value="+218">{% t "engine/templates/engine/employes.html:219:34" %}</option>
+            <option value="+31">{% t "engine/templates/engine/employes.html:220:33" %}</option>
+            <option value="+39">{% t "engine/templates/engine/employes.html:221:33" %}</option>
+            <option value="+352">{% t "engine/templates/engine/employes.html:222:34" %}</option>
+            <option value="+377">{% t "engine/templates/engine/employes.html:223:34" %}</option>
+            <option value="+43">{% t "engine/templates/engine/employes.html:224:33" %}</option>
+            <option value="+45">{% t "engine/templates/engine/employes.html:225:33" %}</option>
+            <option value="+46">{% t "engine/templates/engine/employes.html:226:33" %}</option>
+            <option value="+47">{% t "engine/templates/engine/employes.html:227:33" %}</option>
+            <option value="+358">{% t "engine/templates/engine/employes.html:228:34" %}</option>
+            <option value="+353">{% t "engine/templates/engine/employes.html:229:34" %}</option>
+            <option value="+30">{% t "engine/templates/engine/employes.html:230:33" %}</option>
+            <option value="+48">{% t "engine/templates/engine/employes.html:231:33" %}</option>
+            <option value="+420">{% t "engine/templates/engine/employes.html:232:34" %}</option>
+            <option value="+421">{% t "engine/templates/engine/employes.html:233:34" %}</option>
+            <option value="+36">{% t "engine/templates/engine/employes.html:234:33" %}</option>
+            <option value="+40">{% t "engine/templates/engine/employes.html:235:33" %}</option>
+            <option value="+359">{% t "engine/templates/engine/employes.html:236:34" %}</option>
+            <option value="+385">{% t "engine/templates/engine/employes.html:237:34" %}</option>
+            <option value="+90">{% t "engine/templates/engine/employes.html:238:33" %}</option>
+            <option value="+7">{% t "engine/templates/engine/employes.html:239:32" %}</option>
+            <option value="+380">{% t "engine/templates/engine/employes.html:240:34" %}</option>
+            <option value="+961">{% t "engine/templates/engine/employes.html:241:34" %}</option>
+            <option value="+962">{% t "engine/templates/engine/employes.html:242:34" %}</option>
+            <option value="+963">{% t "engine/templates/engine/employes.html:243:34" %}</option>
+            <option value="+964">{% t "engine/templates/engine/employes.html:244:34" %}</option>
+            <option value="+966">{% t "engine/templates/engine/employes.html:245:34" %}</option>
+            <option value="+971">{% t "engine/templates/engine/employes.html:246:34" %}</option>
+            <option value="+974">{% t "engine/templates/engine/employes.html:247:34" %}</option>
+            <option value="+965">{% t "engine/templates/engine/employes.html:248:34" %}</option>
+            <option value="+973">{% t "engine/templates/engine/employes.html:249:34" %}</option>
+            <option value="+968">{% t "engine/templates/engine/employes.html:250:34" %}</option>
+            <option value="+972">{% t "engine/templates/engine/employes.html:251:34" %}</option>
+            <option value="+970">{% t "engine/templates/engine/employes.html:252:34" %}</option>
+            <option value="+98">{% t "engine/templates/engine/employes.html:253:33" %}</option>
+            <option value="+92">{% t "engine/templates/engine/employes.html:254:33" %}</option>
+            <option value="+880">{% t "engine/templates/engine/employes.html:255:34" %}</option>
+            <option value="+94">{% t "engine/templates/engine/employes.html:256:33" %}</option>
+            <option value="+977">{% t "engine/templates/engine/employes.html:257:34" %}</option>
+            <option value="+95">{% t "engine/templates/engine/employes.html:258:33" %}</option>
+            <option value="+66">{% t "engine/templates/engine/employes.html:259:33" %}</option>
+            <option value="+84">{% t "engine/templates/engine/employes.html:260:33" %}</option>
+            <option value="+855">{% t "engine/templates/engine/employes.html:261:34" %}</option>
+            <option value="+856">{% t "engine/templates/engine/employes.html:262:34" %}</option>
+            <option value="+62">{% t "engine/templates/engine/employes.html:263:33" %}</option>
+            <option value="+60">{% t "engine/templates/engine/employes.html:264:33" %}</option>
+            <option value="+65">{% t "engine/templates/engine/employes.html:265:33" %}</option>
+            <option value="+63">{% t "engine/templates/engine/employes.html:266:33" %}</option>
+            <option value="+81">{% t "engine/templates/engine/employes.html:267:33" %}</option>
+            <option value="+82">{% t "engine/templates/engine/employes.html:268:33" %}</option>
+            <option value="+852">{% t "engine/templates/engine/employes.html:269:34" %}</option>
+            <option value="+886">{% t "engine/templates/engine/employes.html:270:34" %}</option>
+            <option value="+61">{% t "engine/templates/engine/employes.html:271:33" %}</option>
+            <option value="+64">{% t "engine/templates/engine/employes.html:272:33" %}</option>
+            <option value="+52">{% t "engine/templates/engine/employes.html:273:33" %}</option>
+            <option value="+54">{% t "engine/templates/engine/employes.html:274:33" %}</option>
+            <option value="+56">{% t "engine/templates/engine/employes.html:275:33" %}</option>
+            <option value="+57">{% t "engine/templates/engine/employes.html:276:33" %}</option>
+            <option value="+51">{% t "engine/templates/engine/employes.html:277:33" %}</option>
+            <option value="+58">{% t "engine/templates/engine/employes.html:278:33" %}</option>
+            <option value="+593">{% t "engine/templates/engine/employes.html:279:34" %}</option>
+            <option value="+591">{% t "engine/templates/engine/employes.html:280:34" %}</option>
+            <option value="+595">{% t "engine/templates/engine/employes.html:281:34" %}</option>
+            <option value="+598">{% t "engine/templates/engine/employes.html:282:34" %}</option>
+            <option value="+509">{% t "engine/templates/engine/employes.html:283:34" %}</option>
+            <option value="+590">{% t "engine/templates/engine/employes.html:284:34" %}</option>
+            <option value="+596">{% t "engine/templates/engine/employes.html:285:34" %}</option>
+            <option value="+594">{% t "engine/templates/engine/employes.html:286:34" %}</option>
+            <option value="+262">{% t "engine/templates/engine/employes.html:287:34" %}</option>
+          </select>
+        </div>
+        <div class="champ">
+          <label>{% t "engine/templates/engine/employes.html:291:18" %}</label>
+          <input name="telephone" type="tel" placeholder="{% t 'engine/templates/engine/employes.html:292:59' %}">
+        </div>
+      </div>
+      <button type="submit" class="principal" style="margin-top:14px">{% t "engine/templates/engine/employes.html:295:71" %}</button>
+    </form>
+  </div>
+
+  <!-- Liste des employés -->
+  <div class="carte">
+    <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:16px">
+      <h2 style="margin:0">{% t "engine/templates/engine/employes.html:302:28" %}<span id="nb-membres">…</span>)</h2>
+      <button class="petit" id="btn-exporter-employes" title="{% t 'engine/templates/engine/employes.html:303:63' %}">{% t "engine/templates/engine/employes.html:303:89" %}</button>
+      <button class="petit" id="btn-exporter-employes-pdf" title="{% t 'engine/templates/engine/employes.html:304:67' %}">{% t "engine/templates/engine/employes.html:304:93" %}</button>
+    </div>
+    <div class="tbl-wrap">
+      <div id="bloc-reprises" style="display:none;margin-bottom:18px;padding:14px;border:1px solid var(--border,#ddd);border-radius:10px">
+  <div style="font-weight:600;margin-bottom:6px">{% t "engine/templates/engine/employes.html:309:50" %}</div>
+  <div style="color:var(--muted);font-size:13px;margin-bottom:10px">{% t "engine/templates/engine/employes.html:310:69" %}</div>
+  <div id="liste-reprises"></div>
+</div>
+<table>
+        <thead>
+          <tr>
+            <th>{% t "engine/templates/engine/employes.html:310:17" %}</th>
+            <th>{% t "engine/templates/engine/employes.html:311:17" %}</th>
+            <th>{% t "engine/templates/engine/employes.html:312:17" %}</th>
+            <th>{% t "engine/templates/engine/employes.html:313:17" %}</th>
+            <th>{% t "engine/templates/engine/employes.html:314:17" %}</th>
+          </tr>
+        </thead>
+        <tbody id="corps-employes">
+          <tr><td colspan="5" style="text-align:center;color:var(--muted);padding:30px">{% t "engine/templates/engine/employes.html:318:89" %}</td></tr>
+        </tbody>
+      </table>
+    </div>
+  </div>
+
+</div>
+
+<!-- Modal modification employé -->
+<div class="modal-fond" id="modal-edition">
+  <div class="modal">
+    <h3>{% t "engine/templates/engine/employes.html:329:9" %}</h3>
+    <input type="hidden" id="edit-user-id">
+
+    <div class="sep-section">{% t "engine/templates/engine/employes.html:332:30" %}</div>
+    <div class="grille">
+      <div class="champ">
+        <label>{% t "engine/templates/engine/employes.html:335:16" %}</label>
+        <input id="edit-first-name" type="text">
+      </div>
+      <div class="champ">
+        <label>{% t "engine/templates/engine/employes.html:339:16" %}</label>
+        <input id="edit-last-name" type="text">
+      </div>
+      <div class="champ">
+        <label>{% t "engine/templates/engine/employes.html:343:16" %}</label>
+        <input id="edit-username" type="text" placeholder="{% t 'engine/templates/engine/employes.html:344:60' %}" autocomplete="off">
+      </div>
+    </div>
+
+    <div class="sep-section">{% t "engine/templates/engine/employes.html:348:30" %}</div>
+    <div class="grille">
+      <div class="champ">
+        <label>{% t "engine/templates/engine/employes.html:351:16" %}</label>
+        <select id="edit-indicatif">
+            <option value="+242">{% t "engine/templates/engine/employes.html:353:34" %}</option>
+            <option value="+243">{% t "engine/templates/engine/employes.html:354:34" %}</option>
+            <option value="+237">{% t "engine/templates/engine/employes.html:355:34" %}</option>
+            <option value="+241">{% t "engine/templates/engine/employes.html:356:34" %}</option>
+            <option value="+236">{% t "engine/templates/engine/employes.html:357:34" %}</option>
+            <option value="+240">{% t "engine/templates/engine/employes.html:358:34" %}</option>
+            <option value="+235">{% t "engine/templates/engine/employes.html:359:34" %}</option>
+            <option value="+221">{% t "engine/templates/engine/employes.html:360:34" %}</option>
+            <option value="+225">{% t "engine/templates/engine/employes.html:361:34" %}</option>
+            <option value="+223">{% t "engine/templates/engine/employes.html:362:34" %}</option>
+            <option value="+226">{% t "engine/templates/engine/employes.html:363:34" %}</option>
+            <option value="+227">{% t "engine/templates/engine/employes.html:364:34" %}</option>
+            <option value="+228">{% t "engine/templates/engine/employes.html:365:34" %}</option>
+            <option value="+229">{% t "engine/templates/engine/employes.html:366:34" %}</option>
+            <option value="+224">{% t "engine/templates/engine/employes.html:367:34" %}</option>
+            <option value="+245">{% t "engine/templates/engine/employes.html:368:34" %}</option>
+            <option value="+238">{% t "engine/templates/engine/employes.html:369:34" %}</option>
+            <option value="+232">{% t "engine/templates/engine/employes.html:370:34" %}</option>
+            <option value="+231">{% t "engine/templates/engine/employes.html:371:34" %}</option>
+            <option value="+220">{% t "engine/templates/engine/employes.html:372:34" %}</option>
+            <option value="+222">{% t "engine/templates/engine/employes.html:373:34" %}</option>
+            <option value="+233">{% t "engine/templates/engine/employes.html:374:34" %}</option>
+            <option value="+234">{% t "engine/templates/engine/employes.html:375:34" %}</option>
+            <option value="+251">{% t "engine/templates/engine/employes.html:376:34" %}</option>
+            <option value="+254">{% t "engine/templates/engine/employes.html:377:34" %}</option>
+            <option value="+255">{% t "engine/templates/engine/employes.html:378:34" %}</option>
+            <option value="+256">{% t "engine/templates/engine/employes.html:379:34" %}</option>
+            <option value="+250">{% t "engine/templates/engine/employes.html:380:34" %}</option>
+            <option value="+257">{% t "engine/templates/engine/employes.html:381:34" %}</option>
+            <option value="+216">{% t "engine/templates/engine/employes.html:382:34" %}</option>
+            <option value="+212">{% t "engine/templates/engine/employes.html:383:34" %}</option>
+            <option value="+213">{% t "engine/templates/engine/employes.html:384:34" %}</option>
+            <option value="+20">{% t "engine/templates/engine/employes.html:385:33" %}</option>
+            <option value="+33">{% t "engine/templates/engine/employes.html:386:33" %}</option>
+            <option value="+32">{% t "engine/templates/engine/employes.html:387:33" %}</option>
+            <option value="+41">{% t "engine/templates/engine/employes.html:388:33" %}</option>
+            <option value="+1">{% t "engine/templates/engine/employes.html:389:32" %}</option>
+            <option value="+44">{% t "engine/templates/engine/employes.html:390:33" %}</option>
+            <option value="+49">{% t "engine/templates/engine/employes.html:391:33" %}</option>
+            <option value="+34">{% t "engine/templates/engine/employes.html:392:33" %}</option>
+            <option value="+351">{% t "engine/templates/engine/employes.html:393:34" %}</option>
+            <option value="+55">{% t "engine/templates/engine/employes.html:394:33" %}</option>
+            <option value="+86">{% t "engine/templates/engine/employes.html:395:33" %}</option>
+            <option value="+91">{% t "engine/templates/engine/employes.html:396:33" %}</option>
+            <option value="+261">{% t "engine/templates/engine/employes.html:397:34" %}</option>
+            <option value="+258">{% t "engine/templates/engine/employes.html:398:34" %}</option>
+            <option value="+260">{% t "engine/templates/engine/employes.html:399:34" %}</option>
+            <option value="+263">{% t "engine/templates/engine/employes.html:400:34" %}</option>
+            <option value="+267">{% t "engine/templates/engine/employes.html:401:34" %}</option>
+            <option value="+264">{% t "engine/templates/engine/employes.html:402:34" %}</option>
+            <option value="+27">{% t "engine/templates/engine/employes.html:403:33" %}</option>
+            <option value="+268">{% t "engine/templates/engine/employes.html:404:34" %}</option>
+            <option value="+266">{% t "engine/templates/engine/employes.html:405:34" %}</option>
+            <option value="+265">{% t "engine/templates/engine/employes.html:406:34" %}</option>
+            <option value="+269">{% t "engine/templates/engine/employes.html:407:34" %}</option>
+            <option value="+230">{% t "engine/templates/engine/employes.html:408:34" %}</option>
+            <option value="+248">{% t "engine/templates/engine/employes.html:409:34" %}</option>
+            <option value="+253">{% t "engine/templates/engine/employes.html:410:34" %}</option>
+            <option value="+252">{% t "engine/templates/engine/employes.html:411:34" %}</option>
+            <option value="+249">{% t "engine/templates/engine/employes.html:412:34" %}</option>
+            <option value="+211">{% t "engine/templates/engine/employes.html:413:34" %}</option>
+            <option value="+218">{% t "engine/templates/engine/employes.html:414:34" %}</option>
+            <option value="+31">{% t "engine/templates/engine/employes.html:415:33" %}</option>
+            <option value="+39">{% t "engine/templates/engine/employes.html:416:33" %}</option>
+            <option value="+352">{% t "engine/templates/engine/employes.html:417:34" %}</option>
+            <option value="+377">{% t "engine/templates/engine/employes.html:418:34" %}</option>
+            <option value="+43">{% t "engine/templates/engine/employes.html:419:33" %}</option>
+            <option value="+45">{% t "engine/templates/engine/employes.html:420:33" %}</option>
+            <option value="+46">{% t "engine/templates/engine/employes.html:421:33" %}</option>
+            <option value="+47">{% t "engine/templates/engine/employes.html:422:33" %}</option>
+            <option value="+358">{% t "engine/templates/engine/employes.html:423:34" %}</option>
+            <option value="+353">{% t "engine/templates/engine/employes.html:424:34" %}</option>
+            <option value="+30">{% t "engine/templates/engine/employes.html:425:33" %}</option>
+            <option value="+48">{% t "engine/templates/engine/employes.html:426:33" %}</option>
+            <option value="+420">{% t "engine/templates/engine/employes.html:427:34" %}</option>
+            <option value="+421">{% t "engine/templates/engine/employes.html:428:34" %}</option>
+            <option value="+36">{% t "engine/templates/engine/employes.html:429:33" %}</option>
+            <option value="+40">{% t "engine/templates/engine/employes.html:430:33" %}</option>
+            <option value="+359">{% t "engine/templates/engine/employes.html:431:34" %}</option>
+            <option value="+385">{% t "engine/templates/engine/employes.html:432:34" %}</option>
+            <option value="+90">{% t "engine/templates/engine/employes.html:433:33" %}</option>
+            <option value="+7">{% t "engine/templates/engine/employes.html:434:32" %}</option>
+            <option value="+380">{% t "engine/templates/engine/employes.html:435:34" %}</option>
+            <option value="+961">{% t "engine/templates/engine/employes.html:436:34" %}</option>
+            <option value="+962">{% t "engine/templates/engine/employes.html:437:34" %}</option>
+            <option value="+963">{% t "engine/templates/engine/employes.html:438:34" %}</option>
+            <option value="+964">{% t "engine/templates/engine/employes.html:439:34" %}</option>
+            <option value="+966">{% t "engine/templates/engine/employes.html:440:34" %}</option>
+            <option value="+971">{% t "engine/templates/engine/employes.html:441:34" %}</option>
+            <option value="+974">{% t "engine/templates/engine/employes.html:442:34" %}</option>
+            <option value="+965">{% t "engine/templates/engine/employes.html:443:34" %}</option>
+            <option value="+973">{% t "engine/templates/engine/employes.html:444:34" %}</option>
+            <option value="+968">{% t "engine/templates/engine/employes.html:445:34" %}</option>
+            <option value="+972">{% t "engine/templates/engine/employes.html:446:34" %}</option>
+            <option value="+970">{% t "engine/templates/engine/employes.html:447:34" %}</option>
+            <option value="+98">{% t "engine/templates/engine/employes.html:448:33" %}</option>
+            <option value="+92">{% t "engine/templates/engine/employes.html:449:33" %}</option>
+            <option value="+880">{% t "engine/templates/engine/employes.html:450:34" %}</option>
+            <option value="+94">{% t "engine/templates/engine/employes.html:451:33" %}</option>
+            <option value="+977">{% t "engine/templates/engine/employes.html:452:34" %}</option>
+            <option value="+95">{% t "engine/templates/engine/employes.html:453:33" %}</option>
+            <option value="+66">{% t "engine/templates/engine/employes.html:454:33" %}</option>
+            <option value="+84">{% t "engine/templates/engine/employes.html:455:33" %}</option>
+            <option value="+855">{% t "engine/templates/engine/employes.html:456:34" %}</option>
+            <option value="+856">{% t "engine/templates/engine/employes.html:457:34" %}</option>
+            <option value="+62">{% t "engine/templates/engine/employes.html:458:33" %}</option>
+            <option value="+60">{% t "engine/templates/engine/employes.html:459:33" %}</option>
+            <option value="+65">{% t "engine/templates/engine/employes.html:460:33" %}</option>
+            <option value="+63">{% t "engine/templates/engine/employes.html:461:33" %}</option>
+            <option value="+81">{% t "engine/templates/engine/employes.html:462:33" %}</option>
+            <option value="+82">{% t "engine/templates/engine/employes.html:463:33" %}</option>
+            <option value="+852">{% t "engine/templates/engine/employes.html:464:34" %}</option>
+            <option value="+886">{% t "engine/templates/engine/employes.html:465:34" %}</option>
+            <option value="+61">{% t "engine/templates/engine/employes.html:466:33" %}</option>
+            <option value="+64">{% t "engine/templates/engine/employes.html:467:33" %}</option>
+            <option value="+52">{% t "engine/templates/engine/employes.html:468:33" %}</option>
+            <option value="+54">{% t "engine/templates/engine/employes.html:469:33" %}</option>
+            <option value="+56">{% t "engine/templates/engine/employes.html:470:33" %}</option>
+            <option value="+57">{% t "engine/templates/engine/employes.html:471:33" %}</option>
+            <option value="+51">{% t "engine/templates/engine/employes.html:472:33" %}</option>
+            <option value="+58">{% t "engine/templates/engine/employes.html:473:33" %}</option>
+            <option value="+593">{% t "engine/templates/engine/employes.html:474:34" %}</option>
+            <option value="+591">{% t "engine/templates/engine/employes.html:475:34" %}</option>
+            <option value="+595">{% t "engine/templates/engine/employes.html:476:34" %}</option>
+            <option value="+598">{% t "engine/templates/engine/employes.html:477:34" %}</option>
+            <option value="+509">{% t "engine/templates/engine/employes.html:478:34" %}</option>
+            <option value="+590">{% t "engine/templates/engine/employes.html:479:34" %}</option>
+            <option value="+596">{% t "engine/templates/engine/employes.html:480:34" %}</option>
+            <option value="+594">{% t "engine/templates/engine/employes.html:481:34" %}</option>
+            <option value="+262">{% t "engine/templates/engine/employes.html:482:34" %}</option>
+        </select>
+      </div>
+      <div class="champ">
+        <label>{% t "engine/templates/engine/employes.html:486:16" %}</label>
+        <input id="edit-telephone" type="tel" placeholder="{% t 'engine/templates/engine/employes.html:487:60' %}">
+      </div>
+    </div>
+
+    <div class="sep-section">{% t "engine/templates/engine/employes.html:491:30" %}</div>
+    <div class="grille">
+      <div class="champ">
+        <label>{% t "engine/templates/engine/employes.html:494:16" %}</label>
+        <select id="edit-role">
+          <option value="lecteur">{% t "engine/templates/engine/employes.html:496:35" %}</option>
+          <option value="agent">{% t "engine/templates/engine/employes.html:497:33" %}</option>
+          <option value="admin">{% t "engine/templates/engine/employes.html:498:33" %}</option>
+        </select>
+      </div>
+      <div class="champ">
+        <label>{% t "engine/templates/engine/employes.html:502:16" %}</label>
+        <input id="edit-password" type="password" placeholder="{% t 'engine/templates/engine/employes.html:503:64' %}" autocomplete="new-password">
+      </div>
+    </div>
+
+    <div class="modal-actions">
+      <button onclick="fermerModal()">{% t "engine/templates/engine/employes.html:508:39" %}</button>
+      <button class="principal" onclick="sauvegarderEdition()">{% t "engine/templates/engine/employes.html:509:64" %}</button>
+    </div>
+  </div>
+</div>
+
+<!-- Modal Configurer les droits (agent) : toggles par vue, remplace le
+     tout-ou-rien statique du rôle. Réutilise le style toggle-wrap/pill/knob
+     déjà utilisé plus haut pour l'accès client public.
+     Phase 9 (cahier des charges Ontology, « SÉCURITÉ FINE ») : 2 sections
+     additives — Tables autorisées (granularité Objet) et Champs masqués
+     (granularité Champ, par table cochée) — même mécanique toggle. -->
+<div class="modal-fond" id="modal-droits">
+  <div class="modal">
+    <h3>{% t "engine/templates/engine/employes.html:522:9" %}</h3>
+    <p style="font-size:12px;color:var(--muted);margin:-4px 0 14px" id="droits-sous-titre"></p>
+    <input type="hidden" id="droits-user-id">
+    <p style="font-size:12px;font-weight:600;margin:4px 0 6px">{% t "engine/templates/engine/employes.html:525:64" %}</p>
+    <ul id="droits-liste" style="list-style:none;display:flex;flex-direction:column;gap:10px;margin-bottom:4px"></ul>
+    <p style="font-size:12px;font-weight:600;margin:16px 0 2px">{% t "engine/templates/engine/employes.html:delegations_titre" %}</p>
+    <p style="font-size:11px;color:var(--muted);margin:0 0 6px">{% t "engine/templates/engine/employes.html:delegations_aide" %}</p>
+    <ul id="droits-delegations" style="list-style:none;display:flex;flex-direction:column;gap:10px;margin-bottom:4px"></ul>
+    <p style="font-size:11px;color:var(--muted);margin-top:4px">{% t "engine/templates/engine/employes.html:527:65" %}</p>
+
+    <p style="font-size:12px;font-weight:600;margin:16px 0 6px">{% t "engine/templates/engine/employes.html:529:65" %}</p>
+    <ul id="droits-tables-liste" style="list-style:none;display:flex;flex-direction:column;gap:8px;margin-bottom:4px;max-height:220px;overflow-y:auto"></ul>
+    <p style="font-size:11px;color:var(--muted);margin-top:4px">{% t "engine/templates/engine/employes.html:531:65" %}</p>
+
+    <p style="font-size:12px;font-weight:600;margin:16px 0 6px">{% t "engine/templates/engine/employes.html:533:65" %}</p>
+    <select id="droits-champs-table" style="width:100%;margin-bottom:8px" onchange="afficherChampsMasquablesTable()"></select>
+    <ul id="droits-champs-liste" style="list-style:none;display:flex;flex-direction:column;gap:8px;margin-bottom:4px;max-height:220px;overflow-y:auto"></ul>
+    <p style="font-size:11px;color:var(--muted);margin-top:4px">{% t "engine/templates/engine/employes.html:536:65" %}</p>
+
+    <div class="modal-actions">
+      <button onclick="fermerModalDroits()">{% t "engine/templates/engine/employes.html:539:45" %}</button>
+      <button class="principal" onclick="sauvegarderDroits()">{% t "engine/templates/engine/employes.html:540:63" %}</button>
+    </div>
+  </div>
+</div>
+
+<!-- Tables réservées à un client : aucune cochée = toutes les tables exposées ; sinon seulement celles cochées (et ce qui en dépend : lignes, BI, KPI, analyses). -->
+<div class="modal-fond" id="modal-tables-client">
+  <div class="modal">
+    <h3>{% t "engine/templates/engine/employes.html:501:9" %}</h3>
+    <p style="font-size:12px;color:var(--muted);margin:-4px 0 14px" id="tc-sous-titre"></p>
+    <input type="hidden" id="tc-user-id">
+    <ul id="tc-liste" style="list-style:none;display:flex;flex-direction:column;gap:8px;margin-bottom:4px;max-height:280px;overflow-y:auto"></ul>
+    <p style="font-size:11px;color:var(--muted);margin-top:4px">{% t "engine/templates/engine/employes.html:505:65" %}</p>
+    <div class="modal-actions">
+      <button onclick="fermerTablesClient()">{% t "engine/templates/engine/employes.html:507:46" %}</button>
+      <button class="principal" onclick="sauvegarderTablesClient()">{% t "engine/templates/engine/employes.html:508:69" %}</button>
+    </div>
+  </div>
+</div>
+
+<!-- Propriétaires d'une table : l'administrateur retire une table à son créateur et la confie à un ou plusieurs agents (sans toucher aux comptes). -->
+<div class="modal-fond" id="modal-proprietaires">
+  <div class="modal">
+    <h3>{% t "engine/templates/engine/employes.html:516:9" %}</h3>
+    <p style="font-size:12px;color:var(--muted);margin:-4px 0 14px" id="pp-sous-titre"></p>
+    <input type="hidden" id="pp-table-id">
+    <ul id="pp-liste" style="list-style:none;display:flex;flex-direction:column;gap:8px;margin-bottom:4px;max-height:280px;overflow-y:auto"></ul>
+    <p style="font-size:11px;color:var(--muted);margin-top:4px">{% t "engine/templates/engine/employes.html:520:65" %}</p>
+    <div class="modal-actions">
+      <button onclick="fermerProprietaires()">{% t "engine/templates/engine/employes.html:522:47" %}</button>
+      <button class="principal" onclick="sauvegarderProprietaires()">{% t "engine/templates/engine/employes.html:523:70" %}</button>
+    </div>
+  </div>
+</div>
+
+{% i18n_js %}
+<script src="{% static 'engine/js/telechargement.js' %}"></script>
+<script>
+const CSRF = document.cookie.match(/gy_csrftoken=([^;]+)/)?.[1] || "{{ csrf_token }}";
+const MOI  = {{ user_id }};
+
+function toast(msg, err=false){
+  const t = document.getElementById("toast");
+  t.textContent = msg; t.className = err ? "err" : "";
+  t.style.display = "block";
+  clearTimeout(t._t);
+  t._t = setTimeout(() => t.style.display="none", 3500);
+}
+
+async function api(url, opts={}){
+  const res = await fetch(url, {
+    headers:{"Content-Type":"application/json","X-CSRFToken":CSRF},
+    ...opts
+  });
+  const data = await res.json().catch(()=>({}));
+  if(!res.ok){ toast(data.erreur||tj("engine/templates/engine/employes.html:js:570:36", {v1: res.status}), true); throw data; }
+  return data;
+}
+
+function badgeHtml(role){
+  const labels = {admin:tj("engine/templates/engine/employes.html:js:lbl_administrateur"), agent:tj("engine/templates/engine/employes.html:js:575:50"), lecteur:tj("engine/templates/engine/employes.html:js:575:67")};
+  return `<span class="badge ${role}">${labels[role]||role}</span>`;
+}
+
+function initiales(fn, ln){
+  const i1 = (fn && fn[0]) || "?";
+  const i2 = (ln && ln[0]) || "";
+  return (i1 + i2).toUpperCase();
+}
+
+
+async function chargerReprises(){
+  let d;
+  try{ d = await api("/api/reprises-poste/"); }catch(e){ return; }
+  const bloc = document.getElementById("bloc-reprises");
+  const liste = document.getElementById("liste-reprises");
+  if(!d.reprises || !d.reprises.length){ bloc.style.display = "none"; liste.innerHTML = ""; return; }
+  bloc.style.display = "block";
+  const options = (d.agents||[]).map(a => `<option value="${a.id}">${a.nom} (@${a.username})</option>`).join("");
+  liste.innerHTML = d.reprises.map(r => `<div style="display:flex;flex-wrap:wrap;gap:8px;align-items:center;margin-bottom:8px">
+      <div style="flex:1;min-width:180px"><b>${r.nom_agent}</b> <span style="color:var(--muted)">@${r.identifiant}</span><br>
+        <span style="color:var(--muted);font-size:12px">${r.nb_lignes} ${tj("engine/templates/engine/employes.html:js:596:73")} ${r.nb_elements} ${tj("engine/templates/engine/employes.html:js:596:101")}${r.solde_verse ? " · " + r.solde_verse + tj("engine/templates/engine/employes.html:js:596:162") : ""}</span></div>
+      <select id="rem-${r.id}"><option value="">${tj("engine/templates/engine/employes.html:js:597:50")}</option>${options}</select>
+      <button class="petit" onclick="cederPoste(${r.id})">${tj("engine/templates/engine/employes.html:js:598:60")}</button>
+    </div>`).join("");
+}
+
+async function cederPoste(id){
+  const v = document.getElementById("rem-"+id).value;
+  if(!v){ toast(tj("engine/templates/engine/employes.html:js:604:18"), true); return; }
+  if(!await GY.confirmer(tj("engine/templates/engine/employes.html:js:605:16"))) return;
+  try{
+    const r = await api(`/api/reprises-poste/${id}/ceder/`, {method:"POST", body:JSON.stringify({user_id: v})});
+    toast(tj("engine/templates/engine/employes.html:js:608:12", {v1: r.lignes_cedees}));
+    chargerReprises();
+  }catch(e){}
+}
+
+async function chargerEmployes(){
+  const data = await api("/api/employes/");
+  const employes = data.employes;
+  window._employes = employes;
+  document.getElementById("nb-membres").textContent = employes.length;
+  document.getElementById("btn-exporter-employes").onclick = exporterEmployes;
+  document.getElementById("btn-exporter-employes-pdf").onclick = exporterEmployesPdf;
+  const corps = document.getElementById("corps-employes");
+  if(!employes.length){
+    corps.innerHTML = `<tr><td colspan="5" style="text-align:center;color:var(--muted);padding:30px">${tj("engine/templates/engine/employes.html:js:622:103")}</td></tr>`;
+    return;
+  }
+  corps.innerHTML = employes.map(e => {
+    const estMoi = e.id === MOI;
+    return `<tr data-id="${e.id}">
+      <td>
+        <div class="nom-cell">
+          <span class="avatar">${initiales(e.first_name, e.last_name)}</span>
+          <div>
+            <div>${e.first_name||""} ${e.last_name||""}</div>
+            ${estMoi ? tj("engine/templates/engine/employes.html:js:633:25") : ""}
+          </div>
+        </div>
+      </td>
+      <td style="color:var(--muted)">${e.role === 'lecteur' ? '@client_' + (e.numero_client || e.id) : '@' + e.username}</td>
+      <td style="color:var(--muted)">${e.telephone||"—"}</td>
+      <td>${badgeHtml(e.role)}</td>
+      <td>
+        <div class="actions-cell">
+          <button class="petit" onclick='ouvrirEdition(${JSON.stringify(e)})'>${tj("engine/templates/engine/employes.html:js:642:80")}</button>
+          ${e.role === 'agent' ? `<button class="petit" onclick='ouvrirDroits(${JSON.stringify(e)})'>⚙ Droits</button>` : ""}
+          ${e.role === 'lecteur' ? `<button class="petit" onclick='ouvrirTablesClient(${JSON.stringify(e)})'>🔒 Tables</button>` : ""}
+          ${estMoi ? "" : `<button class="petit danger" onclick="supprimerEmploye(${e.id},'${(e.first_name+' '+e.last_name).trim()}')">🗑 Retirer</button>`}
+        </div>
+      </td>
+    </tr>`;
+  }).join("");
+}
+
+async function exporterEmployes(){
+  // Source = l'API (jusqu'a 1000 membres), pas la page affichee : l'export ne doit pas etre tronque.
+  const data = await api("/api/employes/?taille=1000");
+  const employes = data.employes || [];
+  if(!employes.length){ toast(tj("engine/templates/engine/employes.html:js:655:32"), true); return; }
+  const lignes = [
+    [tj("engine/templates/engine/employes.html:js:657:7"),tj("engine/templates/engine/employes.html:js:657:16"),tj("engine/templates/engine/employes.html:js:lbl_identifiant"),tj("engine/templates/engine/employes.html:js:lbl_indicatif"),tj("engine/templates/engine/employes.html:js:657:48"),tj("engine/templates/engine/employes.html:js:657:60"),tj("engine/templates/engine/employes.html:js:657:67")],
+    ...employes.map(e => [
+      e.first_name||"", e.last_name||"", e.role === "lecteur" ? "@client_" + (e.numero_client || e.id) : "@" + e.username,
+      e.indicatif_pays||"", e.telephone||"",
+      e.role_display||e.role||"", e.est_actif ? tj("engine/templates/engine/employes.html:js:661:50") : tj("engine/templates/engine/employes.html:js:661:58")
+    ])
+  ];
+  const csv = lignes.map(r => r.map(v => `"${String(v).replace(/"/g,'""')}"`).join(";")).join("\n");
+  gyTelechargerBlob(new Blob(["\uFEFF"+csv], {type:"text/csv;charset=utf-8;"}), "employes.csv");
+}
+
+function exporterEmployesPdf(){
+  // location.href sur une reponse « attachment » ne telecharge rien dans la webview de l'app :
+  // telechargement commun (fetch + blob), erreur serveur affichee par toast().
+  gyTelecharger("/api/employes/exporter-pdf/", "membres_equipe.pdf",
+    {bouton: document.getElementById("btn-exporter-employes-pdf"), succes: () => toast(tj("engine/templates/engine/employes.html:js:672:89")), erreur: m => toast(m, true)});
+}
+
+function ouvrirEdition(e){
+  document.getElementById("edit-user-id").value     = e.id;
+  document.getElementById("edit-first-name").value  = e.first_name||"";
+  document.getElementById("edit-last-name").value   = e.last_name||"";
+  document.getElementById("edit-username").value     = e.username||"";
+  document.getElementById("edit-telephone").value   = e.telephone||"";
+  document.getElementById("edit-password").value    = "";
+  // Indicatif : retrouver la valeur brute
+  const indicatifBrut = (e.telephone_indicatif || e.indicatif_pays || "+242");
+  const sel = document.getElementById("edit-indicatif");
+  [...sel.options].forEach(o => o.selected = (o.value === indicatifBrut));
+  // Rôle
+  document.getElementById("edit-role").value = e.role||"lecteur";
+  document.getElementById("modal-edition").classList.add("ouvert");
+}
+
+function fermerModal(){
+  document.getElementById("modal-edition").classList.remove("ouvert");
+}
+
+// ── Configurer les droits (toggles par vue) ──────────────────────────────
+// ── Délégations : interrupteurs par droit, par famille et « liberté absolue » ──
+function basculerDelegation(el){
+  el.classList.toggle("actif");
+  const liste = document.getElementById("droits-delegations");
+  if (el.dataset.famille) {   // la famille coche / décoche tous ses droits (ceux que le connecté peut confier)
+    liste.querySelectorAll(`li[data-famille-de="${el.dataset.famille}"] [data-delegation]`).forEach(t => {
+      if (!t.dataset.nonConfiable) t.classList.toggle("actif", el.classList.contains("actif"));
+    });
+  } else if (el.dataset.delegation) {   // un droit : l'interrupteur de sa famille suit l'ensemble de ses droits
+    const famille = el.closest("li").dataset.familleDe;
+    const interrupteurFamille = liste.querySelector(`[data-famille="${famille}"]`);
+    if (interrupteurFamille) interrupteurFamille.classList.toggle("actif", (window._familleDroits[famille] || []).every(s => liste.querySelector(`[data-delegation="${s}"]`).classList.contains("actif")));
+  }
+  majDelegationsAbsolues();
+}
+// Liberté absolue cochée : tous les autres interrupteurs apparaissent cochés et grisés ; décochée, ils reprennent leur état d'avant.
+function majDelegationsAbsolues(){
+  const liste = document.getElementById("droits-delegations");
+  const absolu = liste.querySelector("[data-absolu]");
+  const actif = !!absolu && absolu.classList.contains("actif");
+  liste.querySelectorAll("[data-delegation], [data-famille]").forEach(t => {
+    if (actif) {
+      if (t.dataset.avant === undefined) t.dataset.avant = t.classList.contains("actif") ? "1" : "0";
+      t.classList.add("actif"); t.style.opacity = ".45"; t.style.pointerEvents = "none";
+    } else if (t.dataset.avant !== undefined) {
+      t.classList.toggle("actif", t.dataset.avant === "1"); delete t.dataset.avant;
+      if (!t.dataset.nonConfiable) { t.style.opacity = ""; t.style.pointerEvents = ""; }   // un droit que le connecté n'a pas reste grisé
+    }
+  });
+}
+function delegationsChoisies(){
+  const liste = document.getElementById("droits-delegations");
+  const absolu = liste.querySelector("[data-absolu]");
+  if (absolu && absolu.classList.contains("actif")) return [absolu.dataset.absolu];
+  return [...liste.querySelectorAll("[data-delegation].actif")].map(t => t.dataset.delegation);
+}
+let _droitsTables = [];      // tables de l'entreprise (cache pour ce modal), avec leurs champs
+let _droitsChampsMasques = {}; // {table_id (number): Set(slugs)} — état en cours d'édition
+
+async function ouvrirDroits(e){
+  document.getElementById("droits-user-id").value = e.id;
+  document.getElementById("droits-sous-titre").textContent =
+    `${e.first_name||""} ${e.last_name||""} · @${e.username}`.trim();
+  const liste = document.getElementById("droits-liste");
+  liste.innerHTML = `<li style="color:var(--muted);font-size:12px">${tj("engine/templates/engine/employes.html:js:704:69")}</li>`;
+  document.getElementById("modal-droits").classList.add("ouvert");
+  const [data, tablesData] = await Promise.all([
+    api(`/api/employes/${e.id}/permissions/`),
+    api(`/api/tables/?systeme=1`),
+  ]);
+  const actives = data.vues_autorisees || [];
+  liste.innerHTML = data.vues_disponibles.map(v => `
+    <li style="display:flex;align-items:center;justify-content:space-between;gap:10px">
+      <span style="font-size:13px">${v.nom}</span>
+      <div class="toggle-wrap${actives.includes(v.slug) ? " actif" : ""}" data-slug="${v.slug}" onclick="this.classList.toggle('actif')">
+        <div class="toggle-pill"><div class="toggle-knob"></div></div>
+      </div>
+    </li>`).join("");
+
+  // Délégations : un interrupteur par droit (une fonctionnalité), un par famille pour tout cocher d'un coup, et la liberté absolue.
+  // Le connecté ne peut confier que ce qu'il a lui-même (data.delegations_du_delegant) : les autres interrupteurs sont grisés.
+  const delegues = new Set(data.delegations || []);
+  const possibles = new Set(data.delegations_du_delegant || []);
+  const interrupteur = (attribut, slug, actif, possible) => `
+      <div class="toggle-wrap${actif ? " actif" : ""}" ${attribut}="${slug}" ${possible ? `onclick="basculerDelegation(this)"` : `data-non-confiable="1" style="opacity:.45;pointer-events:none"`}>
+        <div class="toggle-pill"><div class="toggle-knob"></div></div>
+      </div>`;
+  const absolu = data.delegation_absolue;
+  const lignes = [];
+  if (absolu) {
+    lignes.push(`<li style="display:flex;align-items:center;justify-content:space-between;gap:10px;padding:6px 8px;border:1px solid var(--border,#ddd);border-radius:8px">
+      <span style="font-size:13px;font-weight:600">${absolu.nom}<br><small style="font-weight:400;color:var(--muted)">${absolu.description}</small></span>
+      ${interrupteur("data-absolu", absolu.slug, delegues.has(absolu.slug), possibles.has(absolu.slug))}
+    </li>`);
+  }
+  (data.delegations_groupes || []).forEach(g => {
+    const droitsG = g.droits.map(d => d.slug);
+    lignes.push(`<li style="display:flex;align-items:center;justify-content:space-between;gap:10px;margin-top:8px">
+      <span style="font-size:13px;font-weight:600">${g.nom}<br><small style="font-weight:400;color:var(--muted)">${g.description}</small></span>
+      ${interrupteur("data-famille", g.slug, droitsG.every(s => delegues.has(s)), droitsG.some(s => possibles.has(s)))}
+    </li>`);
+    g.droits.forEach(d => lignes.push(`<li data-famille-de="${g.slug}" style="display:flex;align-items:center;justify-content:space-between;gap:10px;padding-left:16px">
+      <span style="font-size:13px">${d.sensible ? "⚠ " : ""}${d.nom}<br><small style="color:var(--muted)">${d.description}</small></span>
+      ${interrupteur("data-delegation", d.slug, delegues.has(d.slug), possibles.has(d.slug))}
+    </li>`));
+  });
+  document.getElementById("droits-delegations").innerHTML = lignes.join("");
+  window._familleDroits = Object.fromEntries((data.delegations_groupes || []).map(g => [g.slug, g.droits.map(d => d.slug)]));
+  majDelegationsAbsolues();
+
+  // Phase 9 — Tables autorisées : une table cochée = ajoutée à la liste
+  // restrictive (aucune cochée = pas de restriction, comme les vues).
+  _droitsTables = tablesData.tables || [];
+  const tablesActives = data.tables_autorisees || [];
+  const listeTables = document.getElementById("droits-tables-liste");
+  listeTables.innerHTML = _droitsTables.map(t => `
+    <li style="display:flex;align-items:center;justify-content:space-between;gap:10px">
+      <span style="font-size:13px">${t.nom}</span>
+      <button class="petit" title="${tj("engine/templates/engine/employes.html:js:proprietaires_table")}" onclick="ouvrirProprietaires(${t.id}, this.previousElementSibling.textContent)">👤</button>
+      <div class="toggle-wrap${tablesActives.includes(t.id) ? " actif" : ""}" data-table-id="${t.id}" onclick="this.classList.toggle('actif')">
+        <div class="toggle-pill"><div class="toggle-knob"></div></div>
+      </div>
+    </li>`).join("") || `<li style="color:var(--muted);font-size:12px">${tj("engine/templates/engine/employes.html:js:730:73")}</li>`;
+
+  // Phase 9 — Champs masqués : {table_id: [slugs]} venant du serveur ->
+  // Set en mémoire pour l'édition, table par table (select ci-dessous).
+  _droitsChampsMasques = {};
+  for(const [tid, slugs] of Object.entries(data.champs_masques || {})){
+    _droitsChampsMasques[Number(tid)] = new Set(slugs);
+  }
+  const selectTable = document.getElementById("droits-champs-table");
+  selectTable.innerHTML = _droitsTables.map(t => `<option value="${t.id}">${t.nom}</option>`).join("")
+    || `<option value="">—</option>`;
+  afficherChampsMasquablesTable();
+}
+
+function afficherChampsMasquablesTable(){
+  const tid = Number(document.getElementById("droits-champs-table").value);
+  const table = _droitsTables.find(t => t.id === tid);
+  const liste = document.getElementById("droits-champs-liste");
+  if(!table){ liste.innerHTML = ""; return; }
+  const masques = _droitsChampsMasques[tid] || new Set();
+  liste.innerHTML = (table.champs || []).map(c => `
+    <li style="display:flex;align-items:center;justify-content:space-between;gap:10px">
+      <span style="font-size:13px">${c.nom}</span>
+      <div class="toggle-wrap${masques.has(c.slug) ? " actif" : ""}" data-champ-slug="${c.slug}"
+           onclick="this.classList.toggle('actif'); basculerChampMasque(${tid}, '${c.slug}')">
+        <div class="toggle-pill"><div class="toggle-knob"></div></div>
+      </div>
+    </li>`).join("") || `<li style="color:var(--muted);font-size:12px">${tj("engine/templates/engine/employes.html:js:757:73")}</li>`;
+}
+
+function basculerChampMasque(tableId, slug){
+  if(!_droitsChampsMasques[tableId]) _droitsChampsMasques[tableId] = new Set();
+  const set = _droitsChampsMasques[tableId];
+  if(set.has(slug)) set.delete(slug); else set.add(slug);
+}
+
+// ── Tables réservées à un client ─────────────────────────────────────────
+function escapeHtml(s){
+  return String(s ?? "").replace(/[&<>"']/g, c => ({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));
+}
+async function ouvrirTablesClient(e){
+  document.getElementById("tc-user-id").value = e.id;
+  document.getElementById("tc-sous-titre").textContent = `${e.first_name||""} ${e.last_name||""} · @client_${e.numero_client || e.id}`.trim();
+  const liste = document.getElementById("tc-liste");
+  liste.innerHTML = "";
+  document.getElementById("modal-tables-client").classList.add("ouvert");
+  const [data, tablesData] = await Promise.all([api(`/api/employes/${e.id}/permissions/`), api(`/api/tables/?systeme=1`)]);
+  const actives = data.tables_autorisees || [];
+  const tables = (tablesData.tables || []).filter(t => !t.est_table_membres);
+  liste.innerHTML = tables.map(t => `
+    <li style="display:flex;align-items:center;justify-content:space-between;gap:10px">
+      <span style="font-size:13px">${escapeHtml(t.nom)}</span>
+      <div class="toggle-wrap${actives.includes(t.id) ? " actif" : ""}" data-table-id="${t.id}" onclick="this.classList.toggle('actif')">
+        <div class="toggle-pill"><div class="toggle-knob"></div></div>
+      </div>
+    </li>`).join("") || `<li style="color:var(--muted);font-size:12px">${tj("engine/templates/engine/employes.html:js:832:71")}</li>`;
+}
+function fermerTablesClient(){ document.getElementById("modal-tables-client").classList.remove("ouvert"); }
+async function sauvegarderTablesClient(){
+  const id = document.getElementById("tc-user-id").value;
+  const tables = [...document.querySelectorAll("#tc-liste .toggle-wrap.actif")].map(t => Number(t.dataset.tableId));
+  await api(`/api/employes/${id}/permissions/`, {method: "POST", body: JSON.stringify({tables_autorisees: tables.length ? tables : null})});
+  toast(tj("engine/templates/engine/employes.html:js:839:9"));
+  fermerTablesClient();
+}
+
+async function ouvrirProprietaires(tableId, nom){
+  document.getElementById("pp-table-id").value = tableId;
+  document.getElementById("pp-sous-titre").textContent = nom;
+  const liste = document.getElementById("pp-liste");
+  liste.innerHTML = "";
+  document.getElementById("modal-proprietaires").classList.add("ouvert");
+  const data = await api(`/api/tables/${tableId}/proprietaires/`);
+  liste.innerHTML = (data.agents || []).map(a => `
+    <li style="display:flex;align-items:center;justify-content:space-between;gap:10px">
+      <span style="font-size:13px">${escapeHtml(a.nom)}</span>
+      <div class="toggle-wrap${(data.proprietaires || []).includes(a.id) ? " actif" : ""}" data-user-id="${a.id}" onclick="this.classList.toggle('actif')">
+        <div class="toggle-pill"><div class="toggle-knob"></div></div>
+      </div>
+    </li>`).join("") || `<li style="color:var(--muted);font-size:12px">${tj("engine/templates/engine/employes.html:js:856:71")}</li>`;
+}
+function fermerProprietaires(){ document.getElementById("modal-proprietaires").classList.remove("ouvert"); }
+async function sauvegarderProprietaires(){
+  const id = document.getElementById("pp-table-id").value;
+  const proprietaires = [...document.querySelectorAll("#pp-liste .toggle-wrap.actif")].map(t => Number(t.dataset.userId));
+  await api(`/api/tables/${id}/proprietaires/`, {method: "POST", body: JSON.stringify({proprietaires})});
+  toast(tj("engine/templates/engine/employes.html:js:863:9"));
+  fermerProprietaires();
+}
+
+function fermerModalDroits(){
+  document.getElementById("modal-droits").classList.remove("ouvert");
+}
+
+async function sauvegarderDroits(){
+  const id = document.getElementById("droits-user-id").value;
+  const actives = [...document.querySelectorAll("#droits-liste .toggle-wrap.actif")]
+    .map(t => t.dataset.slug);
+  const tablesActives = [...document.querySelectorAll("#droits-tables-liste .toggle-wrap.actif")]
+    .map(t => Number(t.dataset.tableId));
+  const champsMasques = {};
+  for(const [tid, set] of Object.entries(_droitsChampsMasques)){
+    if(set.size) champsMasques[tid] = [...set];
+  }
+  await api(`/api/employes/${id}/permissions/`, {
+    method: "POST",
+    body: JSON.stringify({
+      vues_autorisees: actives.length ? actives : null,
+      delegations: delegationsChoisies(),
+      tables_autorisees: tablesActives.length ? tablesActives : null,
+      champs_masques: Object.keys(champsMasques).length ? champsMasques : null,
+    }),
+  });
+  toast(tj("engine/templates/engine/employes.html:js:788:10"));
+  fermerModalDroits();
+}
+
+async function sauvegarderEdition(){
+  const id = document.getElementById("edit-user-id").value;
+  const corps = {
+    first_name:    document.getElementById("edit-first-name").value.trim(),
+    last_name:     document.getElementById("edit-last-name").value.trim(),
+    username:      document.getElementById("edit-username").value.trim(),
+    telephone:     document.getElementById("edit-telephone").value.trim(),
+    indicatif_pays:document.getElementById("edit-indicatif").value,
+    role:          document.getElementById("edit-role").value,
+    password:      document.getElementById("edit-password").value,
+  };
+  try{
+    await api(`/api/employes/${id}/modifier/`, {method:"POST", body:JSON.stringify(corps)});
+    toast(tj("engine/templates/engine/employes.html:js:805:12"));
+    fermerModal();
+    chargerEmployes();
+  }catch(e){}
+}
+
+async function supprimerEmploye(id, nom){
+  if(!await GY.confirmer(tj("engine/templates/engine/employes.html:js:812:16", {v1: nom}))) return;
+  try{
+    await api(`/api/employes/${id}/supprimer/`, {method:"POST"});
+    toast(tj("engine/templates/engine/employes.html:js:815:12"));
+    chargerEmployes();
+    chargerReprises();
+  }catch(e){}
+}
+
+// Formulaire création
+document.getElementById("form-creer").onsubmit = async (ev) => {
+  ev.preventDefault();
+  const fd = new FormData(ev.target);
+  const corps = Object.fromEntries(fd.entries());
+  delete corps.csrfmiddlewaretoken;
+  try{
+    await api("/api/employes/", {method:"POST", body:JSON.stringify(corps)});
+    toast(tj("engine/templates/engine/employes.html:js:829:12"));
+    ev.target.reset();
+    chargerEmployes();
+  }catch(e){}
+};
+
+// Fermer modal en cliquant le fond
+document.getElementById("modal-edition").addEventListener("click", function(e){
+  if(e.target === this) fermerModal();
+});
+document.getElementById("modal-droits").addEventListener("click", function(e){
+  if(e.target === this) fermerModalDroits();
+});
+
+chargerEmployes();
+chargerReprises();
+
+// ── Inscription publique ──────────────────────────────────────────────────────
+let _inscriptionOuverte = false;
+
+async function chargerEtatInscription(){
+  try{
+    const data = await api("/api/entreprise/");
+    _inscriptionOuverte = data.inscription_ouverte;
+    appliquerEtatInscription(data.inscription_ouverte);
+    if(typeof data.api_ouverte !== "undefined") appliquerEtatApi(data.api_ouverte);
+  }catch(e){}
+}
+
+let _apiOuverte = false;
+
+function appliquerEtatApi(ouverte){
+  _apiOuverte = ouverte;
+  const lbl = document.getElementById("lbl-etat-api");
+  document.getElementById("toggle-api").classList.toggle("actif", ouverte);
+  lbl.textContent = ouverte ? tj("engine/templates/engine/employes.html:js:api_ouvert") : tj("engine/templates/engine/employes.html:js:api_ferme");
+  lbl.style.color = ouverte ? "var(--ok)" : "var(--muted)";
+  document.getElementById("bloc-api-ouverte").style.display = ouverte ? "block" : "none";
+  document.getElementById("bloc-api-fermee").style.display = ouverte ? "none" : "block";
+}
+
+async function toggleApi(){
+  const nouveau = !_apiOuverte;
+  try{
+    const data = await api("/api/entreprise/api-ouverte/", {
+      method: "POST",
+      body: JSON.stringify({api_ouverte: nouveau})
+    });
+    appliquerEtatApi(data.api_ouverte);
+    toast(nouveau ? tj("engine/templates/engine/employes.html:js:api_toast_ouvert") : tj("engine/templates/engine/employes.html:js:api_toast_ferme"));
+  }catch(e){}
+}
+
+function appliquerEtatInscription(ouverte){
+  _inscriptionOuverte = ouverte;
+  const toggle  = document.getElementById("toggle-inscription");
+  const lbl     = document.getElementById("lbl-etat-inscription");
+  const blocOn  = document.getElementById("bloc-lien-inscription");
+  const blocOff = document.getElementById("bloc-inscription-fermee");
+  if(ouverte){
+    toggle.classList.add("actif");
+    lbl.textContent = tj("engine/templates/engine/employes.html:js:896:24"); lbl.style.color = "var(--ok)";
+    blocOn.style.display  = "block";
+    blocOff.style.display = "none";
+  } else {
+    toggle.classList.remove("actif");
+    lbl.textContent = tj("engine/templates/engine/employes.html:js:901:24"); lbl.style.color = "var(--muted)";
+    blocOn.style.display  = "none";
+    blocOff.style.display = "block";
+  }
+}
+
+async function toggleInscription(){
+  const nouveau = !_inscriptionOuverte;
+  try{
+    const data = await api("/api/entreprise/inscription-ouverte/", {
+      method: "POST",
+      body: JSON.stringify({inscription_ouverte: nouveau})
+    });
+    appliquerEtatInscription(data.inscription_ouverte);
+    toast(nouveau ? tj("engine/templates/engine/employes.html:js:915:22") : tj("engine/templates/engine/employes.html:js:915:48"));
+  }catch(e){}
+}
+
+chargerEtatInscription();
+(function(){
+  const p = new URLSearchParams(window.location.search);
+  if(p.get('ok')==='renommer') toast(tj("engine/templates/engine/employes.html:js:923:39"));
+  else if(p.get('ok')==='coordonnees') toast(tj("engine/templates/engine/employes.html:js:924:47"));
+  else if(p.get('err')==='nom_existe') toast(tj("engine/templates/engine/employes.html:js:925:47"), true);
+})();
+</script>
+<script src="{% static 'engine/js/icones.js' %}"></script>
+</body>
+</html>

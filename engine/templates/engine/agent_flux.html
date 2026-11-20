@@ -1,0 +1,104 @@
+{% extends "engine/page_simple.html" %}
+{% load i18n_extras %}
+{% load static %}
+{% block classe_page %}page-reco page-wallets{% endblock %}
+{% block titre %}{% t "engine/templates/engine/agent_flux.html:4:18" %}{% endblock %}
+{% block contenu %}
+{% if not habilite %}
+<section class="reco-section"><p>{% t "engine/templates/engine/agent_flux.html:7:34" %}</p></section>
+{% else %}
+<header class="reco-pouls">
+  <div class="pouls-tete">
+    <div class="pouls-risque"><b id="especes">–</b><span>{% t "engine/templates/engine/agent_flux.html:11:58" %}</span></div>
+    <div class="pouls-texte"><h2>{% t "engine/templates/engine/agent_flux.html:12:34" %}</h2><p id="resume-jour">{% t "engine/templates/engine/agent_flux.html:12:81" %}</p></div>
+  </div>
+</header>
+<section class="reco-section">
+  <div class="section-tete"><h2>{% t "engine/templates/engine/agent_flux.html:16:33" %}</h2></div>
+  <div class="filtres"><input type="search" id="q" placeholder="{% t 'engine/templates/engine/agent_flux.html:17:65' %}" aria-label="{% t 'engine/templates/engine/agent_flux.html:17:137' %}" autocomplete="off"></div>
+  <div class="tbl-wrap"><table class="tbl"><thead><tr><th>{% t "engine/templates/engine/agent_flux.html:18:59" %}</th><th>{% t "engine/templates/engine/agent_flux.html:18:71" %}</th><th>{% t "engine/templates/engine/agent_flux.html:n_client" %}</th><th>{% t "engine/templates/engine/agent_flux.html:18:95" %}</th><th>{% t "engine/templates/engine/agent_flux.html:18:113" %}</th><th>{% t "engine/templates/engine/agent_flux.html:18:127" %}</th><th></th></tr></thead><tbody id="resultats"></tbody></table></div>
+</section>
+<section class="reco-section" id="saisie" hidden>
+  <div class="section-tete"><h2>{% t "engine/templates/engine/agent_flux.html:21:33" %}</h2></div>
+  <p>{% t "engine/templates/engine/agent_flux.html:22:6" %} : <b id="cible-nom"></b> — {% t "engine/templates/engine/agent_flux.html:22:52" %} : <b id="cible-solde"></b> {% t "engine/templates/engine/agent_flux.html:23:171" %}</p>
+  <div class="chiffres">
+    <label>{% t "engine/templates/engine/agent_flux.html:24:12" %} <select id="type"><option value="depot">{% t "engine/templates/engine/agent_flux.html:24:62" %}</option><option value="retrait">{% t "engine/templates/engine/agent_flux.html:24:135" %}</option></select></label>
+    <label>{% t "engine/templates/engine/agent_flux.html:25:12" %} <input id="montant" type="number" min="1" step="1" inputmode="numeric"></label>
+    <label>{% t "engine/templates/engine/agent_flux.html:26:12" %} <select id="agent"></select></label>
+    <label>{% t "engine/templates/engine/agent_flux.html:27:12" %} <input id="motif" type="text" maxlength="200"></label>
+  </div>
+  <p class="pouls-actions"><button id="valider" type="button" class="principal">{% t "engine/templates/engine/agent_flux.html:29:81" %}</button> <button id="annuler" type="button">{% t "engine/templates/engine/agent_flux.html:29:137" %}</button></p>
+  <p id="message" role="status" aria-live="polite"></p>
+</section>
+<section class="reco-section">
+  <div class="section-tete"><h2>{% t "engine/templates/engine/agent_flux.html:33:33" %}</h2></div>
+  <div class="tbl-wrap"><table class="tbl"><thead><tr><th>{% t "engine/templates/engine/agent_flux.html:34:59" %}</th><th>{% t "engine/templates/engine/agent_flux.html:34:72" %}</th><th>{% t "engine/templates/engine/agent_flux.html:personne" %}</th><th>{% t "engine/templates/engine/agent_flux.html:34:107" %}</th><th>{% t "engine/templates/engine/agent_flux.html:frais" %}</th><th>{% t "engine/templates/engine/agent_flux.html:bloc" %}</th></tr></thead><tbody id="operations"></tbody></table></div>
+</section>
+{% endif %}
+{% endblock %}
+{% block script %}{% if habilite %}
+{% i18n_js %}
+<script>
+// $ et CSRF viennent de page_simple.html
+const fmt = n => Number(n || 0).toLocaleString((window.I18N_LOCALE||"fr-FR"), {maximumFractionDigits: 2});
+let CIBLE = null, CLE = null, MINUTEUR = null, AGENTS = [];
+const nouvelleCle = () => (crypto.randomUUID ? crypto.randomUUID() : String(Date.now()) + Math.random().toString(16).slice(2)).replace(/-/g, "").slice(0, 40);
+function cellule(tr, texte){ const td = document.createElement("td"); td.textContent = texte ?? ""; tr.appendChild(td); return td; }
+async function api(url, corps){
+  const r = await fetch(url, corps ? {method: "POST", headers: {"X-CSRFToken": CSRF, "Content-Type": "application/json"}, body: JSON.stringify(corps)} : {});
+  const d = await r.json().catch(() => ({}));
+  if (!r.ok) throw new Error(d.error || tj("engine/templates/engine/agent_flux.html:js:48:42") + r.status);
+  return d;
+}
+async function charger(){
+  try {
+    const d = await api("/api/wallet/agent/operations");
+    $("especes").textContent = fmt(d.resume.especes_detenues);
+    $("resume-jour").textContent = tj("engine/templates/engine/agent_flux.html:js:55:37", {v1: d.resume.nb_depots_jour, v2: fmt(d.resume.depots_jour), v3: d.resume.nb_retraits_jour, v4: fmt(d.resume.retraits_jour)});
+    $("operations").replaceChildren(...d.operations.map(o => {
+      const tr = document.createElement("tr");
+      cellule(tr, new Date(o.date).toLocaleString((window.I18N_LOCALE||"fr-FR"))); cellule(tr, o.type_libelle); cellule(tr, o.client); cellule(tr, fmt(o.montant)); cellule(tr, fmt(o.frais)); cellule(tr, o.bloc ?? tj("engine/templates/engine/agent_flux.html:bloc_manquant"));
+      return tr;
+    }));
+  } catch (e) { $("resume-jour").textContent = e.message; }
+}
+async function chercher(){
+  const q = $("q").value.trim();
+  if (q.length < 3 && !/^\d+$/.test(q)) { $("resultats").replaceChildren(); return; }
+  try {
+    const d = await api("/api/wallet/agent/membres?q=" + encodeURIComponent(q));
+    AGENTS = d.agents;
+    $("resultats").replaceChildren(...d.membres.map(m => {
+      const tr = document.createElement("tr");
+      cellule(tr, m.nom); cellule(tr, m.role_libelle); cellule(tr, m.numero_client ?? ""); cellule(tr, m.telephone); cellule(tr, m.agent); cellule(tr, fmt(m.solde));
+      const td = document.createElement("td"), b = document.createElement("button");
+      b.type = "button"; b.textContent = tj("engine/templates/engine/agent_flux.html:js:73:43"); b.addEventListener("click", () => choisir(m)); td.appendChild(b); tr.appendChild(td);
+      return tr;
+    }));
+  } catch (e) { $("message").textContent = e.message; }
+}
+function choisir(m){
+  CIBLE = m; CLE = nouvelleCle();
+  $("cible-nom").textContent = m.nom; $("cible-solde").textContent = fmt(m.solde); $("montant").value = ""; $("motif").value = ""; $("message").textContent = "";
+  $("agent").replaceChildren(...AGENTS.map(a => { const o = document.createElement("option"); o.value = a.id; o.textContent = a.nom; if (a.id === m.agent_id) o.selected = true; return o; }));
+  $("saisie").hidden = false; $("montant").focus();
+}
+$("q").addEventListener("input", () => { clearTimeout(MINUTEUR); MINUTEUR = setTimeout(chercher, 300); });
+$("annuler").addEventListener("click", () => { CIBLE = null; $("saisie").hidden = true; });
+$("valider").addEventListener("click", async () => {
+  if (!CIBLE) return;
+  const montant = Number($("montant").value), genre = $("type").value;
+  if (!(montant > 0)) { $("message").textContent = tj("engine/templates/engine/agent_flux.html:js:89:53"); return; }
+  const libelle = genre === "depot" ? tj("engine/templates/engine/agent_flux.html:recevoir") : tj("engine/templates/engine/agent_flux.html:remettre");
+  if (!await GY.confirmer(tj("engine/templates/engine/agent_flux.html:js:91:17", {v1: libelle, v2: fmt(montant), v3: CIBLE.nom}))) return;
+  $("valider").disabled = true;
+  try {
+    // Même clé tant que la personne et l'opération ne changent pas : un double clic ou un nouvel essai après coupure ne répète jamais l'opération.
+    const d = await api("/api/wallet/agent/" + genre, {client_id: CIBLE.id, montant, agent_id: $("agent").value, motif: $("motif").value, cle: CLE});
+    $("message").textContent = (d.deja_enregistre ? tj("engine/templates/engine/agent_flux.html:js:96:54") : tj("engine/templates/engine/agent_flux.html:enregistre")) + tj("engine/templates/engine/agent_flux.html:nouveau_solde", {v1: fmt(d.solde_client), v2: fmt(d.frais)});
+    CIBLE.solde = d.solde_client; $("cible-solde").textContent = fmt(d.solde_client); CLE = nouvelleCle(); $("montant").value = ""; charger();
+  } catch (e) { $("message").textContent = e.message; }
+  $("valider").disabled = false;
+});
+charger();
+</script>{% endif %}{% endblock %}

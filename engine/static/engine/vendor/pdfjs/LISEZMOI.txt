@@ -1,0 +1,1 @@
+PDF.js "version":"6.2.108" (build legacy) — Apache-2.0. Fichiers .js = modules ES (import dynamique).

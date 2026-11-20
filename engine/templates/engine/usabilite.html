@@ -1,0 +1,141 @@
+{% extends "engine/page_simple.html" %}
+{% load i18n_extras %}{% load static %}
+{% block titre %}{% t "engine/templates/engine/usabilite.html:3:18" %}{% endblock %}
+{% block classe_page %}page-decideur{% endblock %}
+{% block contenu %}
+
+<div class="dc-hero">
+  <div class="periode">{% t "engine/templates/engine/usabilite.html:22:12" %} :
+    <a class="puce {% if jours == 7 %}actif{% endif %}" href="?jours=7">{% t "engine/templates/engine/usabilite.html:23:66" %}</a>
+    <a class="puce {% if jours == 30 %}actif{% endif %}" href="?jours=30">{% t "engine/templates/engine/usabilite.html:24:68" %}</a>
+    <a class="puce {% if jours == 90 %}actif{% endif %}" href="?jours=90">{% t "engine/templates/engine/usabilite.html:25:68" %}</a>
+    <a class="puce {% if jours == 365 %}actif{% endif %}" href="?jours=365">{% t "engine/templates/engine/usabilite.html:26:70" %}</a>
+  </div>
+
+  <div class="hero-tete" style="margin-top:18px">
+    {% if sus %}
+    <div class="hero-chiffre {% if sus.moyenne >= 68 %}ok{% elif sus.moyenne >= 51 %}moyen{% else %}faible{% endif %}"><b>{{ sus.moyenne|floatformat:0 }}</b><span>/100</span></div>
+    <div class="hero-texte">
+      <h2>{{ sus.qualificatif }} · {{ sus.note }}</h2>
+      <p>{% t "engine/templates/engine/usabilite.html:38:31" %} — {% t "engine/templates/engine/usabilite.html:46:12" %}</p>
+    </div>
+    {% else %}
+    <div class="hero-chiffre"><b>—</b></div>
+    <div class="hero-texte">
+      <h2>{% t "engine/templates/engine/usabilite.html:38:31" %}</h2>
+      <p>{% t "engine/templates/engine/usabilite.html:41:78" %}</p>
+    </div>
+    {% endif %}
+  </div>
+
+  <div class="chiffres">
+    <div class="chiffre"><b>{% if sus and sus.ic_bas is not None %}{{ sus.ic_bas|floatformat:0 }}–{{ sus.ic_haut|floatformat:0 }}{% else %}—{% endif %}</b>
+      <span>{% t "engine/templates/engine/usabilite.html:41:31" %}{% if sus %} · {% tf "engine/templates/engine/usabilite.html:44:24" v1=sus.n %}{% if sus.n < 5 %} — {% t "engine/templates/engine/usabilite.html:44:67" %}{% endif %}{% endif %}</span></div>
+    <div class="chiffre"><b>{% if sus %}{{ sus.centile }}<small style="font-size:14px">{% t "engine/templates/engine/usabilite.html:45:66" %}</small>{% else %}—{% endif %}</b>
+      <span>{% t "engine/templates/engine/usabilite.html:44:31" %}</span></div>
+    <div class="chiffre"><b>{{ utilisateurs }}</b><span>{% t "engine/templates/engine/usabilite.html:47:31" %} · {{ sessions }} session(s)</span></div>
+  </div>
+
+  <div class="barre-actions">
+    <form method="post">{% csrf_token %}<input type="hidden" name="action" value="campagne">
+      <button type="submit" class="principal" title="{% t 'engine/templates/engine/usabilite.html:31:34' %}">{% t "engine/templates/engine/usabilite.html:31:116" %}</button>
+    </form>
+    <form method="post" id="form-reinit-usabilite">{% csrf_token %}<input type="hidden" name="action" value="reinitialiser">
+      <button type="submit" class="danger" title="{% t "engine/templates/engine/usabilite.html:reinit_aide" %}">{% t "engine/templates/engine/usabilite.html:reinit_bouton" %}</button>
+    </form>
+    <a class="btn" href="/api/usabilite/export.csv" id="lien-export-usabilite">{% t "engine/templates/engine/usabilite.html:33:39" %}</a>
+  </div>
+  {% if reinitialise %}<div class="dc-bande" style="margin-top:14px">{% t "engine/templates/engine/usabilite.html:reinit_fait" %}</div>{% endif %}
+  {% if campagne_lancee %}<div class="dc-bande" style="margin-top:14px">{% t "engine/templates/engine/usabilite.html:35:43" %}</div>{% endif %}
+</div>
+
+<nav class="nav-sections">
+  <a href="#sec-sus">{% t "engine/templates/engine/usabilite.html:51:7" %}</a>
+  <a href="#sec-actions">{% t "engine/templates/engine/usabilite.html:75:7" %}</a>
+  <a href="#sec-pages">{% t "engine/templates/engine/usabilite.html:87:7" %}</a>
+  {% if commentaires %}<a href="#sec-commentaires">{% t "engine/templates/engine/usabilite.html:102:7" %}</a>{% endif %}
+</nav>
+
+<section class="dc-section" id="sec-sus">
+  <h3>{% t "engine/templates/engine/usabilite.html:51:7" %}</h3>
+  <p class="aide">{% t "engine/templates/engine/usabilite.html:52:21" %}</p>
+  {% if sus %}
+  <div class="dc-defil"><table class="dc-table">
+    <thead><tr><th>{% t "engine/templates/engine/usabilite.html:55:13" %}</th><th class="num">{% t "engine/templates/engine/usabilite.html:55:28" %}</th><th class="num">{% t "engine/templates/engine/usabilite.html:55:45" %}</th><th class="num">{% t "engine/templates/engine/usabilite.html:55:61" %}</th><th class="num">{% t "engine/templates/engine/usabilite.html:55:77" %}</th><th class="num">{% t "engine/templates/engine/usabilite.html:55:93" %}</th></tr></thead>
+    <tbody>
+    <tr><td><b>{% t "engine/templates/engine/usabilite.html:56:16" %}</b></td><td class="num">{{ sus.n }}</td><td class="num">{{ sus.moyenne|floatformat:1 }}</td>
+      <td class="num">{% if sus.ic_bas is not None %}{{ sus.ic_bas|floatformat:1 }} – {{ sus.ic_haut|floatformat:1 }}{% else %}—{% endif %}</td>
+      <td class="num">{{ sus.mediane|floatformat:1 }}</td><td class="num">{{ sus.ecart_type|floatformat:1 }}</td></tr>
+    {% for r in par_role %}
+    <tr><td>{{ r.role }}</td><td class="num">{{ r.n }}</td><td class="num">{{ r.moyenne|floatformat:1 }}</td>
+      <td class="num">{% if r.ic_bas is not None %}{{ r.ic_bas|floatformat:1 }} – {{ r.ic_haut|floatformat:1 }}{% else %}—{% endif %}</td>
+      <td class="num">{{ r.mediane|floatformat:1 }}</td><td class="num">{{ r.ecart_type|floatformat:1 }}</td></tr>
+    {% endfor %}
+    </tbody>
+  </table></div>
+
+  <h3 style="font-size:17px;margin:26px 0 4px">{% t "engine/templates/engine/usabilite.html:65:31" %}</h3>
+  <p class="aide" style="margin-bottom:6px">{% t "engine/templates/engine/usabilite.html:66:21" %}</p>
+  <div>
+    <div class="dc-note tete" style="color:var(--muted);font-size:12px"><span>#</span><span>{% t "engine/templates/engine/usabilite.html:68:23" %}</span><span></span><b>{% t "engine/templates/engine/usabilite.html:68:43" %}</b></div>
+    {% for i in items %}<div class="dc-note {% if i.alerte %}alerte{% endif %}"><span>{{ i.n }}</span><span>{{ i.question }}</span>
+      <span class="dc-jauge"><i style="width:{% widthratio i.moyenne 5 100 %}%"></i></span><b>{{ i.moyenne|floatformat:2 }}</b></div>{% endfor %}
+  </div>
+  {% else %}<p class="aide">{% t "engine/templates/engine/usabilite.html:71:31" %}</p>{% endif %}
+</section>
+
+<section class="dc-section" id="sec-actions">
+  <h3>{% t "engine/templates/engine/usabilite.html:75:7" %}</h3>
+  <p class="aide">{% t "engine/templates/engine/usabilite.html:76:21" %}</p>
+  <div class="dc-defil"><table class="dc-table">
+    <thead><tr><th>{% t "engine/templates/engine/usabilite.html:78:13" %}</th><th>{% t "engine/templates/engine/usabilite.html:78:26" %}</th><th class="num">{% t "engine/templates/engine/usabilite.html:78:41" %}</th><th>{% t "engine/templates/engine/usabilite.html:78:56" %}</th><th class="num">{% t "engine/templates/engine/usabilite.html:78:73" %}</th><th class="num">{% t "engine/templates/engine/usabilite.html:78:89" %}</th></tr></thead>
+    <tbody>
+    {% for a in actions %}<tr class="{% if a.alerte %}alerte{% endif %}"><td>{{ a.type }}</td><td>{{ a.cible }}</td><td class="num">{{ a.n }}</td>
+      <td style="white-space:nowrap"><span class="dc-jauge"><i style="width:{% widthratio a.taux 1 100 %}%"></i></span>{% widthratio a.taux 1 100 %} %</td>
+      <td class="num">{% widthratio a.bas 1 100 %} – {% widthratio a.haut 1 100 %} %</td>
+      <td class="num">{% if a.mediane is not None %}{{ a.mediane|floatformat:1 }} s{% else %}—{% endif %}</td></tr>
+    {% empty %}<tr><td colspan="6">{% t "engine/templates/engine/usabilite.html:82:36" %}</td></tr>{% endfor %}
+    </tbody>
+  </table></div>
+</section>
+
+<section class="dc-section" id="sec-pages">
+  <h3>{% t "engine/templates/engine/usabilite.html:87:7" %}</h3>
+  <p class="aide">{% t "engine/templates/engine/usabilite.html:88:21" %}</p>
+  <div class="dc-defil"><table class="dc-table">
+    <thead><tr><th>{% t "engine/templates/engine/usabilite.html:90:13" %}</th><th class="num">{% t "engine/templates/engine/usabilite.html:90:26" %}</th><th class="num">{% t "engine/templates/engine/usabilite.html:90:42" %}</th><th class="num">{% t "engine/templates/engine/usabilite.html:90:64" %}</th><th class="num">{% t "engine/templates/engine/usabilite.html:90:89" %}</th><th class="num">{% t "engine/templates/engine/usabilite.html:90:119" %}</th></tr></thead>
+    <tbody>
+    {% for p in pages %}<tr><td>{{ p.page }}</td><td class="num">{{ p.visites }}</td>
+      <td class="num">{% if p.mediane is not None %}{{ p.mediane|floatformat:0 }} s{% else %}—{% endif %}</td>
+      <td class="num">{% if p.p90 is not None %}{{ p.p90|floatformat:0 }} s{% else %}—{% endif %}</td>
+      <td class="num {% if p.erreurs_100 and p.erreurs_100 > 5 %}dc-ko{% endif %}">{% if p.erreurs_100 is not None %}{{ p.erreurs_100|floatformat:1 }}{% else %}{{ p.erreurs }}{% endif %}</td>
+      <td class="num {% if p.rageurs_100 and p.rageurs_100 > 5 %}dc-ko{% endif %}">{% if p.rageurs_100 is not None %}{{ p.rageurs_100|floatformat:1 }}{% else %}{{ p.rageurs }}{% endif %}</td></tr>
+    {% empty %}<tr><td colspan="6">{% t "engine/templates/engine/usabilite.html:96:36" %}</td></tr>{% endfor %}
+    </tbody>
+  </table></div>
+</section>
+
+{% if commentaires %}
+<section class="dc-section" id="sec-commentaires">
+  <h3>{% t "engine/templates/engine/usabilite.html:102:7" %}</h3>
+  {% for c in commentaires %}<p class="dc-citation">{{ c }}</p>{% endfor %}
+</section>
+{% endif %}
+<p class="aide" style="margin-top:34px">{% t "engine/templates/engine/usabilite.html:106:19" %}</p>
+{% endblock %}
+{% block script %}<script src="{% static 'engine/js/telechargement.js' %}"></script>
+{% i18n_js %}
+<script>function charger(){}
+// Lien d'export : fetch + blob (un lien vers une reponse « attachment » ne telecharge rien dans la webview de l'app).
+document.getElementById("lien-export-usabilite").addEventListener("click", ev => {
+  ev.preventDefault();
+  gyTelecharger("/api/usabilite/export.csv", "usabilite.csv", {erreur: m => GY.alerter(m)});
+});
+// Réinitialisation : confirmation obligatoire (action irréversible), puis envoi du formulaire.
+document.getElementById("form-reinit-usabilite").addEventListener("submit", async ev => {
+  const f = ev.target;
+  if (f.dataset.confirme) return;
+  ev.preventDefault();
+  if (await GY.confirmer(tj("engine/templates/engine/usabilite.html:js:reinit_confirmer"))) { f.dataset.confirme = "1"; f.submit(); }
+});
+</script>{% endblock %}

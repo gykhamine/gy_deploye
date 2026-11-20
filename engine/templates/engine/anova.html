@@ -1,0 +1,25 @@
+{% extends "engine/analyse_base.html" %}
+{% load i18n_extras %}
+{% load static %}
+{% block titre_page %}ANOVA{% endblock %}
+{% block titre %}📐 {{ table.nom }} — ANOVA{% endblock %}
+{% block cle %}anova{% endblock %}
+{% block options %}
+  <div class="geo-section">{% t "engine/templates/engine/anova.html:8:28" %}</div>
+  <div class="geo-bloc">
+    <label class="geo-champ">{% t "engine/templates/engine/anova.html:9:30" %}
+      <input type="number" id="o-alpha" min="0.0001" max="0.5" step="0.01" value="0.05"></label>
+  </div>
+  <div class="geo-section">{% t "engine/templates/engine/anova.html:12:28" %}</div>
+  <div class="geo-bloc">
+    <div class="geo-note">{% t "engine/templates/engine/anova.html:14:27" %} <b>{% t "engine/templates/engine/anova.html:14:63" %}</b> {% t "engine/templates/engine/anova.html:14:78" %} <b>{% t "engine/templates/engine/anova.html:lbl_qualitatives" %}</b> {% t "engine/templates/engine/anova.html:14:158" %}</div>
+    <div class="geo-note">{% t "engine/templates/engine/anova.html:15:27" %}</div>
+  </div>
+{% endblock %}
+{% block contenu %}
+  <div class="sx-barre">
+    <button class="geo-btn principal" id="lancer" style="max-width:240px">{% t "engine/templates/engine/anova.html:20:75" %}</button>
+  </div>
+{% endblock %}
+{% block script %}{% i18n_js %}<script src="{% static 'engine/js/gy_couleur.js' %}"></script>
+<script src="{% static 'engine/js/anova.js' %}"></script>{% endblock %}

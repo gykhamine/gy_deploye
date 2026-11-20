@@ -1,0 +1,63 @@
+<!doctype html>
+<html lang="fr">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>{{ textes.titre }}</title>
+<style>
+  body{font-family:system-ui,sans-serif;max-width:640px;margin:2rem auto;padding:0 1rem;color:#1f2937}
+  fieldset{border:1px solid #d1d5db;border-radius:8px;margin:1.2rem 0;padding:1rem}
+  input,button{font:inherit;padding:.5rem .7rem;margin:.3rem 0;display:block;width:100%;box-sizing:border-box}
+  button{cursor:pointer}
+  .attention{background:#fef3c7;border-radius:8px;padding:.7rem 1rem}
+  #retour{margin-top:1rem;font-weight:600}
+</style>
+</head>
+<body>
+<h1>{{ textes.titre }}</h1>
+<p>{{ textes.intro }}</p>
+<p><strong>{{ textes.moteur }} :</strong> {{ moteur }}</p>
+<p class="attention">{{ textes.attention }}</p>
+
+<form id="f-sauvegarde" method="post" action="/api/plateforme/sauvegarde/creer">{% csrf_token %}
+  <fieldset>
+    <legend>{{ textes.sauvegarder }}</legend>
+    <input type="password" name="mot_de_passe" placeholder="{{ textes.mot_de_passe }}" required autocomplete="current-password">
+    <button type="submit">{{ textes.sauvegarder }}</button>
+  </fieldset>
+</form>
+
+<form id="f-restauration" method="post" action="/api/plateforme/sauvegarde/restaurer" enctype="multipart/form-data">{% csrf_token %}
+  <fieldset>
+    <legend>{{ textes.restaurer }}</legend>
+    <input type="file" name="fichier" accept=".zip" required aria-label="{{ textes.fichier }}">
+    <input type="password" name="mot_de_passe" placeholder="{{ textes.mot_de_passe }}" required autocomplete="current-password">
+    <button type="submit">{{ textes.restaurer }}</button>
+  </fieldset>
+</form>
+<div id="retour" role="status">{{ message }}</div>
+
+<script>
+// La sauvegarde est un téléchargement : on le passe par fetch pour afficher une erreur (mot de passe) sans quitter la page.
+document.getElementById("f-sauvegarde").addEventListener("submit", async (e) => {
+  e.preventDefault();
+  const retour = document.getElementById("retour");
+  const rep = await fetch(e.target.action, {method: "POST", body: new FormData(e.target), credentials: "same-origin"});
+  if (!rep.ok) { retour.textContent = (await rep.json()).erreur || rep.status; return; }
+  const nom = (rep.headers.get("Content-Disposition") || "").match(/filename="?([^";]+)/);
+  const lien = document.createElement("a");
+  lien.href = URL.createObjectURL(await rep.blob());
+  lien.download = nom ? nom[1] : "sauvegarde.zip";
+  lien.click();
+  URL.revokeObjectURL(lien.href);
+});
+document.getElementById("f-restauration").addEventListener("submit", async (e) => {
+  e.preventDefault();
+  const retour = document.getElementById("retour");
+  const rep = await fetch(e.target.action, {method: "POST", body: new FormData(e.target), credentials: "same-origin"});
+  const donnees = await rep.json().catch(() => ({}));
+  retour.textContent = donnees.erreur || donnees.message || rep.status;
+});
+</script>
+</body>
+</html>

@@ -1,0 +1,132 @@
+{% load i18n_extras %}
+<!DOCTYPE html>
+{% load static %}
+<html lang="{{ langue_html|default:'fr' }}">
+<head>
+<link rel="stylesheet" href="{% static 'engine/css/app.css' %}"><link rel="stylesheet" href="{% url 'engine:marque_css' %}"><script src="{% static 'engine/js/marque.js' %}" defer></script><script src="{% static 'engine/js/gestes_tactiles.js' %}" defer></script>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>{% t "engine/templates/engine/notifications.html:8:8" %}</title>
+<script src="{% static 'engine/js/dialogues.js' %}"></script>
+</head>
+<body class="page-notifications">
+
+<div class="header">{% include "engine/_marque_entete.html" %}
+
+</div>
+
+<div id="toast"></div>
+
+<div class="layout">
+
+  <div class="carte">
+    <h2>{% t "engine/templates/engine/notifications.html:navigateur_titre" %}</h2>
+    <p class="guide-hint">{% t "engine/templates/engine/notifications.html:navigateur_aide" %}</p>
+    <button id="notif-navigateur" type="button" class="principal" hidden></button>
+  </div>
+
+
+  <div class="carte">
+    <div style="display:flex;align-items:center;justify-content:space-between;gap:10px;margin-bottom:16px">
+      <h2 style="margin-bottom:0">{% t "engine/templates/engine/notifications.html:41:35" %}</h2>
+      <span style="display:flex;gap:8px">
+        <button class="petit" onclick="toutMarquerLu()">{% t "engine/templates/engine/notifications.html:42:55" %}</button>
+        <button class="petit" onclick="toutEffacer()">{% t "engine/templates/engine/notifications.html:effacer" %}</button>
+      </span>
+    </div>
+    <div id="liste-notifs" class="liste-notifs">
+      <div class="vide">{% t "engine/templates/engine/notifications.html:45:25" %}</div>
+    </div>
+  </div>
+
+</div>
+
+{% i18n_js %}
+<script>
+const CSRF = document.cookie.match(/gy_csrftoken=([^;]+)/)?.[1] || "{{ csrf_token }}";
+const MOI  = {{ user_id }};
+const EST_ADMIN = {{ est_admin|yesno:"true,false" }};
+
+function toast(msg, err=false){
+  const t = document.getElementById("toast");
+  t.textContent = msg; t.className = err ? "err" : "";
+  t.style.display = "block";
+  clearTimeout(t._t);
+  t._t = setTimeout(() => t.style.display="none", 3500);
+}
+
+async function api(url, opts={}){
+  const res = await fetch(url, {
+    headers:{"Content-Type":"application/json","X-CSRFToken":CSRF},
+    ...opts
+  });
+  const data = await res.json().catch(()=>({}));
+  if(!res.ok){ toast(data.erreur||tj("engine/templates/engine/notifications.html:js:71:36", {v1: res.status}), true); throw data; }
+  return data;
+}
+
+function formatDate(iso){
+  const d = new Date(iso);
+  return d.toLocaleString((window.I18N_LOCALE||"fr-FR"), {day:"2-digit", month:"2-digit", year:"numeric", hour:"2-digit", minute:"2-digit"});
+}
+
+function esc(s){ return String(s ?? "").replace(/[&<>"']/g, c => ({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c])); }
+
+function notifHtml(n){
+  const lueClass = n.lue ? "lue" : "non-lue";
+  let smsMeta = "";
+  const boutonLire = n.lue ? "" : `<button class="petit" onclick="marquerLue(${n.id})">${tj("engine/templates/engine/notifications.html:js:marquer_lu")}</button>`;
+  return `
+    <div class="notif ${lueClass}">
+      <div class="puce"></div>
+      <div class="notif-corps">
+        <div class="notif-titre">${esc(n.titre)}</div>
+        <div class="notif-message">${esc(n.message)}${n.lien ? ` <a class="btn petit" href="${esc(n.lien)}">${tj("engine/templates/engine/notifications.html:js:96:92")}</a>` : ""}</div>
+        <div class="notif-meta">
+          <span>${formatDate(n.cree_le)}</span>
+          ${smsMeta}
+        </div>
+      </div>
+      <div class="notif-actions">${boutonLire}</div>
+    </div>
+  `;
+}
+
+async function chargerNotifications(){
+  const data = await api("/api/notifications/");
+  const zone = document.getElementById("liste-notifs");
+  if(!data.notifications.length){
+    zone.innerHTML = `<div class="vide">${tj("engine/templates/engine/notifications.html:js:111:42")}</div>`;
+    return;
+  }
+  zone.innerHTML = data.notifications.map(notifHtml).join("");
+}
+
+async function marquerLue(id){
+  await api(`/api/notifications/${id}/lire/`, {method:"POST"});
+  chargerNotifications();
+}
+
+async function toutMarquerLu(){
+  await api("/api/notifications/tout-lire/", {method:"POST"});
+  chargerNotifications();
+  toast(tj("engine/templates/engine/notifications.html:js:125:10"));
+}
+
+async function toutEffacer(){
+  if(!await GY.confirmer(tj("engine/templates/engine/notifications.html:js:effacer_confirmer"))) return;
+  await api("/api/notifications/effacer/", {method:"POST"});
+  chargerNotifications();
+  toast(tj("engine/templates/engine/notifications.html:js:effacees"));
+}
+
+chargerNotifications();
+// Rafraîchissement léger toutes les 30s pour voir arriver les nouvelles notifications.
+setInterval(chargerNotifications, 30000);
+</script>
+
+<script src="{% static 'engine/js/notifications_navigateur.js' %}"></script>
+<script>if (window.GYNotif) GYNotif.lier(document.getElementById("notif-navigateur"));</script>
+<script src="{% static 'engine/js/icones.js' %}"></script>
+</body>
+</html>

@@ -1,0 +1,34 @@
+{% extends "engine/page_simple.html" %}
+{% load i18n_extras %}
+{% block classe_page %}page-flux_mosaique{% endblock %}
+{% block titre %}{% t "engine/templates/engine_pages/flux_mosaique.html:17:13" %}{% endblock %}
+{% block contenu %}
+<nav class="flux-nav"><a href="{% url 'engine:page_flux' %}">{% t "engine/templates/engine_pages/flux_mosaique.html:19:40" %}</a>
+<label>{% t "engine/templates/engine_pages/flux_mosaique.html:18:8" %} <select id="cols"><option>1</option><option selected>2</option><option>3</option><option>4</option><option>5</option><option>6</option><option>8</option><option>10</option></select></label></nav>
+<div id="grille"></div><p id="vide" hidden>{% t "engine/templates/engine_pages/flux_mosaique.html:20:44" %}</p>
+{% endblock %}
+{% block script %}
+<script>
+const G=document.getElementById('grille'),tuiles=[];
+const url=id=>`/api/flux/${id}/video.mjpg?t=${Date.now()}`;
+function demarrer(t){t.msg.textContent='';t.img.src=url(t.id)}
+function arreter(){tuiles.forEach(t=>t.img.removeAttribute('src'))}
+async function charger(){
+ const d=await fetch('/api/flux/').then(r=>r.json());
+ const cams=(d.flux||[]).filter(f=>f.type.endsWith('camera'));
+ document.getElementById('vide').hidden=cams.length>0;
+ cams.forEach(f=>{
+  const el=document.createElement('div'),nom=document.createElement('b'),img=document.createElement('img'),msg=document.createElement('span');
+  el.className='tuile';nom.textContent=f.nom;el.append(img,nom,msg);
+  const t={id:f.id,img,msg,source:!!f.source};tuiles.push(t);
+  img.onerror=()=>{msg.textContent=tj("engine/templates/engine_pages/flux_mosaique.html:js:35:36");img.removeAttribute('src')};
+  el.onclick=()=>el.classList.toggle('grand');
+  G.append(el);
+  if(t.source)demarrer(t);else msg.textContent=tj("engine/templates/engine_pages/flux_mosaique.html:js:38:48");
+ });
+}
+document.getElementById('cols').onchange=e=>G.style.setProperty('--cols',e.target.value);
+document.addEventListener('visibilitychange',()=>{if(document.hidden)arreter();else tuiles.forEach(t=>{if(t.source)demarrer(t)})});
+charger();
+</script>
+{% endblock %}

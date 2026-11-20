@@ -1,0 +1,38 @@
+{% extends "engine/page_simple.html" %}
+{% load i18n_extras %}
+{% block classe_page %}page-chatbot{% endblock %}
+{% block titre %}{% t "engine/templates/engine/chatbot.html:3:18" %}{% endblock %}
+{% block contenu %}
+<div class="carte">
+  <p class="guide-hint">{% t "engine/templates/engine/chatbot.html:6:25" %}</p>
+</div>
+<div id="cb-zone"></div>
+{% endblock %}
+{% block script %}{% i18n_js %}<script>
+const PORTEES = {interne: [tj("engine/templates/engine/chatbot.html:js:11:29"), tj("engine/templates/engine/chatbot.html:js:11:53")],
+                 externe: [tj("engine/templates/engine/chatbot.html:js:12:29"), tj("engine/templates/engine/chatbot.html:js:12:54")]};
+const TONS = {neutre: tj("engine/templates/engine/chatbot.html:js:lbl_neutre"), chaleureux: tj("engine/templates/engine/chatbot.html:js:lbl_chaleureux"), formel: tj("engine/templates/engine/chatbot.html:js:lbl_formel"), concis: tj("engine/templates/engine/chatbot.html:js:lbl_concis")};
+function carte(c){
+  const [titre, aide] = PORTEES[c.portee];
+  return `<div class="carte" id="cb-${c.portee}"><h2>${titre}</h2><p class="guide-hint">${aide}</p>
+    <label><input type="checkbox" class="cb-actif" ${c.actif ? "checked" : ""}> ${tj("engine/templates/engine/chatbot.html:js:17:82")}</label>
+    <input class="cb-nom" maxlength="60" placeholder="{% t 'engine/templates/engine/chatbot.html:a:19:54' %}" value="${esc(c.nom)}">
+    <select class="cb-ton">${Object.keys(TONS).map(k => `<option value="${k}" ${c.ton === k ? "selected" : ""}>${TONS[k]}</option>`).join("")}</select>
+    <textarea class="cb-consignes" rows="6" maxlength="3000" placeholder="${tj("engine/templates/engine/chatbot.html:js:20:76")}">${esc(c.consignes)}</textarea>
+    <label><input type="checkbox" class="cb-histo" ${c.utilise_historique ? "checked" : ""}> ${tj("engine/templates/engine/chatbot.html:js:21:95")}</label>
+    <div><button class="principal" onclick="enregistrer('${c.portee}')">${tj("engine/templates/engine/chatbot.html:js:22:74")}</button></div></div>`;
+}
+async function charger(){
+  const d = await api("/api/chatbot/");
+  $("cb-zone").innerHTML = ["interne", "externe"].map(p => carte(d.chatbots[p])).join("");
+}
+async function enregistrer(portee){
+  const z = $("cb-" + portee);
+  try {
+    await api("/api/chatbot/", {portee, actif: z.querySelector(".cb-actif").checked, nom: z.querySelector(".cb-nom").value,
+      ton: z.querySelector(".cb-ton").value, consignes: z.querySelector(".cb-consignes").value, utilise_historique: z.querySelector(".cb-histo").checked});
+    toast(tj("engine/templates/engine/chatbot.html:js:33:12"));
+  } catch(e){ /* api() a déjà affiché l'erreur */ }
+}
+charger();
+</script>{% endblock %}

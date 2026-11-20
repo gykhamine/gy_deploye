@@ -1,0 +1,407 @@
+{% extends "engine/page_simple.html" %}
+{% load i18n_extras %}
+{% block classe_page %}page-reco page-taches{% endblock %}
+{% block titre %}{% t "engine/templates/engine/taches.html:3:18" %}{% endblock %}
+{% block contenu %}
+<header class="reco-pouls" id="c-synthese">
+  <div class="pouls-tete">
+    <div class="pouls-risque" aria-live="polite"><b id="pouls-total">–</b><span>{% t "engine/templates/engine/taches.html:8:81" %}</span></div>
+    <div class="pouls-texte">
+      <h2>{% t "engine/templates/engine/taches.html:10:11" %}</h2>
+      <p id="tache-synthese"></p>
+    </div>
+  </div>
+  <div class="pouls-niveaux" id="niveaux" role="group" aria-label="{% t 'engine/templates/engine/taches.html:14:68' %}"></div>
+  <div class="pouls-barres" id="pouls-barres" role="list" aria-label="{% t 'engine/templates/engine/taches.html:15:71' %}"></div>
+  <div class="pouls-pied">
+    <div id="taches-chiffres" class="chiffres"></div>
+    <div class="pouls-actions">
+      <button id="btn-actualiser" type="button" class="principal">{% t "engine/templates/engine/taches.html:19:67" %}</button>
+    </div>
+  </div>
+</header>
+<nav class="reco-nav" aria-label="{% t 'engine/templates/engine/taches.html:23:35' %}">
+  <a href="#c-liste">{% t "engine/templates/engine/taches.html:24:22" %}</a>{% if user.is_superuser %}<a href="#c-tache">{% t "engine/templates/engine/taches.html:4:37" %}</a>{% endif %}<a href="#c-modeles-ia-taches">{% t "engine/templates/engine/taches.html:24:173" %}</a>
+</nav>
+<section class="reco-section" id="c-liste">
+  <div class="section-tete"><h2>{% t "engine/templates/engine/taches.html:27:33" %} <small id="taches-compte"></small></h2></div>
+  <div id="liste"></div>
+</section>
+{% if user.is_superuser %}
+<section class="reco-section" id="c-tache">
+  <div class="section-tete"><h2>{% t "engine/templates/engine/taches.html:4:37" %}</h2></div>
+  <div class="tache-form">
+    <input type="text" id="input-nom" placeholder="{% t 'engine/templates/engine/taches.html:5:48' %}" aria-label="{% t 'engine/templates/engine/taches.html:5:48' %}">
+    <div class="mode-choix" role="radiogroup">
+      <label><input type="radio" name="mode_declenchement" value="planifie" checked onchange="basculerModeCreation()"> <span data-net>{% t "engine/templates/engine/taches.html:7:116" %}</span></label>
+      <label><input type="radio" name="mode_declenchement" value="condition" onchange="basculerModeCreation()"> <span data-net>{% t "engine/templates/engine/taches.html:8:134" %}</span></label>
+    </div>
+    <div id="bloc-planifie" class="ligne">
+      <select id="sel-intervalle-type" aria-label="{% t 'engine/templates/engine/taches.html:40:52' %}"><option value="unique">{% t "engine/templates/engine/taches.html:11:59" %}</option><option value="secondes">{% t "engine/templates/engine/taches.html:11:109" %}</option><option value="minutes">{% t "engine/templates/engine/taches.html:11:163" %}</option><option value="heures">{% t "engine/templates/engine/taches.html:11:215" %}</option><option value="jours">{% t "engine/templates/engine/taches.html:11:265" %}</option></select>
+      <input type="number" id="input-intervalle-valeur" value="0" min="0" aria-label="{% t 'engine/templates/engine/taches.html:41:87' %}">
+    </div>
+    <div id="bloc-condition" style="display:none">
+      <p class="guide-hint">{% t "engine/templates/engine/taches.html:15:25" %}</p>
+      <div class="ligne">
+        <select id="sel-condition-categorie" onchange="basculerCategorieCondition()" aria-label="{% t 'engine/templates/engine/taches.html:46:98' %}">
+          <option value="" data-net>{% t "engine/templates/engine/taches.html:17:22" %}</option>
+          <option value="enregistrement" data-net>{% t "engine/templates/engine/taches.html:18:36" %}</option>
+          <option value="client" data-net>{% t "engine/templates/engine/taches.html:19:28" %}</option>
+          <option value="recherche" data-net>{% t "engine/templates/engine/taches.html:20:31" %}</option>
+          <option value="relation" data-net>{% t "engine/templates/engine/taches.html:21:30" %}</option>
+          <option value="densite_relation" data-net>{% t "engine/templates/engine/taches.html:22:38" %}</option>
+          <option value="kpi" data-net>{% t "engine/templates/engine/taches.html:23:25" %}</option>
+          <option value="blockchain" data-net>{% t "engine/templates/engine/taches.html:24:32" %}</option>
+        </select>
+        <select id="sel-condition-table" aria-label="{% t 'engine/templates/engine/taches.html:56:54' %}"><option value="">{% t "engine/templates/engine/taches.html:26:53" %}</option></select>
+      </div>
+      <div id="param-relation" class="ligne" style="display:none">
+        <select id="sel-relation-champ"><option value="">{% t "engine/templates/engine/taches.html:28:54" %}</option></select>
+        <select id="sel-relation-soustype">
+          <option value="normale">{% t "engine/templates/engine/taches.html:30:31" %}</option>
+          <option value="surveillee" data-net>{% t "engine/templates/engine/taches.html:31:34" %}</option>
+          <option value="interdite" data-net>{% t "engine/templates/engine/taches.html:32:33" %}</option>
+        </select>
+      </div>
+      <div id="param-densite" class="ligne" style="display:none">
+        <select id="sel-densite-champ"><option value="">{% t "engine/templates/engine/taches.html:36:53" %}</option></select>
+        <span class="guide-hint">{% t "engine/templates/engine/taches.html:37:30" %}</span><input type="number" id="input-densite-seuil" min="1" value="10">
+      </div>
+      <div id="param-kpi" class="ligne" style="display:none">
+        <select id="sel-kpi"><option value="">{% t "engine/templates/engine/taches.html:40:43" %}</option></select>
+        <select id="sel-kpi-evenement">
+          <option value="alerte" data-net>{% t "engine/templates/engine/taches.html:44:30" %}</option>
+          <option value="objectif" data-net>{% t "engine/templates/engine/taches.html:45:32" %}</option>
+          <option value="les_deux" data-net>{% t "engine/templates/engine/taches.html:46:32" %}</option>
+        </select>
+      </div>
+      <div id="param-blockchain" class="ligne" style="display:none">
+        <input type="text" id="input-blockchain-type" placeholder="{% t 'engine/templates/engine/taches.html:43:64' %}">
+      </div>
+      <div class="ligne">
+        <span class="guide-hint">{% t "engine/templates/engine/taches.html:46:30" %}</span>
+        <select id="sel-condition-repos"><option value="unique">{% t "engine/templates/engine/taches.html:47:61" %}</option><option value="secondes">{% t "engine/templates/engine/taches.html:47:100" %}</option><option value="minutes">{% t "engine/templates/engine/taches.html:47:143" %}</option><option value="heures">{% t "engine/templates/engine/taches.html:47:184" %}</option><option value="jours">{% t "engine/templates/engine/taches.html:47:223" %}</option></select>
+        <input type="number" id="input-condition-repos-valeur" value="0" min="0">
+      </div>
+    </div>
+    <textarea id="input-instructions" rows="4" placeholder="{% t 'engine/templates/engine/taches.html:51:76' %}" aria-label="{% t 'engine/templates/engine/taches.html:51:76' %}"></textarea>
+    <details class="reco-pourquoi" id="bloc-script-creation">
+      <summary>{% t "engine/templates/engine/taches.html:89:16" %}</summary>
+      <p class="guide-hint">{% t "engine/templates/engine/taches.html:90:29" %}</p>
+      <textarea id="input-script" rows="12" class="tache-code" spellcheck="false" aria-label="{% t 'engine/templates/engine/taches.html:91:95' %}"></textarea>
+      <div class="barre-actions">
+        <button type="button" onclick="copierScript($('input-script').value)">{% t "engine/templates/engine/taches.html:93:79" %}</button>
+        <button type="button" onclick="importerFichierScript(c => $('input-script').value = c)">{% t "engine/templates/engine/taches.html:94:97" %}</button>
+        <button type="button" onclick="$('input-script').value = EXEMPLE_TACHE">{% t "engine/templates/engine/taches.html:95:81" %}</button>
+      </div>
+    </details>
+    <label class="coche"><input type="checkbox" id="chk-generer" checked> {% t "engine/templates/engine/taches.html:52:55" %}</label>
+    <div class="barre-actions"><button class="principal" type="button" onclick="creerTache()">{% t "engine/templates/engine/taches.html:53:50" %}</button></div>
+  </div>
+</section>
+{% endif %}
+<section class="reco-section" id="c-modeles-ia-taches">
+  <div class="section-tete"><h2>{% t "engine/templates/engine/taches.html:94:33" %} <small id="modeles-compte"></small></h2></div>
+  <p class="guide-hint">{% t "engine/templates/engine/taches.html:64:25" %}</p>
+  <div id="liste-modeles-taches" class="guide-hint"><em>{% t "engine/templates/engine/taches.html:65:38" %}</em></div>
+  <details class="reco-pourquoi">
+    <summary>{% t "engine/templates/engine/taches.html:98:14" %}</summary>
+    <p class="reco-trace"><strong>{% t "engine/templates/engine/taches.html:67:13" %}</strong> <code>{% t "engine/templates/engine/taches.html:67:37" %}</code></p>
+    <p class="reco-trace"><strong>{% t "engine/templates/engine/taches.html:68:13" %}</strong> <code>{% t "engine/templates/engine/taches.html:68:44" %}</code></p>
+  </details>
+</section>
+{% endblock %}
+{% block script %}{% i18n_js %}<script>
+const EST_SUPERUSER = {{ user.is_superuser|yesno:"true,false" }};
+const EXEMPLE_TACHE = "{{ exemple_tache|escapejs }}";
+// Copier / importer un script : mêmes gestes que l'onglet de configuration des rapports (fichier .py ou .txt lu tel quel).
+async function copierScript(texte){
+  if (!texte) return;
+  let ok = false;
+  if (navigator.clipboard && window.isSecureContext){ try { await navigator.clipboard.writeText(texte); ok = true; } catch (e) {} }
+  if (!ok){ try { const tmp = document.createElement("textarea"); tmp.value = texte; tmp.style.cssText = "position:fixed;opacity:0;top:0;left:0"; document.body.appendChild(tmp); tmp.focus(); tmp.select(); ok = document.execCommand("copy"); tmp.remove(); } catch (e) {} }
+  toast(ok ? tj("engine/templates/engine/taches.html:js:123:15") : tj("engine/templates/engine/taches.html:js:123:33"), !ok);
+}
+function importerFichierScript(onCode){
+  const inp = document.createElement("input");
+  inp.type = "file"; inp.accept = ".py,.txt,text/x-python,text/plain,text/*"; inp.style.display = "none";
+  inp.onchange = () => { const f = inp.files[0]; if (!f) return; const r = new FileReader(); r.onload = e => onCode(e.target.result); r.readAsText(f, "utf-8"); };
+  document.body.appendChild(inp); inp.click(); setTimeout(() => inp.remove(), 30000);
+}
+const dt = i => i ? new Date(i).toLocaleString((window.I18N_LOCALE||"fr-FR")) : "—", suivis = new Set();
+// Les libellés traduits portent encore des émojis : retirés à l'affichage (la page n'en utilise aucun).
+const net = s => String(s ?? "").replace(/[\u{1F000}-\u{1FAFF}\u{2190}-\u{2BFF}\u{FE0F}\u{200D}]/gu, "").replace(/\s+/g, " ").replace(/^[\s·]+/, "").trim();
+const LIBELLES_CATEGORIE = {enregistrement: tj("engine/templates/engine/taches.html:js:nouvel_enregistrement"), client: net(tj("engine/templates/engine/taches.html:js:76:81")), recherche: net(tj("engine/templates/engine/taches.html:js:76:112")),
+  relation: net(tj("engine/templates/engine/taches.html:js:77:14")), densite_relation: net(tj("engine/templates/engine/taches.html:js:77:53")), kpi: "KPI", blockchain: net(tj("engine/templates/engine/taches.html:js:77:101"))};
+const STATUTS = {en_attente: tj("engine/templates/engine/taches.html:js:111:31"), script_genere: tj("engine/templates/engine/taches.html:js:111:60"), en_cours: tj("engine/templates/engine/taches.html:js:111:85"), execute: tj("engine/templates/engine/taches.html:js:111:116"),
+  echec_generation: tj("engine/templates/engine/taches.html:js:112:22"), echec_execution: tj("engine/templates/engine/taches.html:js:112:68"), echec: tj("engine/templates/engine/taches.html:js:112:99")};
+// Urgence d'une tâche (même vocabulaire de couleurs que la page Recommandations) : échec = à corriger, attente/cours = à suivre, sinon en ordre.
+const NIVEAUX = {agir: tj("engine/templates/engine/taches.html:js:114:25"), decider: tj("engine/templates/engine/taches.html:js:114:48"), surveiller: tj("engine/templates/engine/taches.html:js:114:86")};
+const RISQUE_PAR_DEFAUT = {agir: 85, decider: 55, surveiller: 25};
+const niveau = t => String(t.statut).startsWith("echec") ? "agir" : ["en_attente", "script_genere", "en_cours"].includes(t.statut) ? "decider" : "surveiller";
+let TACHES = [], FILTRE_NIVEAU = "";
+let OPTIONS_CONDITION = {tables: [], champs_relation: [], kpis: []};
+const optsTableHtml = sel => tj("engine/templates/engine/taches.html:js:79:31") + OPTIONS_CONDITION.tables.map(t =>
+  `<option value="${t.id}"${String(t.id) === String(sel) ? " selected" : ""}>${esc(t.nom)}${t.est_table_membres ? " (clients)" : ""}</option>`).join("");
+const optsChampHtml = (vide, sel) => `<option value="">${vide}</option>` + OPTIONS_CONDITION.champs_relation.map(c =>
+  `<option value="${c.id}"${String(c.id) === String(sel) ? " selected" : ""}>${esc(c.table_nom)} → ${esc(c.nom)}${c.vers_nom ? " (" + esc(c.vers_nom) + ")" : ""}</option>`).join("");
+const optsKpiHtml = sel => tj("engine/templates/engine/taches.html:js:83:29") + OPTIONS_CONDITION.kpis.map(k =>
+  `<option value="${k.id}"${String(k.id) === String(sel) ? " selected" : ""}>${esc(k.table_nom)} → ${esc(k.nom)}</option>`).join("");
+
+function basculerModeCreation(){
+  const cond = document.querySelector('input[name="mode_declenchement"]:checked').value === "condition";
+  $("bloc-planifie").style.display = cond ? "none" : "flex";
+  $("bloc-condition").style.display = cond ? "block" : "none";
+}
+function basculerCategorieCondition(){
+  const cat = $("sel-condition-categorie").value;
+  ["param-relation", "param-densite", "param-kpi", "param-blockchain"].forEach(id => $(id).style.display = "none");
+  if (cat === "relation") $("param-relation").style.display = "flex";
+  if (cat === "densite_relation") $("param-densite").style.display = "flex";
+  if (cat === "kpi") $("param-kpi").style.display = "flex";
+  if (cat === "blockchain") $("param-blockchain").style.display = "flex";
+}
+async function chargerOptionsCondition(){
+  OPTIONS_CONDITION = await api("/api/taches/options-condition/");
+  if (!$("sel-condition-table")) return;  // formulaire de création absent (non super-admin)
+  $("sel-condition-table").innerHTML = optsTableHtml();
+  $("sel-relation-champ").innerHTML = optsChampHtml(tj("engine/templates/engine/taches.html:js:103:54"));
+  $("sel-densite-champ").innerHTML = optsChampHtml(tj("engine/templates/engine/taches.html:js:104:53"));
+  $("sel-kpi").innerHTML = optsKpiHtml();
+}
+function creerTache(){
+  const mode = document.querySelector('input[name="mode_declenchement"]:checked').value;
+  const corps = {
+    nom: $("input-nom").value.trim(),
+    instructions: $("input-instructions").value.trim(),
+    generer: $("chk-generer").checked,
+    script: $("input-script").value.trim(),
+    mode_declenchement: mode,
+  };
+  if (mode === "planifie"){
+    corps.intervalle_type = $("sel-intervalle-type").value;
+    corps.intervalle_valeur = parseInt($("input-intervalle-valeur").value || "0", 10);
+  } else {
+    const cat = $("sel-condition-categorie").value;
+    if (!cat){ toast(tj("engine/templates/engine/taches.html:js:120:23"), true); return; }
+    corps.condition_categorie = cat;
+    corps.condition_table_id = $("sel-condition-table").value || null;
+    corps.intervalle_type = $("sel-condition-repos").value;
+    corps.intervalle_valeur = parseInt($("input-condition-repos-valeur").value || "0", 10);
+    const params = {};
+    if (cat === "relation"){ params.champ_id = $("sel-relation-champ").value || null; params.sous_type = $("sel-relation-soustype").value; }
+    if (cat === "densite_relation"){ params.champ_id = $("sel-densite-champ").value || null; params.seuil = parseInt($("input-densite-seuil").value || "0", 10); }
+    if (cat === "kpi"){ if (!$("sel-kpi").value){ toast(tj("engine/templates/engine/taches.html:js:128:58"), true); return; } params.kpi_id = $("sel-kpi").value; params.evenement = $("sel-kpi-evenement").value; }
+    if (cat === "blockchain"){ const t = $("input-blockchain-type").value.trim(); if (t) params.type_evenement = t; }
+    corps.condition_parametres = params;
+  }
+  poster("/api/taches/creer/", corps);
+}
+function suivre(id){ if (suivis.has(id)) return; suivis.add(id); const iv = setInterval(async () => { try { if (!(await api(`/api/taches/${id}/statut/`)).fini) return; } catch (e) {} clearInterval(iv); suivis.delete(id); charger(); }, 2000); }
+function importer(id, i){ const fd = new FormData(); fd.append("script", i.files[0]); poster(`/api/taches/${id}/importer-script/`, fd); }
+function carteDeclenchement(t){
+  if (t.mode_declenchement !== "condition") {
+    const n = t.intervalle_valeur;
+    return tj("engine/templates/engine/taches.html:js:179:13") + (t.intervalle_type === "unique" || !n ? tj("engine/templates/engine/taches.html:js:179:70") : tj("engine/templates/engine/taches.html:js:179:91", {v1: n, v2: esc(t.intervalle_type)}));
+  }
+  const p = t.condition_parametres || {};
+  let detail = LIBELLES_CATEGORIE[t.condition_categorie] || esc(t.condition_categorie);
+  if (t.condition_table_nom) detail += net(tj("engine/templates/engine/taches.html:js:142:41", {v1: esc(t.condition_table_nom)})).replace(/^/, " · ");
+  if (p.sous_type === "surveillee") detail += tj("engine/templates/engine/taches.html:js:184:48");
+  if (p.sous_type === "interdite") detail += " " + tj("engine/templates/engine/taches.html:js:lbl_liaison_interdite");
+  if (t.condition_categorie === "densite_relation" && p.seuil) detail += ` · ${tj("engine/templates/engine/taches.html:js:lbl_seuil_val", {v1: p.seuil})}`;
+  if (t.condition_categorie === "kpi") detail += p.evenement === "objectif" ? " " + tj("engine/templates/engine/taches.html:js:lbl_objectif_atteint") : p.evenement === "les_deux" ? tj("engine/templates/engine/taches.html:js:187:133") : " " + tj("engine/templates/engine/taches.html:js:lbl_alerte_danger");
+  if (t.condition_categorie === "blockchain" && p.type_evenement) detail += ` · ${esc(p.type_evenement)}`;
+  if (t.intervalle_valeur) detail += ` · ${tj("engine/templates/engine/taches.html:js:lbl_repos", {v1: t.intervalle_valeur, v2: esc(t.intervalle_type)})}`;
+  return tj("engine/templates/engine/taches.html:js:190:11") + detail;
+}
+function blocEditionCondition(t){
+  const p = t.condition_parametres || {};
+  const cat = t.condition_categorie;
+  const opt = (v, cle, courant) => `<option value="${v}"${courant ? " selected" : ""}>${net(tj(cle))}</option>`;
+  return `<div id="edit-cond-${t.id}" class="tache-edit">
+  <div class="ligne">
+  <select id="ec-cat-${t.id}" onchange="basculerCategorieConditionEdition(${t.id})">
+    ${opt("", "engine/templates/engine/taches.html:js:156:23", false)}
+    ${opt("enregistrement", "engine/templates/engine/taches.html:js:157:83", cat === "enregistrement")}
+    ${opt("client", "engine/templates/engine/taches.html:js:158:67", cat === "client")}
+    ${opt("recherche", "engine/templates/engine/taches.html:js:159:73", cat === "recherche")}
+    ${opt("relation", "engine/templates/engine/taches.html:js:160:71", cat === "relation")}
+    ${opt("densite_relation", "engine/templates/engine/taches.html:js:161:87", cat === "densite_relation")}
+    ${opt("kpi", "engine/templates/engine/taches.html:js:162:61", cat === "kpi")}
+    ${opt("blockchain", "engine/templates/engine/taches.html:js:163:75", cat === "blockchain")}
+  </select>
+  <select id="ec-table-${t.id}">${optsTableHtml(t.condition_table_id)}</select>
+  </div>
+  <div id="ec-param-relation-${t.id}" class="ligne" style="display:${cat === "relation" ? "flex" : "none"}">
+    <select id="ec-relation-champ-${t.id}">${optsChampHtml(tj("engine/templates/engine/taches.html:js:167:61"), p.champ_id)}</select>
+    <select id="ec-relation-soustype-${t.id}">
+      <option value="normale"${p.sous_type !== "surveillee" && p.sous_type !== "interdite" ? " selected" : ""}>${tj("engine/templates/engine/taches.html:js:239:112")}</option>
+      <option value="surveillee"${p.sous_type === "surveillee" ? " selected" : ""}>${net(tj("engine/templates/engine/taches.html:js:170:85"))}</option>
+      <option value="interdite"${p.sous_type === "interdite" ? " selected" : ""}>${tj("engine/templates/engine/taches.html:js:241:82")}</option>
+    </select>
+  </div>
+  <div id="ec-param-densite-${t.id}" class="ligne" style="display:${cat === "densite_relation" ? "flex" : "none"}">
+    <select id="ec-densite-champ-${t.id}">${optsChampHtml(tj("engine/templates/engine/taches.html:js:175:60"), p.champ_id)}</select>
+    <span class="guide-hint">${tj("engine/templates/engine/taches.html:js:246:30")}</span><input type="number" id="ec-densite-seuil-${t.id}" min="1" value="${p.seuil || 10}">
+  </div>
+  <div id="ec-param-kpi-${t.id}" class="ligne" style="display:${cat === "kpi" ? "flex" : "none"}">
+    <select id="ec-kpi-${t.id}">${optsKpiHtml(p.kpi_id)}</select>
+    <select id="ec-kpi-evenement-${t.id}">
+      ${opt("alerte", "engine/templates/engine/taches.html:js:181:93", !p.evenement || p.evenement === "alerte")}
+      ${opt("objectif", "engine/templates/engine/taches.html:js:182:81", p.evenement === "objectif")}
+      ${opt("les_deux", "engine/templates/engine/taches.html:js:183:81", p.evenement === "les_deux")}
+    </select>
+  </div>
+  <div id="ec-param-blockchain-${t.id}" class="ligne" style="display:${cat === "blockchain" ? "flex" : "none"}">
+    <input type="text" id="ec-blockchain-type-${t.id}" placeholder="{% t 'engine/templates/engine/taches.html:a:231:68' %}" value="${esc(p.type_evenement || "")}">
+  </div>
+  <div class="ligne">
+    <span class="guide-hint">${tj("engine/templates/engine/taches.html:js:190:31")}</span>
+    <select id="ec-repos-type-${t.id}">
+      ${opt("unique", "engine/templates/engine/taches.html:js:192:83", t.intervalle_type === "unique")}
+      ${opt("secondes", "engine/templates/engine/taches.html:js:193:87", t.intervalle_type === "secondes")}
+      ${opt("minutes", "engine/templates/engine/taches.html:js:194:85", t.intervalle_type === "minutes")}
+      ${opt("heures", "engine/templates/engine/taches.html:js:195:83", t.intervalle_type === "heures")}
+      ${opt("jours", "engine/templates/engine/taches.html:js:196:81", t.intervalle_type === "jours")}
+    </select>
+    <input type="number" id="ec-repos-valeur-${t.id}" value="${t.intervalle_valeur || 0}" min="0">
+  </div>
+  <div class="barre-actions"><button type="button" onclick="enregistrerCondition(${t.id})">${net(tj("engine/templates/engine/taches.html:js:200:52"))}</button></div>
+</div>`;
+}
+function basculerCategorieConditionEdition(id){
+  const cat = $("ec-cat-" + id).value;
+  ["relation", "densite", "kpi", "blockchain"].forEach(k => $("ec-param-" + k + "-" + id).style.display = "none");
+  if (cat === "relation") $("ec-param-relation-" + id).style.display = "flex";
+  if (cat === "densite_relation") $("ec-param-densite-" + id).style.display = "flex";
+  if (cat === "kpi") $("ec-param-kpi-" + id).style.display = "flex";
+  if (cat === "blockchain") $("ec-param-blockchain-" + id).style.display = "flex";
+}
+function enregistrerCondition(id){
+  const cat = $("ec-cat-" + id).value;
+  if (!cat){ toast(tj("engine/templates/engine/taches.html:js:217:21"), true); return; }
+  const params = {};
+  if (cat === "relation"){ params.champ_id = $("ec-relation-champ-" + id).value || null; params.sous_type = $("ec-relation-soustype-" + id).value; }
+  if (cat === "densite_relation"){ params.champ_id = $("ec-densite-champ-" + id).value || null; params.seuil = parseInt($("ec-densite-seuil-" + id).value || "0", 10); }
+  if (cat === "kpi"){ if (!$("ec-kpi-" + id).value){ toast(tj("engine/templates/engine/taches.html:js:221:61"), true); return; } params.kpi_id = $("ec-kpi-" + id).value; params.evenement = $("ec-kpi-evenement-" + id).value; }
+  if (cat === "blockchain"){ const v = $("ec-blockchain-type-" + id).value.trim(); if (v) params.type_evenement = v; }
+  poster(`/api/taches/${id}/modifier/`, {
+    condition_categorie: cat,
+    condition_table_id: $("ec-table-" + id).value || null,
+    condition_parametres: params,
+    intervalle_type: $("ec-repos-type-" + id).value,
+    intervalle_valeur: parseInt($("ec-repos-valeur-" + id).value || "0", 10),
+  });
+}
+// ── Synthèse : chiffre, filtres par état, bande (un trait par tâche, haut = demande de l'attention) ──
+function afficherSynthese(){
+  const compte = {agir: 0, decider: 0, surveiller: 0};
+  TACHES.forEach(t => compte[niveau(t)]++);
+  $("pouls-total").textContent = String(TACHES.length);
+  $("tache-synthese").textContent = !TACHES.length ? tj("engine/templates/engine/taches.html:js:276:55")
+    : compte.agir ? `${compte.agir} ${compte.agir > 1 ? tj("engine/templates/engine/taches.html:js:277:58") : tj("engine/templates/engine/taches.html:js:277:89")}.`
+    : compte.decider ? `${compte.decider} ${compte.decider > 1 ? tj("engine/templates/engine/taches.html:js:278:67") : tj("engine/templates/engine/taches.html:js:278:101")}.` : tj("engine/templates/engine/taches.html:js:278:137");
+  $("niveaux").replaceChildren(...Object.entries(NIVEAUX).map(([code, lib]) => {
+    const b = document.createElement("button");
+    b.type = "button"; b.className = "niveau n-" + code + (FILTRE_NIVEAU === code ? " actif" : ""); b.setAttribute("aria-pressed", String(FILTRE_NIVEAU === code));
+    b.innerHTML = `<b>${compte[code]}</b><span>${lib}</span>`;
+    b.onclick = () => { FILTRE_NIVEAU = FILTRE_NIVEAU === code ? "" : code; afficherSynthese(); afficherListe(); };
+    return b;
+  }));
+  $("pouls-barres").replaceChildren(...TACHES.slice(0, 90).map(t => {
+    const b = document.createElement("button"), n = niveau(t);
+    b.type = "button"; b.className = "trait n-" + n; b.title = `${t.nom || tj("engine/templates/engine/taches.html:js:233:98") + t.id} — ${STATUTS[t.statut] || t.statut}`;
+    b.style.height = RISQUE_PAR_DEFAUT[n] + "%"; b.setAttribute("aria-label", b.title); b.setAttribute("role", "listitem");
+    b.onclick = () => allerATache(t.id);
+    return b;
+  }));
+  const planifiees = TACHES.filter(t => t.mode_declenchement !== "condition").length, suspendues = TACHES.filter(t => !t.actif).length;
+  $("taches-chiffres").replaceChildren(...[[tj("engine/templates/engine/taches.html:js:294:46"), planifiees], [tj("engine/templates/engine/taches.html:js:lbl_conditionnelles"), TACHES.length - planifiees], [tj("engine/templates/engine/taches.html:js:lbl_suspendues"), suspendues]].map(([lib, n]) => {
+    const d = document.createElement("div"); d.className = "chiffre"; d.innerHTML = `<b>${n}</b><span>${lib}</span>`; return d;
+  }));
+}
+function allerATache(id){
+  const t = TACHES.find(x => x.id === id);
+  if (t && FILTRE_NIVEAU && niveau(t) !== FILTRE_NIVEAU){ FILTRE_NIVEAU = ""; afficherSynthese(); afficherListe(); }
+  const cible = $("c-" + id); if (!cible) return;
+  cible.scrollIntoView({block: "center", behavior: matchMedia("(prefers-reduced-motion: reduce)").matches ? "auto" : "smooth"});
+  cible.classList.add("repere"); setTimeout(() => cible.classList.remove("repere"), 1600);
+}
+function ligneTache(t){
+  const n = niveau(t), cond = t.mode_declenchement === "condition", enCours = t.statut === "en_cours";
+  const sortie = t.fichiers_sortie || [];
+  const meta = [tj("engine/templates/engine/taches.html:js:308:18", {v1: dt(t.derniere_execution)}), cond ? "" : tj("engine/templates/engine/taches.html:js:lbl_prochaine", {v1: dt(t.prochaine_execution)}),
+    t.modifie_manuellement ? net(tj("engine/templates/engine/taches.html:js:235:212")) : "", !t.actif ? tj("engine/templates/engine/taches.html:js:lbl_suspendue") : "",
+    sortie.length ? tj("engine/templates/engine/taches.html:js:310:22") + sortie.join(", ") : ""].filter(Boolean).map(x => `<span>${esc(x)}</span>`).join("");
+  const retour = t.resume || t.erreur;
+  const script = EST_SUPERUSER ? `<details class="reco-pourquoi" id="d-script-${t.id}"><summary>${tj("engine/templates/engine/taches.html:js:338:97")}</summary>
+    <textarea name="code" rows="10" class="tache-code" spellcheck="false">${esc(t.script_genere)}</textarea>
+    <div class="barre-actions">
+      <button type="button" onclick="poster('/api/taches/${t.id}/modifier-script/','c-${t.id}')">${net(tj("engine/templates/engine/taches.html:js:237:261"))}</button>
+      <button type="button" onclick="poster('/api/taches/${t.id}/regenerer/')">${net(tj("engine/templates/engine/taches.html:js:237:158"))}</button>
+      <button type="button" onclick="copierScript(document.querySelector('#d-script-${t.id} textarea').value)">${tj("engine/templates/engine/taches.html:js:343:112")}</button>
+      <input type="file" accept=".py,.txt" onchange="importer(${t.id},this)" aria-label="${tj("engine/templates/engine/taches.html:js:importer_script")}">
+    </div></details>` : "";
+  const condition = cond ? `<details class="reco-pourquoi" id="d-cond-${t.id}"><summary>${net(tj("engine/templates/engine/taches.html:js:238:228"))}</summary>${blocEditionCondition(t)}</details>` : "";
+  return `<article class="reco tache n-${n}${t.actif ? "" : " tache-suspendue"}" id="c-${t.id}">
+  <div class="reco-corps">
+    <h3>${esc(t.nom) || tj("engine/templates/engine/taches.html:js:233:98") + t.id}</h3>
+    ${t.instructions ? `<p class="reco-message">${esc(t.instructions)}</p>` : ""}
+    <p class="reco-action">${carteDeclenchement(t)}</p>
+    <p class="reco-meta">${meta}</p>
+    ${retour ? `<p class="tache-resultat${!t.resume && t.erreur ? " erreur" : ""}">${esc(retour)}</p>` : ""}
+    ${script}${condition}
+  </div>
+  <div class="reco-cote">
+    <span class="tache-statut n-${n}">${esc(STATUTS[t.statut] || String(t.statut).replace(/_/g, " "))}</span>
+    <button type="button" class="principal" ${enCours ? "disabled" : ""} onclick="poster('/api/taches/${t.id}/executer/')">${net(tj("engine/templates/engine/taches.html:js:237:60"))}</button>
+    <button type="button" onclick="poster('/api/taches/${t.id}/modifier/', {actif: ${!t.actif}})">${t.actif ? tj("engine/templates/engine/taches.html:js:lbl_suspendre") : net(tj("engine/templates/engine/taches.html:js:238:110"))}</button>
+    ${EST_SUPERUSER ? `<button type="button" class="danger" onclick="GY.confirmer(tj('engine/templates/engine/taches.html:js:confirmer_suppression')).then(ok => { if (ok) poster('/api/taches/${t.id}/supprimer/'); })">${net(tj("engine/templates/engine/taches.html:js:238:415"))}</button>` : ""}
+  </div>
+</article>`;
+}
+function afficherListe(){
+  const ouverts = [...document.querySelectorAll("#liste details[open]")].map(d => d.id);   // l'état ouvert survit au rechargement
+  const liste = TACHES.filter(t => !FILTRE_NIVEAU || niveau(t) === FILTRE_NIVEAU);
+  $("taches-compte").textContent = liste.length === TACHES.length ? (TACHES.length ? String(TACHES.length) : "") : tj("engine/templates/engine/taches.html:js:n_sur_total", {v1: liste.length, v2: TACHES.length});
+  if (!liste.length){ $("liste").innerHTML = TACHES.length ? `<p class="guide-hint">${tj("engine/templates/engine/taches.html:js:341:86")}</p>` : tj("engine/templates/engine/taches.html:js:239:93"); return; }
+  // Groupes dans l'ordre d'urgence ; au sein d'un groupe, la plus récente d'abord (ordre de l'API).
+  $("liste").innerHTML = Object.entries(NIVEAUX).map(([code, lib]) => {
+    const dedans = liste.filter(t => niveau(t) === code);
+    return dedans.length ? `<div class="groupe n-${code}"><h3 class="groupe-titre">${lib}<small>${dedans.length}</small></h3>${dedans.map(ligneTache).join("")}</div>` : "";
+  }).join("");
+  ouverts.forEach(id => { const d = $(id); if (d) d.open = true; });
+}
+async function charger(){
+  $("btn-actualiser").disabled = true;
+  try {
+    TACHES = (await api("/api/taches/")).taches;
+    afficherSynthese(); afficherListe();
+    TACHES.filter(t => t.statut === "en_cours").forEach(t => suivre(t.id));
+  } finally { $("btn-actualiser").disabled = false; }
+}
+async function chargerModelesIA(){
+  try {
+    const {modeles} = await api("/api/ia/modeles/");
+    const entraine = modeles.filter(m => m.statut === "entraine");
+    const el = $("liste-modeles-taches");
+    $("modeles-compte").textContent = entraine.length ? String(entraine.length) : "";
+    if(!entraine.length){
+      el.innerHTML = tj("engine/templates/engine/taches.html:js:248:23");
+      return;
+    }
+    el.className = "";
+    el.innerHTML = '<table class="diag">' +
+      tj("engine/templates/engine/taches.html:js:252:8") +
+      entraine.map(m =>
+        `<tr><td><code>${m.id}</code></td><td>${esc(m.nom)}</td><td>${esc(m.type_libelle || m.type_modele)}</td><td>${esc(m.tables_noms.join(", "))}</td><td>${m.entraine_le ? new Date(m.entraine_le).toLocaleDateString((window.I18N_LOCALE||"fr-FR")) : "—"}</td></tr>`
+      ).join("") + '</table>';
+  } catch(e){ $("liste-modeles-taches").innerHTML = tj("engine/templates/engine/taches.html:js:256:54"); }
+}
+document.querySelectorAll("[data-net]").forEach(e => e.textContent = net(e.textContent));
+$("btn-actualiser").onclick = () => charger().then(() => toast(tj("engine/templates/engine/taches.html:js:376:65")));
+chargerOptionsCondition();
+chargerModelesIA();
+charger();
+</script>{% endblock %}

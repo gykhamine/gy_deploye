@@ -1,0 +1,1128 @@
+{% load i18n_extras %}
+<!DOCTYPE html>
+{% load static %}
+<html lang="{{ langue_html|default:'fr' }}">
+<head>
+<link rel="stylesheet" href="{% static 'engine/css/app.css' %}"><link rel="stylesheet" href="{% url 'engine:marque_css' %}"><script src="{% static 'engine/js/marque.js' %}" defer></script><script src="{% static 'engine/js/gestes_tactiles.js' %}" defer></script>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>{% t "engine/templates/engine/documents_administratifs.html:titre_page" %}</title>
+<style>
+  /* Extras propres à cette page (le reste vient de la feuille « page-configuration_documents », partagée). */
+  body.page-configuration_documents textarea{width:100%;background:var(--fond-noir,#000);color:var(--text);border:1px solid var(--border);border-radius:6px;padding:8px 10px;font:inherit;font-size:13px;line-height:1.5;resize:vertical;min-height:70px}
+  body.page-configuration_documents textarea:focus, body.page-configuration_documents input.titre-doc:focus{outline:none;border-color:var(--accent)}
+  body.page-configuration_documents input.titre-doc{width:100%;background:var(--fond-noir,#000);color:var(--text);border:1px solid var(--border);border-radius:6px;padding:10px 12px;font:inherit;font-size:15px;font-weight:600}
+  .da-liste{list-style:none;display:flex;flex-direction:column;gap:6px;margin-bottom:12px}
+  .da-liste li{display:flex;align-items:center;gap:8px;padding:8px 10px;border:1px solid var(--border);border-radius:8px;cursor:pointer}
+  .da-liste li.actif{border-color:var(--accent)}
+  .da-liste .da-titre{flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font-size:13px}
+  .da-liste .da-meta{font-size:11px;color:var(--muted);white-space:nowrap}
+  .da-bloc{border:1px solid var(--border);border-radius:8px;padding:10px;margin-bottom:10px;background:var(--fond-sombre,#0a0d10)}
+  .da-bloc-barre{display:flex;align-items:center;gap:6px;margin-bottom:6px;flex-wrap:wrap}
+  .da-bloc-barre select{background:var(--fond-noir,#000);color:var(--text);border:1px solid var(--border);border-radius:6px;padding:4px 6px;font:inherit;font-size:12px}
+  .da-bloc-barre .espace{flex:1}
+  .da-bloc-barre .mise-forme{display:flex;gap:4px}
+  .da-saut{font-size:12px;color:var(--muted);text-align:center;border-top:1px dashed var(--border);padding-top:6px}
+  .da-actions{display:flex;gap:8px;flex-wrap:wrap;margin-top:14px}
+  .da-ajout{display:flex;gap:8px;flex-wrap:wrap;margin:4px 0 6px}
+  .da-badge{font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.04em;padding:2px 7px;border-radius:999px;white-space:nowrap}
+  .da-badge.brouillon{background:color-mix(in srgb,var(--badge-brouillon,#a0a0a0) 20%,transparent);color:var(--muted)}
+  .da-badge.emis{background:color-mix(in srgb,var(--ok,#22c55e) 18%,transparent);color:var(--ok,#22c55e)}
+  .da-badge.annule{background:color-mix(in srgb,var(--danger,#ef4444) 18%,transparent);color:var(--danger,#ef4444)}
+  .da-badge.soumis{background:color-mix(in srgb,var(--warn,#eab308) 20%,transparent);color:var(--warn,#eab308)}
+  .da-filtres{display:flex;gap:6px;flex-wrap:wrap;margin-bottom:10px}
+  .da-filtres input,.da-filtres select,.da-ligne-champs select{background:var(--fond-noir,#000);color:var(--text);border:1px solid var(--border);border-radius:6px;padding:6px 8px;font:inherit;font-size:12px}
+  .da-filtres input[type=search]{flex:1;min-width:140px}
+  .da-pied-liste{display:flex;align-items:center;gap:10px;flex-wrap:wrap;margin-bottom:10px;font-size:12px;color:var(--muted)}
+  .da-ligne-champs{display:flex;gap:12px;flex-wrap:wrap;margin-bottom:16px}
+  .da-ligne-champs .champ{flex:1;min-width:180px}
+  .da-ligne-champs select{width:100%}
+  .da-bandeau{padding:10px 12px;border-radius:8px;border:1px solid var(--border);margin-bottom:14px;font-size:13px}
+  body.page-configuration_documents input.champ-texte{width:100%;background:var(--fond-noir,#000);color:var(--text);border:1px solid var(--border);border-radius:6px;padding:8px 10px;font:inherit;font-size:13px}
+  body.page-configuration_documents input:disabled,body.page-configuration_documents textarea:disabled{opacity:.7;cursor:not-allowed}
+  .da-sous-titre{font-size:12px;text-transform:uppercase;letter-spacing:.05em;color:var(--muted);margin:6px 0 6px}
+  .da-liste .da-etoile{color:var(--accent);font-size:13px}
+  .da-liste li .da-ordre{display:flex;gap:2px}
+  .da-liste li .da-ordre button{padding:1px 7px !important;font-size:11px !important}
+  .da-grille-defil{overflow-x:auto;margin-bottom:6px}
+  table.da-grille{border-collapse:collapse;width:100%}
+  table.da-grille th,table.da-grille td{border:1px solid var(--border);padding:0}
+  table.da-grille th{background:color-mix(in srgb,var(--accent) 14%,var(--panel))}
+  table.da-grille input{width:100%;min-width:90px;background:transparent;color:var(--text);border:0;padding:8px 10px;font:inherit;font-size:13px}
+  table.da-grille th input{font-weight:700}
+  table.da-grille input:focus{outline:2px solid var(--accent);outline-offset:-2px}
+  table.da-grille td:last-child:has(button){width:1%;padding:2px 4px;border:0}
+  .da-grille-barre{display:flex;gap:6px;flex-wrap:wrap}
+  .da-modele-editeur{border:1px solid var(--border);border-radius:8px;padding:12px;margin:12px 0 4px;background:var(--fond-sombre,#0a0d10)}
+  .da-nouveau-modele{display:flex;gap:8px;flex-wrap:wrap;align-items:center;margin-top:12px;padding-top:12px;border-top:1px dashed var(--border)}
+  .da-nouveau-modele select,.da-nouveau-modele input{background:var(--fond-noir,#000);color:var(--text);border:1px solid var(--border);border-radius:6px;padding:6px 8px;font:inherit;font-size:12px}
+  .da-nouveau-modele input{flex:1;min-width:120px}
+  .da-modele-editeur input.champ-texte,.da-modele-editeur select{width:100%}
+  .da-modele-editeur select{background:var(--fond-noir,#000);color:var(--text);border:1px solid var(--border);border-radius:6px;padding:6px 8px;font:inherit;font-size:12px}
+
+  /* ═════ Refonte « décideur » : lisible, aérée, sans jargon (classe da-page ; les règles ci-dessus restent valables) ═════ */
+  body.da-page{font-family:system-ui,-apple-system,"Segoe UI",Roboto,Helvetica,Arial,sans-serif;font-size:15px;line-height:1.55;--muted:color-mix(in srgb,var(--text) 62%,var(--bg));--da-rayon:14px;--da-surface:color-mix(in srgb,var(--panel) 90%,var(--text));--da-ombre:0 6px 24px color-mix(in srgb,#000 30%,transparent)}
+  body.da-page .header{padding:14px 28px;position:sticky;top:0;z-index:20}
+  body.da-page .header h1{font-size:17px;font-weight:700}
+  body.da-page .layout.da-layout{max-width:1240px;margin:28px auto 60px;padding:0 24px}
+  .da-ico{font-size:18px;line-height:1}
+  .da-hero{display:flex;align-items:center;justify-content:space-between;gap:24px;flex-wrap:wrap;padding:30px 34px;margin-bottom:24px;border-radius:var(--da-rayon);border:1px solid var(--border);background:linear-gradient(135deg,color-mix(in srgb,var(--accent) 24%,var(--panel)),var(--panel) 72%);box-shadow:var(--da-ombre)}
+  .da-hero h2{font-size:27px;font-weight:800;letter-spacing:-.01em;line-height:1.25;color:var(--text);margin-bottom:8px}
+  .da-hero p{font-size:15px;color:var(--muted);max-width:640px}
+  body.da-page button.da-hero-cta{font-size:16px;font-weight:700;padding:15px 30px;border-radius:12px;box-shadow:0 6px 18px color-mix(in srgb,var(--accent) 38%,transparent)}
+  .da-reglages{margin-bottom:24px;border:1px dashed var(--border);border-radius:var(--da-rayon);background:var(--panel)}
+  .da-reglages>summary,.da-entete>summary,.da-plus>summary,.da-filtres-plus>summary{list-style:none;cursor:pointer}
+  .da-reglages>summary::-webkit-details-marker,.da-entete>summary::-webkit-details-marker,.da-plus>summary::-webkit-details-marker,.da-filtres-plus>summary::-webkit-details-marker{display:none}
+  .da-reglages>summary{display:flex;align-items:center;gap:12px;flex-wrap:wrap;padding:16px 22px}
+  .da-reglages-titre{font-weight:700;font-size:15px}
+  .da-reglages-aide{color:var(--muted);font-size:13px;flex:1;min-width:220px}
+  .da-reglages>summary::after,.da-entete>summary::after{content:"▾";color:var(--muted);transition:transform .2s}
+  .da-reglages[open]>summary::after,.da-entete[open]>summary::after{transform:rotate(180deg)}
+  .da-reglages-contenu{padding:6px 22px 10px}
+  .da-espace{display:grid;grid-template-columns:minmax(min(300px,100%),390px) minmax(0,1fr);gap:24px;align-items:start}
+  .da-colonne-liste{position:sticky;top:76px;max-height:calc(100vh - 96px);overflow:auto}
+  body.da-page .carte{border-radius:var(--da-rayon);padding:22px;box-shadow:var(--da-ombre);margin-bottom:20px}
+  body.da-page .carte h2{font-size:13px;letter-spacing:.05em;margin-bottom:16px}
+  .da-entete>summary{display:flex;align-items:center;gap:10px;font-weight:700;font-size:14px;color:var(--accent)}
+  .da-entete[open]>summary{margin-bottom:6px}
+  body.da-page .da-filtres input,body.da-page .da-filtres select{padding:10px 12px;border-radius:10px;font-size:13px}
+  .da-filtres-plus{flex-basis:100%}
+  .da-filtres-plus>summary{font-size:13px;color:var(--muted);padding:2px 0}
+  .da-filtres-plus>summary::before{content:"＋ "}
+  .da-filtres-plus[open]>summary::before{content:"－ "}
+  .da-filtres-2{margin:8px 0 0}
+  body.da-page .da-liste{gap:8px}
+  body.da-page .da-liste li{gap:12px;padding:12px 14px;border-radius:12px;background:var(--da-surface);transition:transform .12s,border-color .12s}
+  body.da-page .da-liste li:hover{border-color:var(--accent);transform:translateY(-1px)}
+  body.da-page .da-liste li.actif{border-color:var(--accent);box-shadow:0 0 0 2px color-mix(in srgb,var(--accent) 35%,transparent)}
+  .da-icone{font-size:22px;width:42px;height:42px;display:grid;place-items:center;border-radius:10px;background:color-mix(in srgb,var(--accent) 16%,transparent);flex:none}
+  .da-carte-doc{flex:1;min-width:0;display:flex;flex-direction:column;gap:1px}
+  .da-carte-doc .da-titre{font-weight:600;font-size:14px;color:var(--text)}
+  .da-carte-doc .da-meta{font-size:12px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+  .da-badge{font-size:11px;padding:3px 10px}
+  .da-badge::before{content:"●";margin-right:5px;font-size:8px;vertical-align:1px}
+  body.da-page .da-liste li.da-vide{flex-direction:column;text-align:center;gap:6px;padding:30px 16px;border-style:dashed;cursor:default;color:var(--muted);font-size:13px;transform:none}
+  .da-vide strong{font-size:15px;color:var(--text)}
+  .da-vide-ico{font-size:36px}
+  .da-etapes{list-style:none;display:flex;margin:0 0 20px;padding:0;flex-wrap:wrap;row-gap:8px}
+  .da-etapes li{display:flex;align-items:center;gap:8px;font-size:13px;font-weight:600;color:var(--muted);flex:1;min-width:120px}
+  .da-etapes li:last-child{flex:0 0 auto}
+  .da-etapes li:not(:last-child)::after{content:"";flex:1;height:2px;margin:0 12px;background:var(--border);border-radius:2px}
+  .da-etapes li.fait::after{background:var(--accent)}
+  .da-pastille{width:28px;height:28px;border-radius:50%;display:grid;place-items:center;font-size:12px;font-weight:700;border:2px solid var(--border);flex:none}
+  .da-etapes li.actuel{color:var(--text)}
+  .da-etapes li.actuel .da-pastille{border-color:var(--accent);background:var(--accent);color:var(--texte-accent,#000)}
+  .da-etapes li.fait .da-pastille{border-color:var(--accent);background:color-mix(in srgb,var(--accent) 22%,transparent);color:var(--accent)}
+  .da-etapes li.annule{color:var(--danger)}
+  .da-etapes li.annule .da-pastille{border-color:var(--danger);color:var(--danger)}
+  body.da-page .da-bandeau{border-radius:12px;padding:12px 16px;background:color-mix(in srgb,var(--accent) 11%,transparent);border-color:color-mix(in srgb,var(--accent) 32%,var(--border))}
+  body.da-page .champ label{font-size:12px;font-weight:600;text-transform:none;letter-spacing:.01em;margin-bottom:6px}
+  body.da-page input.titre-doc{font-size:20px;font-weight:700;padding:14px 16px;border-radius:12px}
+  body.da-page input.champ-texte,body.da-page textarea,body.da-page .da-ligne-champs select,body.da-page .da-bloc-barre select{border-radius:10px;padding:10px 12px;font-size:14px}
+  body.da-page .da-bloc{border-radius:12px;padding:14px;background:var(--da-surface)}
+  body.da-page .da-ajout button{border-radius:999px;padding:6px 14px;font-size:12px}
+  .da-actions-principales,.da-actions-secondaires{display:flex;gap:8px;flex-wrap:wrap}
+  .da-actions-secondaires{margin-left:auto}
+  body.da-page .da-ruban button{padding:9px 16px;border-radius:10px;font-size:14px}
+  body.da-page .da-ruban button#btn-emettre{padding:9px 22px;font-weight:700}
+  .da-plus{position:relative}
+  .da-plus>summary{padding:10px 14px;border:1px solid var(--border);border-radius:10px;font-size:14px;color:var(--muted)}
+  .da-plus-liste{position:absolute;right:0;top:calc(100% + 8px);min-width:230px;display:flex;flex-direction:column;gap:6px;padding:10px;background:var(--panel);border:1px solid var(--border);border-radius:12px;box-shadow:var(--da-ombre);z-index:6}
+  .da-plus-liste button{width:100%;text-align:left}
+  /* ═════ Deux écrans : la liste des documents, ou UN seul document en plein champ (classe da-edition sur body) ═════ */
+  body:not(.da-edition) .da-colonne-edition{display:none}
+  body:not(.da-edition) .da-espace,body.da-edition .da-espace{grid-template-columns:minmax(0,1fr)}
+  body:not(.da-edition) .da-colonne-liste{position:static;max-height:none;width:100%;max-width:980px;margin:0 auto}
+  body:not(.da-edition) .da-colonne-liste .da-liste{display:grid;grid-template-columns:repeat(auto-fill,minmax(min(290px,100%),1fr))}
+  body.da-edition .da-hero,body.da-edition .da-reglages,body.da-edition .da-colonne-liste{display:none}
+  /* édition : ruban + feuille forment une seule colonne centrée dans la page */
+  body.da-edition .da-espace{justify-items:center}
+  body.da-edition .da-colonne-edition{width:100%;min-width:0;max-width:880px;margin:0 auto}
+  body.da-edition #carte-editeur{width:100%;max-width:880px;margin-left:auto;margin-right:auto;box-sizing:border-box}
+  body.da-edition .da-feuille{width:100%;box-sizing:border-box;max-width:794px;margin-left:auto;margin-right:auto}
+  body.da-edition #apercu-pdf{display:block;margin-left:auto;margin-right:auto;max-width:794px}
+  body.da-page .da-liste li.da-voir-plus{justify-content:center;color:var(--accent);font-size:13px;font-weight:600;border-style:dashed;grid-column:1/-1}
+  /* ═════ Éditeur façon traitement de texte : ruban collant en haut, puis la feuille blanche telle qu'elle s'imprime ═════ */
+  .da-ruban{position:sticky;top:56px;z-index:8;display:flex;flex-direction:column;gap:10px;padding:12px 14px;margin-bottom:16px;border:1px solid var(--border);border-radius:12px;background:color-mix(in srgb,var(--panel) 96%,transparent);backdrop-filter:blur(8px)}
+  .da-ruban-actions{display:flex;align-items:center;gap:8px;flex-wrap:wrap;margin:0}
+  .da-ruban-champs{display:flex;gap:10px;flex-wrap:wrap}
+  .da-ruban-champs .champ{flex:1;min-width:150px}
+  .da-ruban-champs select,.da-ruban-champs input{width:100%}
+  .da-ruban .da-ajout{align-items:center;gap:6px;margin:0}
+  .da-ruban-lib{font-size:12px;font-weight:600;color:var(--muted)}
+  .da-feuille{background:var(--doc-fond,#fff);color:var(--doc-texte,#1a1a1a);max-width:794px;min-height:560px;margin:0 auto;padding:34px 54px 56px;border-radius:3px;box-shadow:0 2px 18px color-mix(in srgb,var(--ombre,#000000) 40%,transparent);font-family:Calibri,"Segoe UI",system-ui,sans-serif}
+  .da-date{text-align:right;font-size:14px;color:var(--fond-releve,#1a1a1a);margin:10px 0}
+  body.da-page .da-feuille input.titre-doc{background:transparent;color:var(--doc-texte-saisie,#111);border:0;border-bottom:1px dashed var(--doc-bordure,#cbd5e1);border-radius:0;text-align:center;text-transform:uppercase;text-decoration:underline;font-size:19px;padding:10px 4px;margin:14px 0 10px}
+  body.da-page .da-feuille .da-bloc{background:transparent;border:1px solid transparent;border-radius:4px;padding:2px 4px;margin-bottom:2px}
+  body.da-page .da-feuille .da-bloc:hover,body.da-page .da-feuille .da-bloc:focus-within{border-color:var(--doc-bordure,#cbd5e1);background:var(--doc-survol,#f8fafc)}
+  body.da-page .da-feuille .da-bloc textarea{background:transparent;color:var(--doc-texte-saisie,#111);border:0;border-radius:0;padding:4px;font:inherit;font-size:14.5px;line-height:1.55;min-height:30px !important;resize:none;overflow:hidden}
+  .da-feuille .da-bloc[data-type=titre] textarea{font-weight:700;font-size:16px}
+  .da-feuille .da-bloc[data-type=sous_titre] textarea{font-weight:700;font-style:italic}
+  .da-feuille .da-bloc[data-type=paragraphe] textarea,.da-feuille .da-bloc[data-type=considerant] textarea,.da-feuille .da-bloc[data-type=article] textarea{text-align:justify}
+  .da-feuille .da-bloc[data-type=destinataire] textarea{margin-left:50%;width:50%}
+  .da-feuille .da-bloc-barre{height:0;opacity:0;overflow:hidden;margin:0;transition:opacity .12s}
+  .da-feuille .da-bloc:hover .da-bloc-barre,.da-feuille .da-bloc:focus-within .da-bloc-barre{height:auto;opacity:1;overflow:visible;margin-bottom:4px}
+  .da-feuille .da-bloc-barre select{background:var(--doc-fond,#fff);color:var(--doc-texte-saisie,#111);border-color:var(--doc-bordure,#cbd5e1)}
+  .da-feuille .da-grille-zone,.da-feuille .da-saut{color:var(--doc-texte-discret,#444)}
+  .da-feuille table.da-grille input{color:var(--doc-texte-saisie,#111)}
+  .da-feuille table.da-grille th,.da-feuille table.da-grille td{border-color:var(--doc-bordure,#cbd5e1)}
+  @media (max-width:900px){.da-ruban{top:48px}.da-feuille{padding:22px 18px 40px}}
+  @media (max-width:900px){
+    body.da-page .layout.da-layout{padding:0 14px;margin-top:16px}
+    .da-espace{grid-template-columns:1fr}
+    .da-colonne-liste{position:static;max-height:none}
+    .da-hero{padding:22px}.da-hero h2{font-size:21px}
+    body.da-page button.da-hero-cta{width:100%}
+    .da-actions-secondaires{margin-left:0}
+  }
+</style>
+<script src="{% static 'engine/js/dialogues.js' %}"></script>
+<script src="{% static 'engine/js/colonne_toggle.js' %}" defer></script>
+</head>
+<body class="page-configuration_documents da-page">
+
+<div class="header">{% include "engine/_marque_entete.html" %}
+</div>
+
+<div id="toast"></div>
+
+<div class="layout da-layout">
+
+  <!-- ── Bandeau d'accueil : l'essentiel en une phrase, un seul gros bouton ── -->
+  <section class="da-hero">
+    <div class="da-hero-texte">
+      <h2>{% t "engine/templates/engine/documents_administratifs.html:hero_titre" %}</h2>
+      <p>{% t "engine/templates/engine/documents_administratifs.html:hero_sous_titre" %}</p>
+    </div>
+    <button type="button" class="principal da-hero-cta" id="btn-hero-nouveau">＋ {% t "engine/templates/engine/documents_administratifs.html:hero_cta" %}</button>
+  </section>
+
+  {% if est_admin %}
+  <details class="da-reglages">
+    <summary><span class="da-ico">⚙️</span><span class="da-reglages-titre">{% t "engine/templates/engine/documents_administratifs.html:reglages_titre" %}</span><span class="da-reglages-aide">{% t "engine/templates/engine/documents_administratifs.html:reglages_aide" %}</span></summary>
+    <div class="da-reglages-contenu">
+  <!-- ── Numérotation et lieu d'émission (administrateur) ── -->
+  <div class="carte" id="carte-numerotation">
+    <h2>{% t "engine/templates/engine/documents_administratifs.html:carte_numerotation" %}</h2>
+    <p class="aide" style="margin-top:-8px;margin-bottom:12px">{% t "engine/templates/engine/documents_administratifs.html:aide_numerotation" %}</p>
+    <div class="champ" style="margin-bottom:12px">
+      <label for="format-reference">{% t "engine/templates/engine/documents_administratifs.html:label_format" %}</label>
+      <input type="text" class="champ-texte" id="format-reference" maxlength="120">
+      <p class="aide" id="exemple-reference" style="margin-top:4px"></p>
+    </div>
+    <div class="champ" style="margin-bottom:12px">
+      <label for="lieu-defaut">{% t "engine/templates/engine/documents_administratifs.html:label_lieu_defaut" %}</label>
+      <input type="text" class="champ-texte" id="lieu-defaut" maxlength="120">
+    </div>
+    <label class="ligne-checkbox" style="margin-bottom:12px"><input type="checkbox" id="validation-obligatoire"> {% t "engine/templates/engine/documents_administratifs.html:label_validation" %}</label>
+    <button type="button" class="principal" id="btn-reglages">{% t "engine/templates/engine/documents_administratifs.html:enregistrer_reglages" %}</button>
+  </div>
+
+  <!-- ── Modèles d'entête et modèles de documents (administrateur) ── -->
+  <div class="carte" id="carte-modeles">
+    <h2>{% t "engine/templates/engine/documents_administratifs.html:carte_modeles" %}</h2>
+    <p class="aide" style="margin-top:-8px;margin-bottom:12px">{% t "engine/templates/engine/documents_administratifs.html:aide_modeles" %}</p>
+
+    <h3 class="da-sous-titre">{% t "engine/templates/engine/documents_administratifs.html:titre_modeles_entete" %}</h3>
+    <p class="aide" style="margin-bottom:8px">{% t "engine/templates/engine/documents_administratifs.html:aide_modeles_entete" %}</p>
+    <ul class="da-liste" id="liste-modeles-entete"></ul>
+    <button type="button" class="petit" id="btn-nouveau-modele-entete">{% t "engine/templates/engine/documents_administratifs.html:nouveau_modele_entete" %}</button>
+    <div class="da-modele-editeur" id="editeur-modele-entete" style="display:none">
+      <div class="da-ligne-champs">
+        <div class="champ"><label for="me-nom">{% t "engine/templates/engine/documents_administratifs.html:label_nom_modele" %}</label><input type="text" class="champ-texte" id="me-nom" maxlength="100"></div>
+        <div class="champ"><label class="ligne-checkbox" style="margin-top:22px"><input type="checkbox" id="me-defaut"> {% t "engine/templates/engine/documents_administratifs.html:label_entete_defaut" %}</label></div>
+      </div>
+      <div id="me-lignes"></div>
+      <div class="da-actions"><button type="button" class="danger" id="btn-supprimer-modele-entete">{% t "engine/templates/engine/documents_administratifs.html:supprimer_modele" %}</button></div>
+    </div>
+
+    <h3 class="da-sous-titre" style="margin-top:22px">{% t "engine/templates/engine/documents_administratifs.html:titre_modeles_documents" %}</h3>
+    <p class="aide" style="margin-bottom:8px">{% t "engine/templates/engine/documents_administratifs.html:aide_modeles_documents" %}</p>
+    <ul class="da-liste" id="liste-modeles-documents"></ul>
+    <button type="button" class="petit" id="btn-nouveau-modele-document">{% t "engine/templates/engine/documents_administratifs.html:nouveau_modele_document" %}</button>
+    <div class="da-modele-editeur" id="editeur-modele-document" style="display:none">
+      <div class="da-ligne-champs">
+        <div class="champ"><label for="md-nom">{% t "engine/templates/engine/documents_administratifs.html:label_nom_modele" %}</label><input type="text" class="champ-texte" id="md-nom" maxlength="100"></div>
+        <div class="champ"><label for="md-type">{% t "engine/templates/engine/documents_administratifs.html:label_type" %}</label><select id="md-type"></select></div>
+        <div class="champ"><label for="md-entete">{% t "engine/templates/engine/documents_administratifs.html:label_entete" %}</label><select id="md-entete"></select></div>
+      </div>
+      <div class="champ" style="margin-bottom:16px">
+        <label for="md-titre">{% t "engine/templates/engine/documents_administratifs.html:label_titre" %}</label>
+        <input type="text" class="titre-doc" id="md-titre" maxlength="200" placeholder="{% t 'engine/templates/engine/documents_administratifs.html:a:ph_titre_modele' %}">
+      </div>
+      <div class="champ">
+        <label>{% t "engine/templates/engine/documents_administratifs.html:label_corps" %}</label>
+        <div id="md-corps"></div>
+        <div class="da-ajout" id="md-ajout"></div>
+      </div>
+      <div class="da-actions">
+        <button type="button" class="principal" id="btn-enregistrer-modele-document">{% t "engine/templates/engine/documents_administratifs.html:enregistrer_modele" %}</button>
+        <button type="button" class="danger" id="btn-supprimer-modele-document">{% t "engine/templates/engine/documents_administratifs.html:supprimer_modele" %}</button>
+      </div>
+    </div>
+  </div>
+
+    </div>
+  </details>
+  {% endif %}
+
+  <div class="da-espace">
+    <aside class="da-colonne-liste" data-colonne-laterale data-colonne-inverse="da-edition" data-libelle="{% t 'engine/templates/engine/documents_administratifs.html:colonne_bascule' %}">
+  <!-- ── Mes documents ── -->
+  <div class="carte">
+    <h2><span class="da-ico">📁</span>{% t "engine/templates/engine/documents_administratifs.html:carte_liste" %}</h2>
+    <div class="da-filtres">
+      <input type="search" id="f-q" maxlength="100" placeholder="{% t 'engine/templates/engine/documents_administratifs.html:filtre_q_ph' %}">
+      <select id="f-statut">
+        <option value="">{% t "engine/templates/engine/documents_administratifs.html:filtre_tous_statuts" %}</option>
+        <option value="brouillon"></option><option value="soumis"></option><option value="emis"></option><option value="annule"></option>
+      </select>
+      <details class="da-filtres-plus"><summary>{% t "engine/templates/engine/documents_administratifs.html:filtres_plus" %}</summary><div class="da-filtres da-filtres-2"><select id="f-type"><option value="">{% t "engine/templates/engine/documents_administratifs.html:filtre_tous_types" %}</option></select>
+      <input type="date" id="f-du" title="{% t 'engine/templates/engine/documents_administratifs.html:filtre_du' %}">
+      <input type="date" id="f-au" title="{% t 'engine/templates/engine/documents_administratifs.html:filtre_au' %}">
+      <select id="f-archive">
+        <option value="0">{% t "engine/templates/engine/documents_administratifs.html:archives_non" %}</option>
+        <option value="1">{% t "engine/templates/engine/documents_administratifs.html:archives_oui" %}</option>
+        <option value="tout">{% t "engine/templates/engine/documents_administratifs.html:archives_tout" %}</option>
+      </select>
+    </div></details>
+    </div>
+    <div class="da-pied-liste"><span id="f-total"></span><button type="button" class="petit" id="btn-export">{% t "engine/templates/engine/documents_administratifs.html:export_zip" %}</button></div>
+    <ul class="da-liste" id="liste-documents"></ul>
+    <button type="button" class="principal" id="btn-nouveau">{% t "engine/templates/engine/documents_administratifs.html:nouveau" %}</button>
+    <div class="da-nouveau-modele" id="bloc-nouveau-modele" style="display:none">
+      <select id="modele-nouveau" aria-label="{% t 'engine/templates/engine/documents_administratifs.html:a:aria_modele' %}"></select>
+      <input type="text" id="modele-destinataire" maxlength="200" placeholder="{% t 'engine/templates/engine/documents_administratifs.html:a:ph_destinataire' %}">
+      <input type="text" id="modele-objet" maxlength="200" placeholder="{% t 'engine/templates/engine/documents_administratifs.html:a:ph_objet' %}">
+      <button type="button" class="principal" id="btn-nouveau-modele">{% t "engine/templates/engine/documents_administratifs.html:nouveau_depuis_modele" %}</button>
+    </div>
+  </div>
+
+    {% include "engine/_retour_table.html" with auto=1 %}
+    </aside>
+    <main class="da-colonne-edition">
+
+  <!-- ── Éditeur façon traitement de texte : ruban (actions, réglages, insertion) puis la feuille telle qu'elle sera imprimée ── -->
+  <div class="carte" id="carte-editeur" style="display:none">
+    <h2><span class="da-ico">✍️</span>{% t "engine/templates/engine/documents_administratifs.html:carte_editeur" %}</h2>
+    <ol class="da-etapes" id="da-etapes"></ol>
+    <div class="da-bandeau" id="bandeau-statut" style="display:none"></div>
+    <div class="da-ruban">
+    <div class="da-actions da-ruban-actions">
+      <button type="button" id="btn-retour">{% t "engine/templates/engine/documents_administratifs.html:retour_liste" %}</button>
+      <div class="da-actions-principales">
+      <button type="button" class="principal" id="btn-enregistrer">{% t "engine/templates/engine/documents_administratifs.html:enregistrer" %}</button>
+      <button type="button" class="principal" id="btn-soumettre" style="display:none">{% t "engine/templates/engine/documents_administratifs.html:soumettre" %}</button>
+      <button type="button" class="principal" id="btn-emettre">{% t "engine/templates/engine/documents_administratifs.html:emettre" %}</button>
+      </div>
+      <div class="da-actions-secondaires">
+      <button type="button" id="btn-apercu">{% t "engine/templates/engine/documents_administratifs.html:apercu_pdf" %}</button>
+      <button type="button" id="btn-pdf">{% t "engine/templates/engine/documents_administratifs.html:telecharger_pdf" %}</button>
+      <button type="button" id="btn-renommer" style="display:none">{% t "engine/templates/engine/documents_administratifs.html:renommer" %}</button>
+      <button type="button" id="btn-imprimer">{% t "engine/templates/engine/documents_administratifs.html:imprimer" %}</button>
+      <button type="button" class="danger" id="btn-supprimer">{% t "engine/templates/engine/documents_administratifs.html:supprimer" %}</button>
+      </div>
+      <details class="da-plus" id="da-plus"><summary>{% t "engine/templates/engine/documents_administratifs.html:plus_actions" %}</summary>
+        <div class="da-plus-liste">
+      <button type="button" id="btn-refuser" style="display:none">{% t "engine/templates/engine/documents_administratifs.html:refuser" %}</button>
+      <button type="button" id="btn-rappeler" style="display:none">{% t "engine/templates/engine/documents_administratifs.html:rappeler" %}</button>
+      <button type="button" id="btn-archiver" style="display:none">{% t "engine/templates/engine/documents_administratifs.html:archiver" %}</button>
+      <button type="button" id="btn-corriger" style="display:none">{% t "engine/templates/engine/documents_administratifs.html:corriger" %}</button>
+      <button type="button" class="danger" id="btn-annuler" style="display:none">{% t "engine/templates/engine/documents_administratifs.html:annuler_doc" %}</button>
+        </div>
+      </details>
+    </div>
+      <div class="da-ruban-champs">
+        <div class="champ"><label for="type-document">{% t "engine/templates/engine/documents_administratifs.html:label_type" %}</label><select id="type-document"></select></div>
+        <div class="champ"><label for="delegation-document">{% t "engine/templates/engine/documents_administratifs.html:label_delegation" %}</label><select id="delegation-document" title="{% t 'engine/templates/engine/documents_administratifs.html:aide_delegation' %}"></select></div>
+        <div class="champ"><label for="entete-document">{% t "engine/templates/engine/documents_administratifs.html:label_entete" %}</label><select id="entete-document" title="{% t 'engine/templates/engine/documents_administratifs.html:aide_entete_choix' %}"></select></div>
+        <div class="champ"><label for="lieu-document">{% t "engine/templates/engine/documents_administratifs.html:label_lieu" %}</label><input type="text" class="champ-texte" id="lieu-document" maxlength="120" placeholder="{% t 'engine/templates/engine/documents_administratifs.html:a:ph_lieu' %}"></div>
+        <div class="champ"><label for="date-document">{% t "engine/templates/engine/documents_administratifs.html:label_date" %}</label><select id="date-document"><option value="bas">{% t "engine/templates/engine/documents_administratifs.html:date_bas" %}</option><option value="haut">{% t "engine/templates/engine/documents_administratifs.html:date_haut" %}</option><option value="aucune">{% t "engine/templates/engine/documents_administratifs.html:date_aucune" %}</option></select></div>
+      </div>
+      <div class="da-ajout" id="zone-ajout"><span class="da-ruban-lib">{% t "engine/templates/engine/documents_administratifs.html:ruban_inserer" %}</span></div>
+    </div>
+    <div class="da-feuille" id="da-feuille">
+      <div id="apercu-entete"></div>
+      <div class="da-date" id="da-date-haut"></div>
+      <input type="text" class="titre-doc" id="titre-document" maxlength="200" aria-label="{% t 'engine/templates/engine/documents_administratifs.html:label_titre' %}" placeholder="{% t 'engine/templates/engine/documents_administratifs.html:a:ph_titre' %}">
+      <div id="corps-document"></div>
+      <div class="da-date" id="da-date-bas"></div>
+      <div id="da-sceaux" style="display:flex;flex-wrap:wrap;gap:24px;justify-content:flex-end;align-items:flex-end;margin-top:18px"></div>
+    </div>
+    <p class="aide" style="text-align:center;margin-top:8px"><a class="btn petit" href="/configuration-documents/">{% t "engine/templates/engine/documents_administratifs.html:lien_config" %}</a></p>
+    <p class="aide" id="statut-document"></p>
+    <iframe id="apercu-pdf" title="{% t 'engine/templates/engine/documents_administratifs.html:a:apercu_titre' %}" style="display:none;width:100%;height:80vh;border:1px solid var(--border);border-radius:8px;margin-top:10px;background:var(--voile-clair,#fff)"></iframe>
+  </div>
+    </main>
+  </div>
+
+</div>
+
+{% i18n_js %}
+<script src="{% static 'engine/js/entete_officiel.js' %}"></script>
+<script>
+const CSRF = document.cookie.match(/gy_csrftoken=([^;]+)/)?.[1] || "{{ csrf_token }}";
+function toast(msg, err=false){
+  const t = document.getElementById("toast");
+  t.textContent = msg; t.className = err ? "err" : "";
+  t.style.display = "block";
+  clearTimeout(t._t);
+  t._t = setTimeout(() => t.style.display = "none", 3500);
+}
+const esc = s => String(s == null ? "" : s).replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;").replace(/"/g,"&quot;");
+async function api(url, opts={}){
+  const res = await fetch(url, {headers:{"Content-Type":"application/json","X-CSRFToken":CSRF}, ...opts});
+  const data = await res.json().catch(() => ({}));
+  if (!res.ok){ toast(data.erreur || tj("engine/templates/engine/documents_administratifs.html:js:erreur_http", {v1: res.status}), true); throw data; }
+  return data;
+}
+
+const NOMS_BLOCS = ["titre", "sous_titre", "paragraphe", "objet", "destinataire", "copie", "vu", "considerant", "article", "liste", "tableau", "saut_page"];
+const TYPES_BLOCS = NOMS_BLOCS.map(v => [v, tj("engine/templates/engine/documents_administratifs.html:js:type_" + v)]);
+const PH_BLOCS = {tableau: "ph_tableau", liste: "ph_liste"};     // aide à la saisie des blocs à structure ; les autres : ph_bloc
+const LIGNES_BLOCS = {paragraphe: 5, considerant: 3, vu: 2, article: 3, liste: 4, tableau: 4, destinataire: 3, copie: 2};
+let documents = [];
+let nbAffiches = 10;                   // la liste n'affiche pas tout d'un coup : « Afficher plus » en donne dix de plus
+let courant = null;      // {id | null, titre, corps: [{type, texte}]}
+let modifie = false;
+let logoUrl = null;
+let CFG_COURRIER = null;               // configuration « courrier » : cachet + signatures déjà réglés (page Configuration des documents)
+let ENTETES = [];                      // modèles d'entête de l'entreprise (tous les rôles les voient)
+let MODELES_DOC = [];                  // modèles de documents de l'entreprise
+let REGLAGES = null;                   // réglages personnels de l'auteur : interrupteur des en-têtes et numérotation (dernière ligne de l'entête gauche)
+let PERSO = null;                      // complément personnel de l'agent connecté (s'imprime toujours à la suite du modèle)
+let LIMITES_ENTETE = {lignes: 12, texte: 160};
+const EST_ADMIN = {{ est_admin|yesno:"true,false" }};
+let VALIDATION = false;                 // réglage « validation obligatoire » (lu avec les réglages d'émission)
+const TYPES_DOC = ["courrier", "note_service", "attestation", "arrete", "decision"];
+const DELEGATIONS = ["", "po", "p"];
+const URL_DOCS = "/api/documents-administratifs/";
+const J = c => tj("engine/templates/engine/documents_administratifs.html:js:" + c);
+
+function marquerModifie(v){
+  modifie = v;
+  document.getElementById("statut-document").textContent = v ? tj("engine/templates/engine/documents_administratifs.html:js:non_enregistre") : "";
+}
+// Quitter la page avec une saisie non enregistrée : boîte de la plateforme (clic sur un lien, location.href, retour arrière) ; les téléchargements (/api/…) passent.
+const gardeNavigation = GY.garderNavigation(() => modifie, {message: () => tj("engine/templates/engine/documents_administratifs.html:js:confirmer_abandon"), ignorer: u => new URL(u, location.href).pathname.indexOf("/api/") === 0});
+
+async function chargerEntete(){
+  try {
+    const [e, cfg] = await Promise.all([api("/api/entete-officiel/"), api("/api/configuration-documents/courrier/")]);
+    logoUrl = cfg.afficher_logo_document ? cfg.logo_url : null;
+    CFG_COURRIER = cfg;
+    PERSO = e.perso || null; REGLAGES = e.reglages || null;
+    majApercuEntete();
+  } catch(err){ console.error("entete:", err); }
+}
+/* Cachet + signatures : mêmes réglages et mêmes images que le PDF (contexte « courrier »), filtrés par type du document. */
+function majSceaux(){
+  const zone = document.getElementById("da-sceaux"), c = CFG_COURRIER;
+  if (!zone) return;
+  zone.innerHTML = "";
+  if (!c) return;
+  const bloc = (url, nom, fonction) => zone.insertAdjacentHTML("beforeend", `<div style="text-align:center;font-size:12px">${url ? `<img src="${esc(url)}" alt="" style="max-height:80px;max-width:160px;display:block;margin:0 auto 2px">` : ""}<b>${esc(nom || "")}</b>${fonction ? `<br>${esc(fonction)}` : ""}</div>`);
+  if (c.afficher_cachet_document && c.cachet_image_actif_url) bloc(c.cachet_image_actif_url, "", "");
+  if (c.afficher_signatures_document) (c.signatures || []).filter(s => s.actif && s.image_url && (!s.types_document.length || s.types_document.includes(courant && courant.type_document))).forEach(s => bloc(s.image_url, s.nom, s.fonction));
+}
+/* Aperçu : lignes du modèle d'entête du document en cours (vide = modèle par défaut) + complément de l'agent à leur suite. */
+const modeleParDefaut = () => ENTETES.find(m => m.par_defaut) || null;
+function majApercuEntete(){
+  const zone = document.getElementById("apercu-entete");
+  if (!zone || !window.EnteteOfficiel) return;
+  const choisi = (courant && courant.modele_entete && ENTETES.find(m => m.id === courant.modele_entete)) || modeleParDefaut();
+  const fusion = (a, b) => (a || []).concat(b || []).slice(0, LIMITES_ENTETE.lignes);
+  EnteteOfficiel.monterApercu(zone, fusion(choisi && choisi.lignes_gauche, PERSO && PERSO.gauche),
+                              fusion(choisi && choisi.lignes_droite, PERSO && PERSO.droite), logoUrl,
+                              REGLAGES && REGLAGES.entetes_actifs && REGLAGES.numerotation_active ? REGLAGES.exemple : "");
+  majSceaux();
+}
+
+function parametresFiltres(){
+  const p = new URLSearchParams();
+  [["q", "f-q"], ["statut", "f-statut"], ["type", "f-type"], ["du", "f-du"], ["au", "f-au"], ["archive", "f-archive"]]
+    .forEach(([cle, id]) => { const v = document.getElementById(id).value.trim(); if (v) p.set(cle, v); });
+  return p;
+}
+async function chargerListe(){
+  const res = await api(URL_DOCS + "?" + parametresFiltres().toString());
+  documents = res.documents || [];
+  document.getElementById("f-total").textContent = tj("engine/templates/engine/documents_administratifs.html:js:total", {v1: res.total != null ? res.total : documents.length});
+  rendreListe();
+}
+let minuterieFiltres = null;
+function filtresChanges(){ nbAffiches = 10; clearTimeout(minuterieFiltres); minuterieFiltres = setTimeout(() => chargerListe().catch(() => {}), 300); }
+["f-q", "f-statut", "f-type", "f-du", "f-au", "f-archive"].forEach(id => {
+  const el = document.getElementById(id);
+  el.addEventListener(el.tagName === "INPUT" && el.type === "search" ? "input" : "change", filtresChanges);
+});
+["brouillon", "soumis", "emis", "annule"].forEach(v => { document.querySelector(`#f-statut option[value="${v}"]`).textContent = J("statut_" + v); });
+TYPES_DOC.forEach(v => {
+  document.getElementById("f-type").add(new Option(J("typedoc_" + v), v));
+  document.getElementById("type-document").add(new Option(J("typedoc_" + v), v));
+});
+DELEGATIONS.forEach(v => document.getElementById("delegation-document").add(new Option(J(v ? "deleg_" + v : "deleg_aucune"), v)));
+document.getElementById("btn-export").onclick = async () => {
+  try {
+    const res = await fetch("/api/documents-administratifs/export/?" + parametresFiltres().toString(), {headers: {"X-CSRFToken": CSRF}});
+    if (!res.ok){ const d = await res.json().catch(() => ({})); toast(d.erreur || J("export_erreur"), true); return; }
+    const lien = document.createElement("a");
+    lien.href = URL.createObjectURL(await res.blob()); lien.download = "documents.zip";
+    document.body.appendChild(lien); lien.click(); lien.remove(); setTimeout(() => URL.revokeObjectURL(lien.href), 5000);
+  } catch(e){ toast(J("export_erreur"), true); }
+};
+const ICONES_TYPE = {courrier: "✉️", note_service: "📢", attestation: "📜", arrete: "⚖️", decision: "🖋️"};
+function rendreListe(){
+  const ul = document.getElementById("liste-documents");
+  if (!documents.length){
+    ul.innerHTML = `<li class="da-vide"><span class="da-vide-ico">🗂️</span><strong>${esc(J("vide_titre"))}</strong><span>${esc(J("vide_texte"))}</span></li>`;
+    return;
+  }
+  ul.innerHTML = documents.slice(0, nbAffiches).map(d => `
+    <li data-id="${d.id}" class="${courant && courant.id === d.id ? "actif" : ""}">
+      <span class="da-icone">${ICONES_TYPE[d.type_document] || "📄"}</span>
+      <div class="da-carte-doc">
+        <span class="da-titre">${esc(d.libelle || tj("engine/templates/engine/documents_administratifs.html:js:sans_titre"))}</span>
+        <span class="da-meta">${d.reference ? esc(d.reference) + " · " : ""}${esc((d.modifie_le || "").slice(0, 10))}${d.auteur ? " · " + esc(d.auteur) : ""}${d.archive ? " · 📦 " + esc(J("archive_marque")) : ""}</span>
+      </div>
+      <span class="da-badge ${esc(d.statut)}">${esc(J("statut_" + d.statut))}</span>
+    </li>`).join("") + (documents.length > nbAffiches ? `<li class="da-voir-plus">${esc(tj("engine/templates/engine/documents_administratifs.html:js:voir_plus", {v1: documents.length - nbAffiches}))}</li>` : "");
+  const plus = ul.querySelector(".da-voir-plus"); if (plus) plus.onclick = () => { nbAffiches += 10; rendreListe(); };
+  ul.querySelectorAll("li[data-id]").forEach(li => li.onclick = async () => await ouvrir(Number(li.dataset.id)));
+}
+
+async function retourListe(){      // ferme le document (libère le verrou) et revient à la liste
+  if (!await confirmerAbandon()) return;
+  await liberer(courant);
+  courant = null; marquerModifie(false);
+  document.getElementById("carte-editeur").style.display = "none";
+  document.body.classList.remove("da-edition");
+  await chargerListe();
+}
+async function confirmerAbandon(){
+  return !modifie || await GY.confirmer(tj("engine/templates/engine/documents_administratifs.html:js:confirmer_abandon"));
+}
+function depuisServeur(d){
+  return {id: d.id, titre: d.titre, nom: d.nom || "", libelle: d.libelle || d.titre || "", lieu: d.lieu || "", statut: d.statut || "brouillon", reference: d.reference || "",
+          date_emission: d.date_emission || "", motif_annulation: d.motif_annulation || "", version_de: d.version_de || null,
+          type_document: d.type_document || "courrier", delegation: d.delegation || "", date_position: d.date_position || "bas", motif_refus: d.motif_refus || "",
+          archive: !!d.archive, est_auteur: !!d.est_auteur, modele_entete: d.modele_entete || null,
+          verrouille: (d.verrou && !d.verrou.moi) ? d.verrou.par : null,
+          corps: (d.corps && d.corps.length) ? d.corps : [{type: "paragraphe", texte: ""}]};
+}
+const brouillon = () => !courant || !courant.id || courant.statut === "brouillon";
+const modifiable = () => brouillon() && !(courant && courant.verrouille);     // brouillon, et pas tenu par quelqu'un d'autre
+const peutEmettre = () => EST_ADMIN || !VALIDATION;                           // sinon l'agent soumet et l'administrateur valide
+function afficherEditeur(){
+  document.getElementById("carte-editeur").style.display = "block";
+  if (!document.body.classList.contains("da-edition")){      // on passe de la liste à UN document : plein champ, en haut de page
+    document.body.classList.add("da-edition"); document.getElementById("corps-document")._actif = null; window.scrollTo(0, 0);
+  }
+  document.getElementById("titre-document").value = courant.titre || "";
+  document.getElementById("lieu-document").value = courant.lieu || "";
+  document.getElementById("type-document").value = courant.type_document;
+  document.getElementById("delegation-document").value = courant.delegation;
+  document.getElementById("date-document").value = courant.date_position;
+  remplirSelecteursEntete();
+  const fige = !modifiable();
+  const soumis = courant.statut === "soumis", fixe = courant.statut === "emis" || courant.statut === "annule";
+  ["titre-document", "lieu-document", "type-document", "delegation-document", "entete-document", "date-document"].forEach(id => document.getElementById(id).disabled = fige);
+  const montrer = (id, v) => document.getElementById(id).style.display = v ? "" : "none";
+  montrer("zone-ajout", !fige);
+  montrer("btn-enregistrer", !fige);
+  montrer("btn-supprimer", !!courant.id);   // toujours présent, quel que soit le statut : le serveur tranche (émis/annulé : administrateur seulement, avec message clair sinon)
+  montrer("btn-renommer", courant.id && (EST_ADMIN || courant.est_auteur));     // à tout moment, quel que soit le statut
+  montrer("btn-emettre", courant.id && ((brouillon() && !courant.verrouille && peutEmettre()) || (soumis && EST_ADMIN)));
+  document.getElementById("btn-emettre").textContent = soumis ? J("valider_emettre") : J("emettre");
+  montrer("btn-soumettre", courant.id && !fige && !EST_ADMIN && VALIDATION);
+  montrer("btn-refuser", soumis && EST_ADMIN);
+  montrer("btn-rappeler", soumis && courant.est_auteur);
+  montrer("btn-archiver", fixe && EST_ADMIN);
+  document.getElementById("btn-archiver").textContent = courant.archive ? J("desarchiver") : J("archiver");
+  montrer("btn-corriger", courant.statut === "emis");
+  montrer("btn-annuler", courant.statut === "emis" && EST_ADMIN);
+  const plus = document.getElementById("da-plus");     // le menu « Plus d'actions » disparaît quand il n'a rien à proposer
+  plus.open = false;
+  plus.style.display = [...plus.querySelectorAll("button")].some(b => b.style.display !== "none") ? "" : "none";
+  rendreEtapes();
+  majApercuEntete();
+  masquerApercu();
+  const bandeau = document.getElementById("bandeau-statut");
+  bandeau.style.display = courant.id ? "" : "none";
+  bandeau.innerHTML = !courant.id ? "" : courant.statut === "emis"
+    ? `<strong>${esc(courant.reference)}</strong> — ${esc(J("bandeau_emis"))} ${esc(courant.date_emission)}. ${esc(J("bandeau_fige"))}`
+    : courant.statut === "annule" ? `<strong>${esc(courant.reference)}</strong> — ${esc(J("bandeau_annule"))} ${esc(courant.motif_annulation)}`
+    : soumis ? esc(J("bandeau_soumis"))
+    : courant.verrouille ? esc(tj("engine/templates/engine/documents_administratifs.html:js:bandeau_verrou", {v1: courant.verrouille}))
+    : `${esc(J("bandeau_brouillon"))}${courant.version_de ? " " + esc(J("bandeau_correction")) : ""}${courant.motif_refus ? ` <strong>${esc(J("bandeau_refus"))}</strong> ${esc(courant.motif_refus)}` : ""}`;
+  rendreCorps();
+  majDate();
+  marquerModifie(false);
+  rendreListe();
+  gererVerrou();
+}
+function rendreEtapes(){   // « où en est mon document ? » : rédaction → (validation) → émis
+  const st = courant.statut || "brouillon";
+  const etapes = VALIDATION ? ["brouillon", "soumis", "emis"] : ["brouillon", "emis"];
+  const idx = st === "annule" ? etapes.length - 1 : Math.max(0, etapes.indexOf(st));
+  document.getElementById("da-etapes").innerHTML = etapes.map((e, i) => {
+    const etat = i < idx ? "fait" : i === idx ? (st === "annule" ? "annule" : st === "emis" ? "fait" : "actuel") : "";
+    const libelle = st === "annule" && i === idx ? J("etape_annule") : J("etape_" + e);
+    const marque = etat === "fait" ? "✓" : etat === "annule" ? "✕" : String(i + 1);
+    return `<li class="${etat}"><span class="da-pastille">${marque}</span><span>${esc(libelle)}</span></li>`;
+  }).join("");
+}
+async function nouveauDocument(){
+  if (!await confirmerAbandon()) return;
+  liberer(courant);
+  courant = depuisServeur({id: null, titre: "", corps: []});
+  afficherEditeur();
+  document.getElementById("titre-document").focus();
+}
+async function ouvrir(id){
+  if (courant && courant.id === id) return;
+  if (!await confirmerAbandon()) return;
+  await liberer(courant);
+  const d = await api(`/api/documents-administratifs/${id}/`);
+  courant = depuisServeur(d);
+  afficherEditeur();
+  if (window.innerWidth < 900) document.getElementById("carte-editeur").scrollIntoView({behavior: "smooth", block: "start"});
+}
+
+// ── Verrou d'édition : une seule personne modifie un brouillon à la fois (renouvelé tant que la page est ouverte) ──
+let minuterieVerrou = null, jetonVerrou = 0;
+const appelVerrou = (id, methode) => fetch(`${URL_DOCS}${id}/verrou/`, {method: methode, keepalive: true,
+  headers: {"Content-Type": "application/json", "X-CSRFToken": CSRF}, body: methode === "POST" ? "{}" : undefined});
+function arreterVerrou(){ clearInterval(minuterieVerrou); minuterieVerrou = null; }
+async function liberer(doc){
+  arreterVerrou(); jetonVerrou++;
+  if (doc && doc.id && doc.statut === "brouillon" && !doc.verrouille){ try { await appelVerrou(doc.id, "DELETE"); } catch(e){} }
+}
+async function gererVerrou(){
+  arreterVerrou();
+  const jeton = ++jetonVerrou;
+  if (!courant || !courant.id || courant.statut !== "brouillon") return;
+  const id = courant.id;
+  const tenter = async () => {
+    if (!courant || courant.id !== id || courant.statut !== "brouillon") return arreterVerrou();
+    try {
+      const r = await appelVerrou(id, "POST");
+      if (r.status === 423){
+        const d = await r.json().catch(() => ({}));
+        if (modifie){ toast(tj("engine/templates/engine/documents_administratifs.html:js:verrou_perdu", {v1: d.par || "?"}), true); }   // ne jamais effacer une saisie en cours
+        else if (!courant.verrouille){ courant.verrouille = d.par || "?"; afficherEditeur(); }
+      } else if (r.ok && courant.verrouille && !modifie){
+        courant = depuisServeur(await api(`${URL_DOCS}${id}/`)); afficherEditeur();            // le verrou s'est libéré : le document redevient modifiable
+      }
+    } catch(e){}
+  };
+  await tenter();
+  if (jeton !== jetonVerrou) return;                       // un nouvel affichage a repris la main entre-temps
+  minuterieVerrou = setInterval(tenter, courant && courant.verrouille ? 20000 : 45000);
+}
+window.addEventListener("pagehide", () => { if (courant && courant.id && courant.statut === "brouillon" && !courant.verrouille) appelVerrou(courant.id, "DELETE"); });
+
+function rendreCorps(){ rendreBlocs(document.getElementById("corps-document"), courant.corps, modifiable(), () => marquerModifie(true)); }
+function ajuster(z){ if (z.scrollHeight){ z.style.height = "auto"; z.style.height = z.scrollHeight + "px"; } }   // la zone grandit avec le texte (comme une page)
+/* Date « Fait à …, le … » telle qu'elle s'imprimera, à la place choisie (haut, bas ou aucune). */
+function majDate(){
+  if (!courant) return;
+  const emis = courant.statut === "emis" && courant.date_emission;
+  const jour = new Date(emis ? courant.date_emission + "T12:00:00" : Date.now()).toLocaleDateString((window.I18N_LOCALE||"fr-FR"));
+  const lieu = (courant.lieu || "").trim(), cle = "engine/templates/engine/documents_administratifs.html:js:";
+  const texte = lieu ? tj(cle + "fait_a_le", {v1: lieu, v2: jour}) : tj(cle + "fait_le", {v1: jour});
+  ["haut", "bas"].forEach(p => {
+    const z = document.getElementById("da-date-" + p), ici = courant.date_position === p;
+    z.textContent = ici ? texte : ""; z.style.display = ici ? "" : "none";
+  });
+}
+/* Éditeur de blocs {type, texte}, partagé par la rédaction d'un document et par l'édition d'un modèle de document. */
+function rendreBlocs(zone, corps, editable, surChangement){
+  zone.innerHTML = "";
+  const rerendre = () => rendreBlocs(zone, corps, editable, surChangement);
+  corps.forEach((b, i) => {
+    const el = document.createElement("div");
+    el.className = "da-bloc"; el.dataset.type = b.type;
+    el.addEventListener("focusin", () => { zone._actif = i; });      // les boutons « Insérer » ajoutent juste après ce bloc
+    const saut = b.type === "saut_page", grille = b.type === "tableau", lignes = LIGNES_BLOCS[b.type] || 1;
+    el.innerHTML = `
+      <div class="da-bloc-barre">
+        <select>${TYPES_BLOCS.map(([v, l]) => `<option value="${v}">${l}</option>`).join("")}</select>
+        ${(saut || grille) ? "" : `<span class="mise-forme">
+          <button type="button" class="petit" data-f="**" title="${J("gras")}"><b>G</b></button>
+          <button type="button" class="petit" data-f="*" title="${J("italique")}"><i>I</i></button>
+          <button type="button" class="petit" data-f="__" title="${J("souligne")}"><u>S</u></button></span>`}
+        <span class="espace"></span>
+        <button type="button" class="petit" data-a="haut">↑</button>
+        <button type="button" class="petit" data-a="bas">↓</button>
+        <button type="button" class="petit danger" data-a="suppr">✕</button>
+      </div>
+      ${saut ? `<div class="da-saut">${J("saut_page_libelle")}</div>`
+             : grille ? `<div class="da-grille-zone"></div>`
+             : `<textarea rows="${lignes}" style="min-height:${lignes > 1 ? 18 * lignes + 14 : 40}px" placeholder="${J(PH_BLOCS[b.type] || "ph_bloc")}">${esc(b.texte)}</textarea>`}`;
+    const sel = el.querySelector("select");
+    sel.value = b.type;
+    const zoneTexte = el.querySelector("textarea");
+    if (!editable){ el.querySelectorAll("select,button").forEach(x => x.disabled = true); if (zoneTexte) zoneTexte.disabled = true; }
+    const zoneGrille = el.querySelector(".da-grille-zone");
+    if (zoneGrille) monterGrille(zoneGrille, b, editable, surChangement);
+    sel.onchange = () => { b.type = sel.value; if (b.type === "saut_page") b.texte = ""; surChangement(); rerendre(); };
+    if (zoneTexte) zoneTexte.oninput = ev => { b.texte = ev.target.value; ajuster(zoneTexte); surChangement(); };
+    if (zoneTexte) zoneTexte.onkeydown = ev => {      // Entrée en fin de bloc = nouveau paragraphe ; Retour arrière sur un bloc vide = on le retire
+      const aller = n => { const z = zone.querySelectorAll(".da-bloc")[n]; if (z && z.querySelector("textarea")) z.querySelector("textarea").focus(); };
+      if (ev.key === "Enter" && !ev.shiftKey && !["liste", "destinataire", "copie"].includes(b.type) && zoneTexte.selectionStart === zoneTexte.value.length){
+        ev.preventDefault(); corps.splice(i + 1, 0, {type: "paragraphe", texte: ""}); surChangement(); rerendre(); aller(i + 1);
+      } else if (ev.key === "Backspace" && !zoneTexte.value && corps.length > 1){
+        ev.preventDefault(); corps.splice(i, 1); surChangement(); rerendre(); aller(Math.max(0, i - 1));
+      }
+    };
+    el.querySelectorAll("button[data-f]").forEach(btn => btn.onclick = () => {      // entoure la sélection de **…**, *…* ou __…__
+      const m = btn.dataset.f, d = zoneTexte.selectionStart, f = zoneTexte.selectionEnd;
+      zoneTexte.setRangeText(m + zoneTexte.value.slice(d, f) + m, d, f, "select");
+      b.texte = zoneTexte.value; surChangement(); zoneTexte.focus();
+    });
+    el.querySelectorAll("button[data-a]").forEach(btn => btn.onclick = () => {
+      const a = btn.dataset.a;
+      if (a === "haut" && i > 0) [corps[i-1], corps[i]] = [corps[i], corps[i-1]];
+      else if (a === "bas" && i < corps.length - 1) [corps[i+1], corps[i]] = [corps[i], corps[i+1]];
+      else if (a === "suppr") corps.splice(i, 1);
+      else return;
+      surChangement(); rerendre();
+    });
+    zone.appendChild(el);
+    if (zoneTexte) ajuster(zoneTexte);
+  });
+  if (!corps.length) zone.innerHTML = `<p class="aide">${tj("engine/templates/engine/documents_administratifs.html:js:corps_vide")}</p>`;
+}
+/* Bloc « tableau » : vraie grille (1re ligne = en-tête) ; stocké en texte, une ligne par rangée, cellules séparées par « | ». */
+function monterGrille(zone, b, editable, surChangement){
+  let lignes = (b.texte || "").split("\n").filter(x => x.trim()).map(x => x.split("|").map(c => c.trim()));
+  if (!lignes.length) lignes = [["", "", ""], ["", "", ""], ["", "", ""]];
+  const n = Math.max(1, ...lignes.map(r => r.length));
+  lignes = lignes.map(r => r.concat(Array(n - r.length).fill("")));
+  const ecrire = () => { b.texte = lignes.map(r => r.join(" | ")).join("\n"); surChangement(); };      // la forme du tableau est gardée même vide
+  const dessiner = () => {
+    zone.innerHTML = "";
+    const tbl = document.createElement("table"); tbl.className = "da-grille";
+    lignes.forEach((r, i) => {
+      const tr = document.createElement("tr");
+      r.forEach((c, j) => {
+        const td = document.createElement(i === 0 ? "th" : "td"), inp = document.createElement("input");
+        inp.type = "text"; inp.value = c; inp.disabled = !editable;
+        inp.oninput = () => { lignes[i][j] = inp.value.replace(/[|\n]/g, " "); ecrire(); };
+        td.appendChild(inp); tr.appendChild(td);
+      });
+      if (editable && lignes.length > 1){
+        const td = document.createElement("td"), x = document.createElement("button");
+        x.type = "button"; x.className = "petit danger"; x.textContent = "✕"; x.title = J("tab_suppr_ligne");
+        x.onclick = () => { lignes.splice(i, 1); ecrire(); dessiner(); };
+        td.appendChild(x); tr.appendChild(td);
+      }
+      tbl.appendChild(tr);
+    });
+    const defil = document.createElement("div"); defil.className = "da-grille-defil"; defil.appendChild(tbl); zone.appendChild(defil);
+    if (!editable) return;
+    const barre = document.createElement("div"); barre.className = "da-grille-barre";
+    [["tab_ajout_ligne", () => lignes.push(Array(lignes[0].length).fill(""))],
+     ["tab_ajout_colonne", () => lignes.forEach(r => r.push(""))],
+     ["tab_suppr_colonne", () => { if (lignes[0].length > 1) lignes.forEach(r => r.pop()); }]].forEach(([cle, action]) => {
+      const btn = document.createElement("button"); btn.type = "button"; btn.className = "petit"; btn.textContent = J(cle);
+      btn.onclick = () => { action(); ecrire(); dessiner(); };
+      barre.appendChild(btn);
+    });
+    zone.appendChild(barre);
+  };
+  dessiner();
+}
+/* Boutons « + Paragraphe », « + Objet »… : ajoutent un bloc au corps rendu dans `zoneBlocs`. */
+function monterBoutonsBlocs(zoneAjout, zoneBlocs, obtenirCorps, editable, surChangement){
+  const ESSENTIELS = ["paragraphe", "titre", "sous_titre", "liste", "tableau", "saut_page"];      // les autres (Vu, Considérant, Article…) derrière « Plus… »
+  const plus = document.createElement("span");
+  plus.style.cssText = "display:none;flex-basis:100%;flex-wrap:wrap;gap:6px";
+  const ordre = ESSENTIELS.map(v => TYPES_BLOCS.find(t => t[0] === v)).concat(TYPES_BLOCS.filter(t => !ESSENTIELS.includes(t[0])));
+  ordre.forEach(([v, libelle]) => {
+    const btn = document.createElement("button");
+    btn.type = "button"; btn.className = "petit"; btn.textContent = "+ " + libelle;
+    btn.onclick = async () => {
+      const corps = obtenirCorps();
+      if (!corps) return;
+      let texte = "";
+      if (v === "tableau"){      // taille choisie d'emblée : colonnes x lignes (la 1re ligne sert d'en-tête)
+        const r = await GY.demander(J("tab_dimensions"), "3 x 4");
+        if (r === null) return;
+        const m = /(\d+)\D+(\d+)/.exec(r), col = Math.min(8, Math.max(2, m ? +m[1] : 3)), lig = Math.min(50, Math.max(1, m ? +m[2] : 4));
+        texte = Array(lig).fill(Array(col).fill("").join(" | ")).join("\n");
+      }
+      const pos = zoneBlocs._actif != null && zoneBlocs._actif < corps.length ? zoneBlocs._actif + 1 : corps.length;
+      corps.splice(pos, 0, {type: v, texte}); zoneBlocs._actif = pos;
+      surChangement(); rendreBlocs(zoneBlocs, corps, editable(), surChangement);
+      const cible = zoneBlocs.querySelectorAll(".da-bloc")[pos], champ = cible && cible.querySelector("textarea,input");
+      if (v !== "saut_page" && champ) champ.focus();
+    };
+    (ESSENTIELS.includes(v) ? zoneAjout : plus).appendChild(btn);
+  });
+  const autres = document.createElement("button");
+  autres.type = "button"; autres.className = "petit"; autres.textContent = J("plus_blocs");
+  autres.onclick = () => { plus.style.display = plus.style.display === "none" ? "flex" : "none"; };
+  zoneAjout.appendChild(autres); zoneAjout.appendChild(plus);
+}
+monterBoutonsBlocs(document.getElementById("zone-ajout"), document.getElementById("corps-document"),
+                   () => courant && courant.corps, modifiable, () => marquerModifie(true));
+document.getElementById("titre-document").oninput = ev => { if (courant){ courant.titre = ev.target.value; marquerModifie(true); } };
+document.getElementById("lieu-document").oninput = ev => { if (courant){ courant.lieu = ev.target.value; marquerModifie(true); majDate(); } };
+document.getElementById("date-document").onchange = ev => { if (courant){ courant.date_position = ev.target.value; marquerModifie(true); majDate(); } };
+document.getElementById("type-document").onchange = ev => { if (courant){ courant.type_document = ev.target.value; marquerModifie(true); majSceaux(); } };
+document.getElementById("delegation-document").onchange = ev => { if (courant){ courant.delegation = ev.target.value; marquerModifie(true); } };
+document.getElementById("entete-document").onchange = ev => { if (courant){ courant.modele_entete = ev.target.value ? Number(ev.target.value) : null; marquerModifie(true); majApercuEntete(); } };
+
+async function enregistrer(){
+  if (!courant) return null;
+  const corps = courant.corps.filter(b => b.type === "saut_page" || (b.type === "tableau" ? (b.texte || "").replace(/[|\s]/g, "") : (b.texte || "").trim()));
+  if (!modifiable()) return courant;     // émis, à valider ou tenu par quelqu'un d'autre : rien à enregistrer
+  const charge = JSON.stringify({titre: courant.titre, corps, lieu: courant.lieu || "", type_document: courant.type_document, delegation: courant.delegation, date_position: courant.date_position,
+                                 modele_entete: courant.modele_entete || ""});
+  const d = courant.id
+    ? await api(`/api/documents-administratifs/${courant.id}/`, {method: "PUT", body: charge})
+    : await api("/api/documents-administratifs/", {method: "POST", body: charge});
+  courant = depuisServeur(d);
+  afficherEditeur();
+  await chargerListe();
+  return d;
+}
+document.getElementById("btn-nouveau").onclick = nouveauDocument;
+document.getElementById("btn-retour").onclick = retourListe;
+document.getElementById("btn-hero-nouveau").onclick = () => {
+  nouveauDocument();
+  document.getElementById("carte-editeur").scrollIntoView({behavior: "smooth", block: "start"});
+};
+document.getElementById("btn-enregistrer").onclick = async () => { try { await enregistrer(); toast(tj("engine/templates/engine/documents_administratifs.html:js:enregistre")); } catch(e){} };
+document.getElementById("btn-pdf").onclick = async () => {
+  try {
+    const d = await enregistrer();      // le PDF reflète toujours ce qui est à l'écran
+    if (d){ gardeNavigation.liberer(); window.location.href = `/api/documents-administratifs/${d.id}/pdf/`; }
+  } catch(e){}
+};
+function masquerApercu(){
+  const cadre = document.getElementById("apercu-pdf");
+  cadre.style.display = "none"; cadre.removeAttribute("src");
+}
+document.getElementById("btn-imprimer").onclick = async () => {
+  try {
+    const d = await enregistrer();      // on imprime toujours ce qui est à l'écran
+    if (!d) return;
+    const cadre = document.getElementById("apercu-pdf");
+    cadre.onload = () => { cadre.onload = null; try { cadre.contentWindow.focus(); cadre.contentWindow.print(); } catch(e){ window.open(`/api/documents-administratifs/${d.id}/pdf/?apercu=1`, "_blank"); } };
+    cadre.src = `/api/documents-administratifs/${d.id}/pdf/?apercu=1&t=${Date.now()}`;
+    cadre.style.display = "block";
+  } catch(e){}
+};
+document.getElementById("btn-apercu").onclick = async () => {
+  try {
+    const d = await enregistrer();      // l'aperçu reflète toujours ce qui est à l'écran, avant toute émission
+    if (!d) return;
+    const cadre = document.getElementById("apercu-pdf");
+    cadre.src = `/api/documents-administratifs/${d.id}/pdf/?apercu=1&t=${Date.now()}`;
+    cadre.style.display = "block"; cadre.scrollIntoView({behavior: "smooth", block: "start"});
+  } catch(e){}
+};
+document.getElementById("btn-supprimer").onclick = async () => {
+  if (!courant || !courant.id) return;
+  const emisFige = courant.statut === "emis" || courant.statut === "annule";
+  if (!await GY.confirmer(tj(emisFige ? "engine/templates/engine/documents_administratifs.html:js:confirmer_suppression_emis" : "engine/templates/engine/documents_administratifs.html:js:confirmer_suppression"))) return;
+  try {
+    await api(`/api/documents-administratifs/${courant.id}/`, {method: "DELETE"});
+    arreterVerrou(); masquerApercu();                       // plus de verrou renouvelé ni d'aperçu PDF d'un document qui n'existe plus
+    courant = null; marquerModifie(false);
+    document.getElementById("carte-editeur").style.display = "none"; document.body.classList.remove("da-edition");
+    await chargerListe();
+    toast(tj("engine/templates/engine/documents_administratifs.html:js:supprime"));
+  } catch(e){}
+};
+
+document.getElementById("btn-emettre").onclick = async () => {
+  if (!courant) return;
+  try {
+    const d = await enregistrer();
+    if (!d) return;
+    if (!(courant.lieu || "").trim()){ toast(J("lieu_requis"), true); document.getElementById("lieu-document").focus(); return; }
+    if (!await GY.confirmer(J("confirmer_emission"))) return;
+    const emis = await api(`/api/documents-administratifs/${d.id}/emettre/`, {method: "POST", body: JSON.stringify({lieu: courant.lieu})});
+    courant = depuisServeur(emis); afficherEditeur(); await chargerListe();
+    toast(J("emis_ok") + " " + emis.reference);
+  } catch(e){}
+};
+document.getElementById("btn-corriger").onclick = async () => {
+  if (!courant || !courant.id || !await GY.confirmer(J("confirmer_correction"))) return;
+  try {
+    const d = await api(`/api/documents-administratifs/${courant.id}/corriger/`, {method: "POST", body: "{}"});
+    const complet = await api(`/api/documents-administratifs/${d.id}/`);
+    courant = depuisServeur(complet); afficherEditeur(); await chargerListe();
+    toast(J("correction_creee"));
+  } catch(e){}
+};
+// Le serveur exige un motif d'au moins 3 caractères : on le redemande ici plutôt que d'envoyer une requête qui serait refusée (400).
+const demanderMotif = async cle => { for (;;) { const m = await GY.demander(J(cle)); if (!m || !m.trim()) return null; if (m.split(/\s+/).join(" ").trim().length >= 3) return m; } };
+document.getElementById("btn-annuler").onclick = async () => {
+  if (!courant || !courant.id) return;
+  const motif = await demanderMotif("demander_motif");
+  if (!motif) return;
+  try {
+    const d = await api(`/api/documents-administratifs/${courant.id}/annuler/`, {method: "POST", body: JSON.stringify({motif})});
+    courant = depuisServeur(await api(`/api/documents-administratifs/${d.id}/`)); afficherEditeur(); await chargerListe();
+    toast(J("annule_ok"));
+  } catch(e){}
+};
+
+document.getElementById("btn-soumettre").onclick = async () => {
+  if (!courant) return;
+  try {
+    const d = await enregistrer();
+    if (!d || !await GY.confirmer(J("confirmer_soumission"))) return;
+    const soumis = await api(`${URL_DOCS}${d.id}/soumettre/`, {method: "POST", body: "{}"});
+    courant = depuisServeur(await api(`${URL_DOCS}${soumis.id}/`)); afficherEditeur(); await chargerListe();
+    toast(J("soumis_ok"));
+  } catch(e){}
+};
+document.getElementById("btn-refuser").onclick = async () => {
+  if (!courant || !courant.id) return;
+  const motif = await demanderMotif("demander_motif_refus");
+  if (!motif) return;
+  try {
+    const d = await api(`${URL_DOCS}${courant.id}/refuser/`, {method: "POST", body: JSON.stringify({motif})});
+    courant = depuisServeur(await api(`${URL_DOCS}${d.id}/`)); afficherEditeur(); await chargerListe();
+    toast(J("refuse_ok"));
+  } catch(e){}
+};
+document.getElementById("btn-rappeler").onclick = async () => {
+  if (!courant || !courant.id) return;
+  try {
+    const d = await api(`${URL_DOCS}${courant.id}/rappeler/`, {method: "POST", body: "{}"});
+    courant = depuisServeur(await api(`${URL_DOCS}${d.id}/`)); afficherEditeur(); await chargerListe();
+    toast(J("rappele_ok"));
+  } catch(e){}
+};
+document.getElementById("btn-renommer").onclick = async () => {
+  if (!courant || !courant.id) return;
+  const nom = await GY.demander(J("renommer_invite"), courant.nom || courant.titre || "");
+  if (nom === null) return;
+  try {
+    const d = await api(`${URL_DOCS}${courant.id}/renommer/`, {method: "POST", body: JSON.stringify({nom})});
+    courant.nom = d.nom; courant.libelle = d.libelle;       // seul le nom change : la saisie en cours n'est pas touchée
+    await chargerListe(); toast(J("renomme_ok"));
+  } catch(e){}
+};
+document.getElementById("btn-archiver").onclick = async () => {
+  if (!courant || !courant.id) return;
+  const archiver = !courant.archive;
+  try {
+    const d = await api(`${URL_DOCS}${courant.id}/archiver/`, {method: "POST", body: JSON.stringify({archive: archiver})});
+    courant = depuisServeur(await api(`${URL_DOCS}${d.id}/`)); afficherEditeur(); await chargerListe();
+    toast(J(archiver ? "archive_ok" : "desarchive_ok"));
+  } catch(e){}
+};
+
+async function chargerReglages(){
+  const r = await api("/api/documents-administratifs/reglages/");
+  VALIDATION = !!r.validation_obligatoire;
+  if (courant && !modifie) afficherEditeur();       // jamais au détriment d'une saisie en cours
+  const f = document.getElementById("format-reference");
+  if (!f) return;
+  document.getElementById("validation-obligatoire").checked = VALIDATION;
+  f.value = r.format_reference; document.getElementById("lieu-defaut").value = r.lieu_emission;
+  document.getElementById("exemple-reference").textContent = J("exemple") + " " + r.exemple;
+}
+const btnReglages = document.getElementById("btn-reglages");
+if (btnReglages) btnReglages.onclick = async () => {
+  try {
+    await api("/api/documents-administratifs/reglages/", {method: "POST", body: JSON.stringify({
+      format_reference: document.getElementById("format-reference").value, lieu_emission: document.getElementById("lieu-defaut").value,
+      validation_obligatoire: document.getElementById("validation-obligatoire").checked})});
+    await chargerReglages(); toast(J("reglages_ok"));
+  } catch(e){}
+};
+
+// ══════════════════════════════════════════════════════════════
+//  MODÈLES D'ENTÊTE ET MODÈLES DE DOCUMENTS
+//  Tous les rôles les voient et les utilisent ; seul l'administrateur les crée, les modifie et les supprime.
+// ══════════════════════════════════════════════════════════════
+const URL_MODELES_ENTETE = URL_DOCS + "modeles-entete/", URL_MODELES_DOC = URL_DOCS + "modeles/";
+let modeleEnteteCourant = null;        // administrateur : modèle d'entête en cours d'édition
+let modeleDocCourant = null;           // administrateur : modèle de document en cours d'édition {id, corps}
+
+function optionsEntete(select, valeur){
+  const defaut = modeleParDefaut();
+  select.innerHTML = "";
+  select.add(new Option(J("entete_defaut") + (defaut ? " (" + defaut.nom + ")" : ""), ""));
+  ENTETES.forEach(m => select.add(new Option(m.nom, String(m.id))));
+  select.value = valeur && ENTETES.some(m => m.id === valeur) ? String(valeur) : "";
+}
+function remplirSelecteursEntete(){
+  optionsEntete(document.getElementById("entete-document"), courant && courant.modele_entete);
+  if (EST_ADMIN) optionsEntete(document.getElementById("md-entete"), modeleDocCourant && modeleDocCourant.modele_entete);
+}
+async function chargerModelesEntete(){
+  const r = await api(URL_MODELES_ENTETE);
+  ENTETES = r.modeles || [];
+  if (r.limites) LIMITES_ENTETE = r.limites;
+  if (courant && courant.modele_entete && !ENTETES.some(m => m.id === courant.modele_entete)) courant.modele_entete = null;   // modèle supprimé : retour au défaut
+  remplirSelecteursEntete();
+  majApercuEntete();
+  if (EST_ADMIN) rendreListeModelesEntete();
+}
+async function chargerModelesDocuments(){
+  const r = await api(URL_MODELES_DOC);
+  MODELES_DOC = r.modeles || [];
+  const sel = document.getElementById("modele-nouveau"), precedent = sel.value;
+  sel.innerHTML = "";
+  sel.add(new Option(J("choisir_modele"), ""));
+  MODELES_DOC.forEach(m => sel.add(new Option(m.nom + " — " + J("typedoc_" + m.type_document), String(m.id))));
+  sel.value = MODELES_DOC.some(m => String(m.id) === precedent) ? precedent : "";
+  document.getElementById("bloc-nouveau-modele").style.display = MODELES_DOC.length ? "flex" : "none";
+  if (EST_ADMIN) rendreListeModelesDocuments();
+}
+
+// ── Nouveau à partir d'un modèle : brouillon pré-rempli (variables remplacées par le serveur, à la création), puis l'agent complète ──
+document.getElementById("btn-nouveau-modele").onclick = async () => {
+  const id = Number(document.getElementById("modele-nouveau").value);
+  if (!id){ toast(J("choisir_modele_erreur"), true); return; }
+  if (!await confirmerAbandon()) return;
+  try {
+    const d = await api(URL_DOCS, {method: "POST", body: JSON.stringify({modele_document: id,
+      destinataire: document.getElementById("modele-destinataire").value, objet: document.getElementById("modele-objet").value})});
+    await liberer(courant);
+    courant = depuisServeur(d);
+    afficherEditeur();
+    document.getElementById("modele-destinataire").value = ""; document.getElementById("modele-objet").value = "";
+    await chargerListe();
+    toast(J("brouillon_cree"));
+    document.getElementById("carte-editeur").scrollIntoView({behavior: "smooth", block: "start"});
+  } catch(e){}
+};
+
+if (EST_ADMIN){
+  // ── Modèles d'entête ──
+  function rendreListeModelesEntete(){
+    const ul = document.getElementById("liste-modeles-entete");
+    if (!ENTETES.length){ ul.innerHTML = `<li style="cursor:default;color:var(--muted);font-size:12px">${esc(J("aucun_modele_entete"))}</li>`; return; }
+    ul.innerHTML = ENTETES.map((m, i) => `
+      <li data-id="${m.id}" class="${m.id === modeleEnteteCourant ? "actif" : ""}">
+        ${m.par_defaut ? `<span class="da-etoile" title="${esc(J("entete_defaut_titre"))}">★</span>` : ""}
+        <span class="da-titre">${esc(m.nom)}</span>
+        <span class="da-ordre"><button type="button" class="petit" data-o="-1" ${i === 0 ? "disabled" : ""}>↑</button><button type="button" class="petit" data-o="1" ${i === ENTETES.length - 1 ? "disabled" : ""}>↓</button></span>
+      </li>`).join("");
+    ul.querySelectorAll("li[data-id]").forEach(li => {
+      li.onclick = () => ouvrirModeleEntete(Number(li.dataset.id));
+      li.querySelectorAll("button[data-o]").forEach(b => b.onclick = ev => { ev.stopPropagation(); deplacerModeleEntete(Number(li.dataset.id), Number(b.dataset.o)); });
+    });
+  }
+  async function deplacerModeleEntete(id, sens){
+    const ids = ENTETES.map(m => m.id), i = ids.indexOf(id), j = i + sens;
+    if (i < 0 || j < 0 || j >= ids.length) return;
+    [ids[i], ids[j]] = [ids[j], ids[i]];
+    try { await api(URL_MODELES_ENTETE + "ordre/", {method: "POST", body: JSON.stringify({ids})}); await chargerModelesEntete(); } catch(e){}
+  }
+  function ouvrirModeleEntete(id){
+    const m = ENTETES.find(x => x.id === id);
+    if (!m) return;
+    modeleEnteteCourant = id;
+    document.getElementById("editeur-modele-entete").style.display = "block";
+    document.getElementById("me-nom").value = m.nom;
+    const casePar = document.getElementById("me-defaut");
+    casePar.checked = m.par_defaut; casePar.disabled = m.par_defaut;       // on fixe un autre modèle pour changer de défaut
+    const forme = x => ({est_agent: false, perso: null, limites: LIMITES_ENTETE, imposees: {gauche: x.lignes_gauche, droite: x.lignes_droite}});
+    EnteteOfficiel.monterEditeur({
+      racine: document.getElementById("me-lignes"), logoUrl, sansAide: true,    // même éditeur de lignes que la page de configuration
+      charger: async () => forme(m),
+      sauver: async charge => forme(await EnteteOfficiel.appel(`${URL_MODELES_ENTETE}${id}/`, {method: "PUT", body: JSON.stringify({
+        nom: document.getElementById("me-nom").value, par_defaut: casePar.checked, lignes_gauche: charge.gauche, lignes_droite: charge.droite})})),
+      apresSauvegarde: async () => {
+        await chargerModelesEntete();
+        const maj = ENTETES.find(x => x.id === id);
+        if (maj){ casePar.checked = maj.par_defaut; casePar.disabled = maj.par_defaut; }
+      },
+    });
+    rendreListeModelesEntete();
+  }
+  document.getElementById("btn-nouveau-modele-entete").onclick = async () => {
+    const nom = await GY.demander(J("demander_nom_modele"));
+    if (!nom || !nom.trim()) return;
+    try {
+      const m = await api(URL_MODELES_ENTETE, {method: "POST", body: JSON.stringify({nom})});
+      await chargerModelesEntete(); ouvrirModeleEntete(m.id); toast(J("modele_cree"));
+    } catch(e){}
+  };
+  document.getElementById("btn-supprimer-modele-entete").onclick = async () => {
+    if (modeleEnteteCourant == null || !await GY.confirmer(J("confirmer_suppr_modele_entete"))) return;
+    try {
+      await api(`${URL_MODELES_ENTETE}${modeleEnteteCourant}/`, {method: "DELETE"});
+      modeleEnteteCourant = null;
+      document.getElementById("editeur-modele-entete").style.display = "none";
+      await chargerModelesEntete(); await chargerModelesDocuments();         // les modèles de documents qui le reprenaient retombent sur le défaut
+      toast(J("modele_supprime"));
+    } catch(e){}
+  };
+
+  // ── Modèles de documents ──
+  TYPES_DOC.forEach(v => document.getElementById("md-type").add(new Option(J("typedoc_" + v), v)));
+  function rendreListeModelesDocuments(){
+    const ul = document.getElementById("liste-modeles-documents");
+    if (!MODELES_DOC.length){ ul.innerHTML = `<li style="cursor:default;color:var(--muted);font-size:12px">${esc(J("aucun_modele_document"))}</li>`; return; }
+    ul.innerHTML = MODELES_DOC.map(m => `
+      <li data-id="${m.id}" class="${modeleDocCourant && m.id === modeleDocCourant.id ? "actif" : ""}">
+        <span class="da-titre">${esc(m.nom)}</span><span class="da-meta">${esc(J("typedoc_" + m.type_document))}</span>
+      </li>`).join("");
+    ul.querySelectorAll("li[data-id]").forEach(li => li.onclick = () => ouvrirModeleDocument(Number(li.dataset.id)));
+  }
+  const rendreCorpsModele = () => rendreBlocs(document.getElementById("md-corps"), modeleDocCourant.corps, true, () => {});
+  function ouvrirModeleDocument(id){
+    const m = MODELES_DOC.find(x => x.id === id);
+    if (!m) return;
+    modeleDocCourant = {id, modele_entete: m.modele_entete, corps: JSON.parse(JSON.stringify(m.corps || []))};
+    if (!modeleDocCourant.corps.length) modeleDocCourant.corps.push({type: "paragraphe", texte: ""});
+    document.getElementById("editeur-modele-document").style.display = "block";
+    document.getElementById("md-nom").value = m.nom;
+    document.getElementById("md-type").value = m.type_document;
+    document.getElementById("md-titre").value = m.titre || "";
+    optionsEntete(document.getElementById("md-entete"), m.modele_entete);
+    rendreCorpsModele();
+    rendreListeModelesDocuments();
+  }
+  monterBoutonsBlocs(document.getElementById("md-ajout"), document.getElementById("md-corps"),
+                     () => modeleDocCourant && modeleDocCourant.corps, () => true, () => {});
+  document.getElementById("btn-nouveau-modele-document").onclick = async () => {
+    const nom = await GY.demander(J("demander_nom_modele"));
+    if (!nom || !nom.trim()) return;
+    try {
+      const m = await api(URL_MODELES_DOC, {method: "POST", body: JSON.stringify({nom, corps: [{type: "paragraphe", texte: ""}]})});
+      await chargerModelesDocuments(); ouvrirModeleDocument(m.id); toast(J("modele_cree"));
+    } catch(e){}
+  };
+  document.getElementById("btn-enregistrer-modele-document").onclick = async () => {
+    if (!modeleDocCourant) return;
+    const corps = modeleDocCourant.corps.filter(b => b.type === "saut_page" || (b.texte || "").trim());
+    try {
+      const m = await api(`${URL_MODELES_DOC}${modeleDocCourant.id}/`, {method: "PUT", body: JSON.stringify({
+        nom: document.getElementById("md-nom").value, type_document: document.getElementById("md-type").value,
+        titre: document.getElementById("md-titre").value, corps, modele_entete: document.getElementById("md-entete").value})});
+      await chargerModelesDocuments(); ouvrirModeleDocument(m.id); toast(J("modele_enregistre"));
+    } catch(e){}
+  };
+  document.getElementById("btn-supprimer-modele-document").onclick = async () => {
+    if (!modeleDocCourant || !await GY.confirmer(J("confirmer_suppr_modele_document"))) return;
+    try {
+      await api(`${URL_MODELES_DOC}${modeleDocCourant.id}/`, {method: "DELETE"});
+      modeleDocCourant = null;
+      document.getElementById("editeur-modele-document").style.display = "none";
+      await chargerModelesDocuments(); toast(J("modele_supprime"));
+    } catch(e){}
+  };
+}
+
+chargerEntete();
+chargerModelesEntete().catch(() => {});
+chargerModelesDocuments().catch(() => {});
+chargerReglages().catch(() => {});
+chargerListe().catch(() => {});
+</script>
+</body>
+</html>

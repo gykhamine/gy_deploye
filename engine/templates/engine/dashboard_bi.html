@@ -1,0 +1,1901 @@
+{% load i18n_extras %}
+<!DOCTYPE html>
+{% load static %}
+<html lang="{{ langue_html|default:'fr' }}">
+<head>
+<link rel="stylesheet" href="{% static 'engine/css/app.css' %}"><link rel="stylesheet" href="{% url 'engine:marque_css' %}"><script src="{% static 'engine/js/marque.js' %}" defer></script><script src="{% static 'engine/js/gestes_tactiles.js' %}" defer></script>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>{% tf "engine/templates/engine/dashboard_bi.html:9:8" v1=table.nom %}</title>
+<script src="{% static 'engine/js/dialogues.js' %}"></script>
+</head>
+<body class="page-dashboard_bi{% if lecture_seule %} lecture-seule-partage{% endif %}">
+
+<div id="sidebar-overlay"></div>
+<div id="app">
+
+<div id="sidebar">
+  <div id="marque"><img class="logo-gy" src="{% static 'engine/img/logo_agent_gy.png' %}" alt="{% t 'engine/templates/engine/dashboard_bi.html:19:96' %}"> {% t "engine/templates/engine/dashboard_bi.html:19:107" %}</div>
+  <div style="padding:10px 10px 4px;font-size:11px;color:var(--muted);text-transform:uppercase;letter-spacing:.06em">{% t "engine/templates/engine/dashboard_bi.html:20:118" %}</div>
+
+  <div style="padding:6px 10px">
+    <select id="sel-tableau" style="width:100%;margin-bottom:8px"></select>
+    <input type="text" id="input-nouveau-tableau" placeholder="{% t 'engine/templates/engine/dashboard_bi.html:24:64' %}" style="width:100%;box-sizing:border-box;margin-bottom:6px" class="edition-seule">
+    <button class="edition-seule" style="width:100%;margin-bottom:4px" id="btn-creer-tableau">{% t "engine/templates/engine/dashboard_bi.html:25:95" %}</button>
+    <button class="edition-seule" style="width:100%;margin-bottom:4px;background:transparent;border:1px solid var(--border);color:var(--muted);font-size:12px" id="btn-renommer-tableau" title="{% t 'engine/templates/engine/dashboard_bi.html:26:193' %}">{% t "engine/templates/engine/dashboard_bi.html:26:228" %}</button>
+    <button class="danger edition-seule" style="width:100%;margin-bottom:4px;font-size:12px" id="btn-supprimer-tableau" title="{% t 'engine/templates/engine/dashboard_bi.html:27:128' %}">{% t "engine/templates/engine/dashboard_bi.html:27:164" %}</button>
+  </div>
+
+  <div style="border-top:1px solid var(--border);padding:8px 10px 4px;font-size:11px;color:var(--muted);text-transform:uppercase;letter-spacing:.06em" class="edition-seule">{% t "engine/templates/engine/dashboard_bi.html:30:174" %}</div>
+  <div style="padding:6px 10px" class="edition-seule">
+    <button style="width:100%;margin-bottom:4px" id="btn-ajouter-widget">{% t "engine/templates/engine/dashboard_bi.html:32:74" %}</button>
+    <button style="width:100%;margin-bottom:4px;background:transparent;border:1px solid var(--border);color:var(--muted);font-size:12px" id="btn-creer-graphique">{% t "engine/templates/engine/dashboard_bi.html:33:163" %}</button>
+    <button style="width:100%;margin-bottom:4px;background:transparent;border:1px solid var(--border);color:var(--muted);font-size:12px" id="btn-ajouter-texte">{% t "engine/templates/engine/dashboard_bi.html:34:161" %}</button>
+  </div>
+
+  <div style="border-top:1px solid var(--border);padding:8px 10px 4px;font-size:11px;color:var(--muted);text-transform:uppercase;letter-spacing:.06em" class="edition-seule">{% t "engine/templates/engine/dashboard_bi.html:38:174" %}</div>
+  <div style="padding:6px 10px" class="edition-seule">
+    <button style="width:100%;margin-bottom:4px" id="btn-nouveau-kpi">{% t "engine/templates/engine/dashboard_bi.html:40:71" %}</button>
+    <button style="width:100%;margin-bottom:4px;background:transparent;border:1px solid var(--border);color:var(--muted);font-size:12px" id="btn-gerer-kpis">{% t "engine/templates/engine/dashboard_bi.html:41:158" %}</button>
+  </div>
+
+  <div id="barre-filtre">
+    <div style="border-top:1px solid var(--border);padding:8px 10px 4px;font-size:11px;color:var(--muted);text-transform:uppercase;letter-spacing:.06em">{% t "engine/templates/engine/dashboard_bi.html:sb_filtre_titre" %}</div>
+    <div style="padding:6px 10px">
+      <select id="filtre-colonne" style="width:100%;margin-bottom:4px"><option value="">{% t "engine/templates/engine/dashboard_bi.html:90:48" %}</option></select>
+      <input type="text" id="filtre-valeur" placeholder="{% t 'engine/templates/engine/dashboard_bi.html:91:54' %}" style="width:100%;box-sizing:border-box;margin-bottom:4px">
+      <button class="petit principal" id="btn-appliquer-filtre" style="width:100%;margin-bottom:4px">{% t "engine/templates/engine/dashboard_bi.html:92:61" %}</button>
+      <button class="petit" id="btn-effacer-filtre" style="display:none;width:100%;margin-bottom:4px">{% t "engine/templates/engine/dashboard_bi.html:93:70" %}</button>
+    </div>
+  </div>
+
+  <div style="border-top:1px solid var(--border);padding:8px 10px 4px;font-size:11px;color:var(--muted);text-transform:uppercase;letter-spacing:.06em">{% t "engine/templates/engine/dashboard_bi.html:44:152" %}</div>
+  <div style="padding:6px 10px">
+    <button style="width:100%;margin-bottom:4px;background:transparent;border:1px solid var(--border);color:var(--muted);font-size:12px" id="btn-actualiser">{% t "engine/templates/engine/dashboard_bi.html:46:158" %}</button>
+    <button style="width:100%;margin-bottom:4px;background:transparent;border:1px solid var(--border);color:var(--muted);font-size:12px" id="btn-fiche-objet-table" class="edition-seule" title="{% t 'engine/templates/engine/dashboard_bi.html:47:172' %}">{% t "engine/templates/engine/dashboard_bi.html:47:273" %}</button>
+    <button style="width:100%;margin-bottom:4px;background:transparent;border:1px solid var(--border);color:var(--muted);font-size:12px" id="btn-exporter-pdf">{% t "engine/templates/engine/dashboard_bi.html:48:160" %}</button>
+    <select id="sel-orientation-pdf" style="width:100%;margin-bottom:6px;font-size:11px">
+      <option value="paysage">{% t "engine/templates/engine/dashboard_bi.html:50:31" %}</option>
+      <option value="portrait">{% t "engine/templates/engine/dashboard_bi.html:51:32" %}</option>
+      <option value="paysage_large">{% t "engine/templates/engine/dashboard_bi.html:52:37" %}</option>
+      <option value="paysage_A5">{% t "engine/templates/engine/dashboard_bi.html:53:34" %}</option>
+    </select>
+    <button style="width:100%;margin-bottom:4px;background:transparent;border:1px solid var(--border);color:var(--muted);font-size:12px" id="btn-plein-ecran" title="{% t 'engine/templates/engine/dashboard_bi.html:55:166' %}">{% t "engine/templates/engine/dashboard_bi.html:55:237" %}</button>
+    <label class="edition-seule" style="display:flex;align-items:center;gap:5px;cursor:pointer;font-size:12px;margin-top:4px" title="{% t 'engine/templates/engine/dashboard_bi.html:56:134' %}">
+      <input type="checkbox" id="chk-tableau-visible-client" style="cursor:pointer"> {% t "engine/templates/engine/dashboard_bi.html:54:86" %}
+    </label>
+    {% if lecture_seule %}
+    <span style="display:block;margin-top:6px;font-size:11px;opacity:.7">{% t "engine/templates/engine/dashboard_bi.html:60:74" %}</span>
+    {% endif %}
+  </div>
+
+  <div style="border-top:1px solid var(--border);padding:8px 10px 4px;font-size:11px;color:var(--muted)">
+    {% if est_client %}
+    <a class="retour" href="{% url 'engine:espace_client' %}" style="font-size:12px">← {% t "engine/templates/engine/agenda.html:19:135" %}</a>
+    {% else %}
+    <a class="retour" href="/tables/{{ table.slug }}/?retour=1" style="font-size:12px">{% tf "engine/templates/engine/dashboard_bi.html:62:79" v1=table.nom %}</a>
+    {% endif %}
+  </div>
+</div>
+
+<div id="principal">
+  <div id="entete">
+    <div class="entete-rangee-titre">
+      <div class="entete-gauche">
+        <button id="btn-toggle-sidebar" aria-label="{% t 'engine/templates/engine/dashboard_bi.html:73:53' %}">☰</button>
+      </div>
+    </div>
+  </div>
+
+<button id="btn-quitter-plein-ecran" title="{% t 'engine/templates/engine/dashboard_bi.html:82:45' %}">✕</button>
+{% i18n_js %}
+<script src="{% static 'engine/js/plein_ecran.js' %}"></script>
+<script src="{% static 'engine/js/gy_couleur.js' %}"></script>
+<script src="{% static 'engine/js/selecteur_couleur.js' %}"></script>
+{% if lecture_seule %}
+<script src="{% static 'engine/js/dashboard_bi_1.js' %}"></script>
+{% endif %}
+<script src="{% static 'engine/js/programme_kpi.js' %}"></script>
+<script src="{% static 'engine/js/telechargement.js' %}"></script>
+<script src="{% static 'engine/js/fiche_objet.js' %}"></script>
+
+<div id="toast"></div>
+
+<div id="zone-canevas-wrap">
+  <div id="canevas"></div>
+</div>
+
+<!-- Modal création/édition d'un KPI -->
+<div class="modal-fond" id="modal-kpi">
+  <div class="modal">
+    <h3 id="mk-titre">{% t "engine/templates/engine/dashboard_bi.html:110:23" %}</h3>
+    <p class="aide">{% t "engine/templates/engine/dashboard_bi.html:111:21" %}</p>
+
+    <div class="champ">
+      <label>{% t "engine/templates/engine/dashboard_bi.html:114:14" %}</label>
+      <input type="text" id="mk-nom" placeholder="{% t 'engine/templates/engine/dashboard_bi.html:115:51' %}">
+    </div>
+    <div class="champ">
+      <label>{% t "engine/templates/engine/dashboard_bi.html:118:14" %}</label>
+      <input type="text" id="mk-description" placeholder="{% t 'engine/templates/engine/dashboard_bi.html:119:59' %}">
+    </div>
+    <div style="display:flex;gap:12px">
+      <div class="champ" style="flex:1">
+        <label>{% t "engine/templates/engine/dashboard_bi.html:123:16" %}</label>
+        <select id="mk-champ"></select>
+      </div>
+      <div class="champ" style="flex:1">
+        <label>{% t "engine/templates/engine/dashboard_bi.html:127:16" %}</label>
+        <input type="text" id="mk-recherche-formule" placeholder="{% t 'engine/templates/engine/dashboard_bi.html:123:67' %}" style="margin-bottom:4px">
+        <select id="mk-formule"></select>
+      </div>
+    </div>
+    <div class="champ">
+      <label>{% t "engine/templates/engine/dashboard_bi.html:128:14" %}</label>
+      <div class="aide">{% t "engine/templates/engine/dashboard_bi.html:129:25" %}</div>
+      <div id="mk-etapes"></div>
+    </div>
+    <div style="display:flex;gap:12px">
+      <div class="champ" style="flex:1">
+        <label>{% t "engine/templates/engine/dashboard_bi.html:133:16" %}</label>
+        <input type="text" id="mk-unite" placeholder="{% t 'engine/templates/engine/dashboard_bi.html:134:55' %}">
+      </div>
+      <div class="champ" style="flex:1">
+        <label>{% t "engine/templates/engine/dashboard_bi.html:137:16" %}</label>
+        <input type="number" id="mk-cible" step="any" placeholder="{% t 'engine/templates/engine/dashboard_bi.html:138:68' %}">
+      </div>
+      <div class="champ" style="flex:1">
+        <label>{% t "engine/templates/engine/dashboard_bi.html:141:16" %}</label>
+        <input type="number" id="mk-seuil" step="any" placeholder="{% t 'engine/templates/engine/dashboard_bi.html:142:68' %}">
+      </div>
+    </div>
+    <div class="champ">
+      <label>{% t "engine/templates/engine/dashboard_bi.html:146:14" %}</label>
+      <select id="mk-sens">
+        <option value="hausse">{% t "engine/templates/engine/dashboard_bi.html:148:32" %}</option>
+        <option value="baisse">{% t "engine/templates/engine/dashboard_bi.html:149:32" %}</option>
+        <option value="cible">{% t "engine/templates/engine/dashboard_bi.html:150:31" %}</option>
+      </select>
+    </div>
+
+    <div class="champ" style="margin-top:6px">
+      <label style="display:flex;align-items:center;gap:8px;cursor:pointer">
+        <input type="checkbox" id="mk-visible-client"> {% t "engine/templates/engine/dashboard_bi.html:157:56" %}
+        <span style="font-size:11px;color:var(--muted)">{% t "engine/templates/engine/dashboard_bi.html:157:57" %}</span>
+      </label>
+    </div>
+    <div class="modal-actions">
+      <button id="mk-annuler">{% t "engine/templates/engine/dashboard_bi.html:161:31" %}</button>
+      <button class="principal" id="mk-valider">{% t "engine/templates/engine/dashboard_bi.html:162:49" %}</button>
+    </div>
+  </div>
+</div>
+
+<!-- Modal gestion des KPI existants (liste + suppression rapide) -->
+<div class="modal-fond" id="modal-gerer-kpis">
+  <div class="modal">
+    <h3>{% t "engine/templates/engine/dashboard_bi.html:170:9" %}</h3>
+    <p class="aide">{% t "engine/templates/engine/dashboard_bi.html:171:21" %}</p>
+    <div class="kpis-liste-modal" id="kpis-liste-modal"></div>
+    <div class="modal-actions">
+      <button id="gk-fermer">{% t "engine/templates/engine/dashboard_bi.html:174:30" %}</button>
+    </div>
+  </div>
+</div>
+
+<!-- Modal description libre d'un widget (pourquoi ce graphe est utilisé) -->
+<div class="modal-fond" id="modal-description-widget">
+  <div class="modal">
+    <h3>{% t "engine/templates/engine/dashboard_bi.html:182:9" %}</h3>
+    <p class="aide">{% t "engine/templates/engine/dashboard_bi.html:183:21" %}</p>
+    <div class="champ">
+      <textarea id="md-texte" rows="6" style="width:100%;font:inherit;background:var(--fond-noir,#000);color:var(--text);border:1px solid var(--border);border-radius:6px;padding:8px;resize:vertical"></textarea>
+    </div>
+    <div class="modal-actions">
+      <button id="md-annuler">{% t "engine/templates/engine/dashboard_bi.html:188:31" %}</button>
+      <button class="principal" id="md-enregistrer">{% t "engine/templates/engine/dashboard_bi.html:189:53" %}</button>
+    </div>
+  </div>
+</div>
+
+<!-- Modal ajout/edition widget -->
+<div class="modal-fond" id="modal-widget">
+  <div class="modal">
+    <h3 id="mw-titre">{% t "engine/templates/engine/dashboard_bi.html:197:23" %}</h3>
+    <p class="aide">{% t "engine/templates/engine/dashboard_bi.html:198:21" %}</p>
+
+    <div class="champ">
+      <label>{% t "engine/templates/engine/dashboard_bi.html:201:14" %}</label>
+      <input type="text" id="mw-titre-input" placeholder="{% t 'engine/templates/engine/dashboard_bi.html:202:59' %}">
+    </div>
+
+    <div class="champ">
+      <label>{% t "engine/templates/engine/dashboard_bi.html:206:14" %}</label>
+      <input type="text" id="mw-recherche-graphique" placeholder="{% t 'engine/templates/engine/dashboard_bi.html:203:67' %}" style="margin-bottom:8px">
+      <div id="mw-graphiques" class="graphiques-grille"></div>
+    </div>
+
+    <div class="champ" id="mw-bloc-colonnes" style="display:none">
+      <label>{% t "engine/templates/engine/dashboard_bi.html:211:14" %}</label>
+      <button type="button" class="petit" id="mw-btn-choisir-colonnes">{% t "engine/templates/engine/dashboard_bi.html:212:72" %}</button>
+      <div class="colonnes-picker" id="mw-colonnes" style="margin-top:8px"></div>
+      <p class="aide" id="mw-aide-colonnes" style="margin:6px 0 0"></p>
+    </div>
+
+    <div class="modal-actions">
+      <button id="mw-annuler">{% t "engine/templates/engine/dashboard_bi.html:218:31" %}</button>
+      <button class="principal" id="mw-valider">{% t "engine/templates/engine/dashboard_bi.html:219:49" %}</button>
+    </div>
+  </div>
+</div>
+
+<!-- Modal Ajouter/éditer une zone de texte (titre, commentaire, explication
+     libre posée sur le canevas) : pas de graphique, pas de colonnes, aucune
+     dépendance aux données de la table source. -->
+<div class="modal-fond" id="modal-texte">
+  <div class="modal">
+    <h3 id="mt-titre">{% t "engine/templates/engine/dashboard_bi.html:229:23" %}</h3>
+    <p class="aide">{% t "engine/templates/engine/dashboard_bi.html:230:21" %}</p>
+
+    <div class="champ">
+      <label>{% t "engine/templates/engine/dashboard_bi.html:233:14" %}</label>
+      <select id="mt-style">
+        <option value="titre">{% t "engine/templates/engine/dashboard_bi.html:235:31" %}</option>
+        <option value="sous_titre">{% t "engine/templates/engine/dashboard_bi.html:236:36" %}</option>
+        <option value="paragraphe" selected>{% t "engine/templates/engine/dashboard_bi.html:237:45" %}</option>
+      </select>
+    </div>
+
+    <div class="champ">
+      <label>{% t "engine/templates/engine/dashboard_bi.html:242:14" %}</label>
+      <textarea id="mt-contenu" rows="4" placeholder="{% t 'engine/templates/engine/dashboard_bi.html:243:55' %}"></textarea>
+    </div>
+
+    <div class="modal-actions">
+      <button id="mt-annuler">{% t "engine/templates/engine/dashboard_bi.html:247:31" %}</button>
+      <button class="principal" id="mt-valider">{% t "engine/templates/engine/dashboard_bi.html:248:49" %}</button>
+    </div>
+  </div>
+</div>
+
+<!-- Modal Sélecteur de colonnes graphique : cliquer (ou glisser sur plusieurs
+     en-têtes contigus) directement sur le vrai tableau plutôt que sur une
+     liste de chips — même principe que le sélecteur de cible des tables de
+     calcul, mais simplifié : ici on ne choisit jamais une plage de lignes,
+     seulement un ensemble ordonné de colonnes entières (widgets BI = toutes
+     les lignes, colonnes choisies). L'ordre de sélection est conservé et
+     affiché en badge, car il détermine par ex. l'axe X/Y d'un graphique. -->
+<div class="modal-fond" id="modal-selcol-fond">
+  <div class="modal" style="max-width:1000px">
+    <h3>{% t "engine/templates/engine/dashboard_bi.html:262:9" %}</h3>
+    <p class="aide" id="selcol-hint">{% t "engine/templates/engine/dashboard_bi.html:263:38" %}</p>
+    <div id="selcol-resume" style="font-size:12px;font-weight:600;color:var(--accent);margin-bottom:8px">{% t "engine/templates/engine/dashboard_bi.html:264:106" %}</div>
+    <div style="max-height:50vh;overflow:auto;border:1px solid var(--border);border-radius:8px">
+      <table id="selcol-grille" style="border-collapse:collapse;width:100%;font-size:12px"></table>
+    </div>
+    <div class="modal-actions">
+      <button id="selcol-annuler">{% t "engine/templates/engine/dashboard_bi.html:269:35" %}</button>
+      <button class="principal" id="selcol-valider">{% t "engine/templates/engine/dashboard_bi.html:270:53" %}</button>
+    </div>
+  </div>
+</div>
+
+<!-- Modal création d'un graphique BI personnalisé (code manuel ou généré via IA) -->
+<div class="modal-fond" id="modal-graphique-perso">
+  <div class="modal">
+    <h3>{% t "engine/templates/engine/dashboard_bi.html:278:9" %}</h3>
+    <p class="aide">{% t "engine/templates/engine/dashboard_bi.html:279:21" %}</p>
+
+    <div class="champ">
+      <label>{% t "engine/templates/engine/dashboard_bi.html:282:14" %}</label>
+      <input type="text" id="ng-nom" placeholder="{% t 'engine/templates/engine/dashboard_bi.html:283:51' %}">
+    </div>
+    <div class="champ">
+      <label>{% t "engine/templates/engine/dashboard_bi.html:286:14" %}</label>
+      <input type="text" id="ng-description" placeholder="{% t 'engine/templates/engine/dashboard_bi.html:287:59' %}">
+    </div>
+    <div style="display:flex;gap:12px">
+      <div class="champ" style="flex:1">
+        <label>{% t "engine/templates/engine/dashboard_bi.html:291:16" %}</label>
+        <select id="ng-categorie">
+          <option value="personnalisee">{% t "engine/templates/engine/dashboard_bi.html:293:41" %}</option>
+          <option value="comparaison">{% t "engine/templates/engine/dashboard_bi.html:294:39" %}</option>
+          <option value="evolution">{% t "engine/templates/engine/dashboard_bi.html:295:37" %}</option>
+          <option value="repartition">{% t "engine/templates/engine/dashboard_bi.html:296:39" %}</option>
+          <option value="distribution">{% t "engine/templates/engine/dashboard_bi.html:297:40" %}</option>
+          <option value="relation">{% t "engine/templates/engine/dashboard_bi.html:298:36" %}</option>
+          <option value="indicateur">{% t "engine/templates/engine/dashboard_bi.html:299:38" %}</option>
+        </select>
+      </div>
+      <div class="champ" style="flex:1">
+        <label>{% t "engine/templates/engine/dashboard_bi.html:303:16" %}</label>
+        <select id="ng-cible-type">
+          <option value="colonne_unique">{% t "engine/templates/engine/dashboard_bi.html:305:42" %}</option>
+          <option value="colonnes_multiples">{% t "engine/templates/engine/dashboard_bi.html:306:46" %}</option>
+        </select>
+      </div>
+    </div>
+    <div class="champ" id="ng-bloc-types">
+      <label>{% t "engine/templates/engine/dashboard_bi.html:311:14" %}</label>
+      <input type="text" id="ng-types" placeholder="{% t 'engine/templates/engine/dashboard_bi.html:312:53' %}">
+    </div>
+    <div class="champ" style="background:var(--fond-noir,#000);border:1px solid var(--border);border-radius:8px;padding:8px 10px">
+      <label>{% t "engine/templates/engine/dashboard_bi.html:315:14" %}</label>
+      <div style="display:flex;gap:6px">
+        <input type="text" id="ng-prompt-ia" placeholder="{% t 'engine/templates/engine/dashboard_bi.html:317:59' %}" style="flex:1">
+        <button type="button" id="btn-generer-graphique-ia" style="padding:6px 12px;font-size:12px;white-space:nowrap">{% t "engine/templates/engine/dashboard_bi.html:318:120" %}</button>
+      </div>
+    </div>
+    <div class="champ">
+      <label>{% t "engine/templates/engine/dashboard_bi.html:322:14" %}</label>
+      <input type="file" id="ng-fichier" accept=".py,text/x-python,text/plain">
+    </div>
+    <div class="champ">
+      <label>{% t "engine/templates/engine/dashboard_bi.html:326:14" %} <code>{% t "engine/templates/engine/dashboard_bi.html:326:47" %}</code> {% t "engine/templates/engine/dashboard_bi.html:326:93" %}</label>
+      <textarea id="ng-code" rows="10" style="width:100%;font-family:monospace;font-size:12px;background:var(--fond-noir,#000);color:var(--text);border:1px solid var(--border);border-radius:6px;padding:8px" placeholder="def dessiner(dataframe, colonnes):
+    import matplotlib
+    matplotlib.use(&quot;Agg&quot;)
+    import matplotlib.pyplot as plt
+    col = colonnes[0]
+    fig, ax = plt.subplots()
+    ax.hist(dataframe[col].dropna())
+    fig.tight_layout()
+    return fig"></textarea>
+    </div>
+
+    <div class="modal-actions">
+      <button id="ng-annuler">{% t "engine/templates/engine/dashboard_bi.html:339:31" %}</button>
+      <button class="principal" id="ng-enregistrer">{% t "engine/templates/engine/dashboard_bi.html:340:53" %}</button>
+    </div>
+
+    <h3 style="margin-top:16px">{% t "engine/templates/engine/dashboard_bi.html:343:33" %}</h3>
+    <div id="liste-graphiques-perso"></div>
+  </div>
+</div>
+
+<!-- Visualiseur plein écran : ouvre l'image d'un widget graphique en grand,
+     avec zoom (molette / pincement) et navigation (glisser). -->
+<div id="visualiseur-fond">
+  <div class="visualiseur-barre">
+    <span class="visualiseur-titre" id="vis-titre"></span>
+    <span class="visualiseur-pourcentage" id="vis-pourcentage">100%</span>
+    <button id="vis-zoom-moins" title="{% t 'engine/templates/engine/dashboard_bi.html:354:40' %}">−</button>
+    <button id="vis-zoom-plus" title="{% t 'engine/templates/engine/dashboard_bi.html:355:39' %}">+</button>
+    <button id="vis-reset" title="{% t 'engine/templates/engine/dashboard_bi.html:356:35' %}">{% t "engine/templates/engine/dashboard_bi.html:356:58" %}</button>
+    <button id="vis-fermer" title="{% t 'engine/templates/engine/dashboard_bi.html:357:36' %}">{% t "engine/templates/engine/dashboard_bi.html:357:52" %}</button>
+  </div>
+  <div class="visualiseur-zone" id="vis-zone">
+    <img id="vis-image" src="" alt="">
+  </div>
+</div>
+
+<script>
+const TABLE_ID = {{ table.id }};
+const LECTURE_SEULE = !!window.LECTURE_SEULE_PARTAGE;   // client (lecteur) ou partage inter-agents : consultation seule, aucune modification
+const CSRF = document.cookie.match(/gy_csrftoken=([^;]+)/)?.[1] || "{{ csrf_token }}";
+
+let TABLEAUX = [];
+let TABLEAU_ACTIF = null;      // objet tableau_bord_bi complet (avec widgets)
+let GRAPHIQUES = [];
+let CHAMPS_TABLE = [];
+let POLLING = new Set();       // ids de widgets en cours de polling
+let GRAPHIQUE_CHOISI = null;   // id du graphique sélectionné dans le modal
+let COLONNES_CHOISIES = [];    // ids de champs, dans l'ordre choisi
+let WIDGET_EN_EDITION = null;  // id du widget édité, ou null si création
+let FILTRE_ACTIF = null;       // {colonne, valeur} — filtre croisé appliqué à tous les widgets + KPI
+
+const ROW_H = 56;   // hauteur d'une unité de grille, en px
+const GAP = 8;       // marge entre widgets, en px
+
+function toast(msg, err=false){
+  const t = document.getElementById("toast");
+  t.textContent = msg; t.className = err ? "err" : "";
+  t.style.display = "block";
+  clearTimeout(t._t);
+  t._t = setTimeout(() => t.style.display="none", 3500);
+}
+
+// ── Polling générique (même convention que les autres canaux IA de la
+// plateforme : {fini, statut} tant que ce n'est pas fini, puis {fini:true, generation:{...}}) ──
+function _attendreFin(urlStatut, cle, options={}){
+  const intervalle = options.intervalle || 1200;
+  const maxAttente = options.maxAttente || 180000;
+  const debut = Date.now();
+  return new Promise((resolve, reject) => {
+    (async function tick(){
+      try {
+        const data = await api(urlStatut);
+        if(data.fini){ resolve(data[cle]); return; }
+        if(Date.now() - debut > maxAttente){ reject(new Error(tj("engine/templates/engine/dashboard_bi.html:js:402:64"))); return; }
+        setTimeout(tick, intervalle);
+      } catch(e){ reject(e); }
+    })();
+  });
+}
+function attendreFinGenerationGraphiqueBI(generationId, options={}){
+  return _attendreFin(`/api/graphiques-bi/generer/${generationId}/statut/`, "generation", options);
+}
+
+async function api(url, opts={}){
+  const res = await fetch(url, {
+    headers:{"Content-Type":"application/json","X-CSRFToken":CSRF},
+    ...opts
+  });
+  const data = await res.json().catch(()=>({}));
+  if(!res.ok){ toast(data.erreur||tj("engine/templates/engine/dashboard_bi.html:js:418:36", {v1: res.status}), true); throw data; }
+  return data;
+}
+
+function escapeHtml(s){
+  return String(s ?? "").replace(/[&<>"']/g, c => ({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));
+}
+
+// Matricule et clé d'accès (tables d'agents, de clients, de produits) : colonnes de LECTURE offertes comme n'importe quelle colonne. Pas de vrai
+// champ derrière : ids négatifs fixes, que le serveur retraduit (identifiants_analyse.py). Jamais proposées en lecture seule (client).
+function champsIdentifiants(table){
+  if(!table || !table.est_table_membres || table.systeme) return [];
+  const liste = [{id: -1, slug: "matricule", nom: tj("engine/templates/engine/dashboard_bi.html:js:identifiant:matricule"), type: "texte"}];
+  if(!table.est_table_produits) liste.push({id: -2, slug: "code_acces_client", nom: tj("engine/templates/engine/dashboard_bi.html:js:identifiant:cle"), type: "texte"});
+  return liste;
+}
+
+// ── Chargement initial ──────────────────────────────────────────────────
+async function init(){
+  try {
+    const [dataTableaux, dataGraphiques, dataTables] = await Promise.all([
+      api(`/api/tables/${TABLE_ID}/tableaux-bord-bi/`),
+      LECTURE_SEULE ? Promise.resolve({graphiques: []}) : api(`/api/graphiques-bi/`),   // le catalogue ne sert qu'à éditer
+      api(`/api/tables/?systeme=1`).catch(() => ({tables: []})),                                    // colonnes du filtre : facultatif
+    ]);
+    TABLEAUX = dataTableaux.tableaux_bord_bi;
+    GRAPHIQUES = dataGraphiques.graphiques;
+    const table = dataTables.tables.find(t => t.id === TABLE_ID);
+    CHAMPS_TABLE = table ? table.champs.concat(LECTURE_SEULE ? [] : champsIdentifiants(table)) : [];
+    // Table non exposée au client : ses colonnes ne lui sont pas listées, donc pas de filtre croisé à proposer.
+    if(LECTURE_SEULE && !CHAMPS_TABLE.length){ const barre = document.getElementById("barre-filtre"); if(barre) barre.style.display = "none"; }
+    document.getElementById("filtre-colonne").innerHTML = `<option value="">${tj("engine/templates/engine/dashboard_bi.html:js:438:78")}</option>` +
+      CHAMPS_TABLE.map(c => `<option value="${c.slug}">${escapeHtml(c.nom)}</option>`).join("");
+    renderSelectTableaux();
+    if(TABLEAUX.length){
+      // Lien direct depuis le portail de navigation (?tableau=<id>) ; id inconnu => premier tableau.
+      const demande = parseInt(new URLSearchParams(window.location.search).get("tableau"), 10);
+      const cible = TABLEAUX.find(t => t.id === demande) || TABLEAUX[0];
+      await selectionnerTableau(cible.id);
+    } else {
+      renderCanevasVide();
+    }
+  } catch(e){ /* déjà notifié */ }
+}
+
+function renderSelectTableaux(){
+  const sel = document.getElementById("sel-tableau");
+  sel.innerHTML = TABLEAUX.map(t => `<option value="${t.id}">${escapeHtml(t.nom)}</option>`).join("")
+    || `<option value="">${tj("engine/templates/engine/dashboard_bi.html:js:455:27")}</option>`;
+  if(TABLEAU_ACTIF) sel.value = TABLEAU_ACTIF.id;
+}
+
+async function selectionnerTableau(id){
+  if(!id) return;
+  const data = await api(`/api/tableaux-bord-bi/${id}/`);
+  TABLEAU_ACTIF = data.tableau_bord_bi;
+  TABLEAU_ACTIF.widgets = (TABLEAU_ACTIF.widgets || []).filter(w => w.type_widget !== "carte");   // la carte n'est plus dans la BI : elle vit dans la page d'analyse géospatiale (widgets déjà enregistrés conservés en base, simplement non affichés)
+  document.getElementById("sel-tableau").value = TABLEAU_ACTIF.id;
+  const chkVis = document.getElementById("chk-tableau-visible-client");
+  if(chkVis) chkVis.checked = !!TABLEAU_ACTIF.visible_client;
+  renderCanevas();
+  // Reprend le polling de tout widget déjà en cours de rendu (rechargement de page par ex.)
+  for(const w of TABLEAU_ACTIF.widgets){
+    if(w.statut === "en_cours" || w.statut === "en_attente") suivreWidget(w.id);
+  }
+  demarrerAutoRefresh();
+}
+
+// ── Rendu du canevas ─────────────────────────────────────────────────────
+// Espace intérieur du conteneur (marges constantes déduites) : le canevas ne le dépasse jamais, quelle que soit la taille de l'écran.
+function espaceCanevas(){
+  const wrap = document.getElementById("zone-canevas-wrap"), cs = getComputedStyle(wrap);
+  return {
+    w: Math.max(wrap.clientWidth - parseFloat(cs.paddingLeft) - parseFloat(cs.paddingRight) - 2, 1),
+    h: Math.max(wrap.clientHeight - parseFloat(cs.paddingTop) - parseFloat(cs.paddingBottom) - 2, 1),
+  };
+}
+function cellWidth(){
+  return espaceCanevas().w / ((TABLEAU_ACTIF && TABLEAU_ACTIF.colonnes_grille) || 12);
+}
+
+// État « aucun tableau de bord » : le canevas reprend sa taille de base (sinon il gardait la largeur et la
+// hauteur du tableau de bord précédent, ex. après une suppression) et propose de créer le premier.
+function renderCanevasVide(){
+  const canevas = document.getElementById("canevas");
+  canevas.classList.add("canevas-vide");
+  canevas.style.minHeight = "";
+  canevas.innerHTML = `<div class="vide-canevas"><div>${tj("engine/templates/engine/dashboard_bi.html:js:494:56")}<br>
+    <button type="button" id="btn-vide-creer" class="principal edition-seule" style="margin-top:12px;padding:6px 14px">${tj("engine/templates/engine/dashboard_bi.html:js:495:121")}</button></div></div>`;
+  document.getElementById("btn-vide-creer").onclick = () => {
+    // Barre latérale masquée (PC) ou fermée (mobile) : on la rouvre pour accéder au champ de création.
+    const barre = document.getElementById("sidebar");
+    const mobile = window.innerWidth <= 768;
+    if(barre && (mobile ? !barre.classList.contains("ouvert") : barre.classList.contains("masque"))){
+      document.getElementById("btn-toggle-sidebar").click();
+    }
+    const champ = document.getElementById("input-nouveau-tableau");
+    if(champ) champ.focus();
+  };
+}
+
+// Recherche de lieu demandée par une carte (iframe isolée) : la carte envoie le texte, CE script interroge le serveur (qui seul contacte le service
+// de géocodage) et renvoie les résultats à l'iframe qui a posé la question.
+window.addEventListener("message", async (ev) => {
+  const m = ev.data;
+  if(!m || m.type !== "gy-geo-chercher" || !Number.isInteger(m.table)) return;
+  const cadre = Array.from(document.querySelectorAll("iframe")).find(f => f.contentWindow === ev.source);
+  if(!cadre) return;
+  const repondre = (corps) => cadre.contentWindow.postMessage({type: "gy-geo-resultats", n: m.n, ...corps}, "*");
+  try {
+    const vue = Array.isArray(m.vue) && m.vue.length === 4 && m.vue.every(Number.isFinite) ? `&vue=${m.vue.join(",")}` : "";   // fenêtre visible de la carte : lieux proches classés d'abord
+    const rep = await fetch(`/api/tables/${m.table}/geolocalisation/adresse/?q=${encodeURIComponent(String(m.q || "").slice(0, 200))}${vue}`, {credentials: "same-origin"});
+    const d = await rep.json().catch(() => ({}));
+    repondre(rep.ok ? {resultats: d.resultats || []} : {erreur: d.erreur || tj("engine/templates/engine/dashboard_bi.html:js:520:78")});
+  } catch(e) { repondre({erreur: tj("engine/templates/engine/dashboard_bi.html:js:521:35")}); }
+});
+
+function renderCanevas(){
+  const canevas = document.getElementById("canevas");
+  // Une carte dont rien n'a changé reste en place : retirer puis remettre un iframe le recharge (Leaflet, marqueurs,
+  // tuiles, zoom et position choisis par l'utilisateur seraient perdus à chaque redessin : glisser un autre widget,
+  // tick d'auto-refresh, filtre inchangé…). Seuls les autres widgets sont reconstruits.
+  const gardees = new Map();
+  for(const w of ((TABLEAU_ACTIF && TABLEAU_ACTIF.widgets) || [])){
+    if(w.type_widget !== "carte" || w.statut !== "pret" || !w.html_carte) continue;
+    const el = canevas.querySelector(`.widget-bi[data-id="${w.id}"]`);
+    if(el && el._w === w && el._htmlCarte === w.html_carte && el._titreCarte === (w.titre || "")) gardees.set(w.id, el);
+  }
+  const gardeesEls = new Set(gardees.values());
+  Array.from(canevas.childNodes).forEach(n => { if(!gardeesEls.has(n)) n.remove(); });
+  if(!TABLEAU_ACTIF){ renderCanevasVide(); return; }
+  const widgets = TABLEAU_ACTIF.widgets || [];
+  if(!widgets.length){   // tableau par défaut encore vide : pas de canevas affiché, seulement l'invitation
+    canevas.classList.add("canevas-vide");
+    canevas.style.minHeight = "";
+    canevas.innerHTML = `<div class="vide-canevas">${tj("engine/templates/engine/dashboard_bi.html:js:542:53")}</div>`;
+    return;
+  }
+  canevas.classList.remove("canevas-vide");
+  const cw = cellWidth();
+  let hauteurMax = 6;
+  widgets.forEach((w, i) => {
+    hauteurMax = Math.max(hauteurMax, w.position_y + w.hauteur + 2);
+    let el = gardees.get(w.id);
+    if(el) positionnerWidgetDOM(el, w, cw);   // carte conservée : on la repositionne/redimensionne sans la recharger
+    else { el = construireWidgetDOM(w, cw); canevas.appendChild(el); }
+    el.style.zIndex = Math.min(i + 1, 400);   // ordre d'empilement = ordre des widgets, même si une carte conservée n'a pas bougé dans le DOM
+  });
+  canevas.style.minHeight = Math.max(hauteurMax * ROW_H, espaceCanevas().h) + "px";   // remplit l'écran, grandit avec les widgets
+}
+
+// ── Couleur d'une carte (graphique, carte géographique, KPI, zone de texte) ─────────────────────────────────────
+// 🎨 dans l'en-tête : fenêtre commune (nom, hexadécimal, palette). Colore l'en-tête et le cadre de la carte, jamais le dessin
+// du graphique ni la carte elle-même ; sans couleur, la carte garde son apparence. PATCH /api/widgets-bi/<id>/ {couleur}.
+function appliquerCouleurWidgetDOM(div, w){
+  const ent = div.querySelector(".widget-entete"), c = w.couleur || "";
+  if(!ent) return;
+  ent.style.background = c; ent.style.color = c ? GYCouleur.texteSur(c) : "";
+  const titre = ent.querySelector(".widget-titre"); if(titre) titre.style.color = c ? GYCouleur.texteSur(c) : "";
+  ["Top", "Right", "Bottom"].forEach(cote => { div.style["border" + cote + "Color"] = c; });
+  if(!div.classList.contains("widget-bi-kpi")) div.style.borderLeftColor = c;   // le bord gauche d'un KPI garde sa couleur d'état
+}
+async function choisirCouleurWidget(w){
+  const couleur = await GYCouleur.choisir({titre: tj("engine/templates/engine/dashboard_bi.html:js:570:52") + (w.titre || (w.graphique && w.graphique.nom) || "widget") + " »", valeur: w.couleur, apercu: w.titre || tj("engine/templates/engine/dashboard_bi.html:js:570:183")});
+  if(couleur === null) return;
+  try {
+    const r = await api(`/api/widgets-bi/${w.id}/`, {method: "PATCH", body: JSON.stringify({couleur})});
+    w.couleur = (r.widget && r.widget.couleur) || "";
+    const div = document.querySelector(`.widget-bi[data-id="${w.id}"]`);
+    if(div) appliquerCouleurWidgetDOM(div, w);
+  } catch(e){ /* api() a déjà signalé l'erreur */ }
+}
+function construireWidgetDOM(w, cw){
+  const div = _construireWidgetDOMBase(w, cw);
+  if(LECTURE_SEULE){
+    div.classList.add("lecture-seule");
+    div.querySelectorAll(".btn-editer-widget,.btn-relancer-widget,.btn-supprimer-widget,.poignee-resize").forEach(b => b.remove());
+    const bDesc = div.querySelector(".btn-description-widget");
+    if(bDesc && !(w.description || "").trim()) bDesc.remove();   // rien à lire : pas de bouton
+    else if(bDesc) bDesc.title = tj("engine/templates/engine/dashboard_bi.html:js:desc_lecture");
+  }
+  const ent = div.querySelector(".widget-entete");
+  if(ent && !div.classList.contains("lecture-seule")){
+    const b = document.createElement("button");
+    b.className = "btn-couleur-widget edition-seule"; b.title = tj("engine/templates/engine/dashboard_bi.html:js:584:66"); b.textContent = "🎨";
+    b.onclick = (ev) => { ev.stopPropagation(); choisirCouleurWidget(w); };
+    b.onpointerdown = (ev) => ev.stopPropagation();   // un clic sur le bouton ne lance pas le glisser-déposer de l'en-tête
+    ent.insertBefore(b, ent.querySelector(".btn-supprimer-widget"));
+  }
+  appliquerCouleurWidgetDOM(div, w);
+  return div;
+}
+
+function _construireWidgetDOMBase(w, cw){
+  const div = document.createElement("div");
+  div.className = "widget-bi";
+  div.dataset.id = w.id;
+  positionnerWidgetDOM(div, w, cw);
+
+  // ── Zone de texte : ni graphique, ni rendu, ni bouton "relancer" — juste
+  // le contenu affiché selon son style, éditable en place. ─────────────────
+  if(w.type_widget === "texte"){
+    const classeStyle = {titre: "widget-texte-titre", sous_titre: "widget-texte-sous-titre", paragraphe: "widget-texte-paragraphe"}[w.style_texte] || "widget-texte-paragraphe";
+    div.classList.add("widget-bi-texte");
+    div.innerHTML = `
+      <div class="widget-entete">
+        <span class="widget-titre">${escapeHtml(w.titre || tj("engine/templates/engine/dashboard_bi.html:js:606:61"))}</span>
+        <button class="btn-description-widget" title="${tj("engine/templates/engine/dashboard_bi.html:js:630:55")}">📝</button>
+        <button class="btn-editer-widget" title="${tj("engine/templates/engine/dashboard_bi.html:js:608:51")}">✎</button>
+        <button class="btn-supprimer-widget" title="${tj("engine/templates/engine/dashboard_bi.html:js:609:54")}">✕</button>
+      </div>
+      <div class="widget-corps"><div class="${classeStyle}">${escapeHtml(w.contenu_texte || "").replace(/\n/g, "<br>")}</div></div>
+      <div class="poignee-resize"></div>
+    `;
+    div.querySelector(".btn-supprimer-widget").onclick = (ev) => { ev.stopPropagation(); supprimerWidget(w.id); };
+    div.querySelector(".btn-editer-widget").onclick = (ev) => { ev.stopPropagation(); ouvrirModalTexte(w); };
+    div.querySelector(".btn-description-widget").onclick = (ev) => { ev.stopPropagation(); ouvrirModalDescriptionWidget(w); };
+    brancherDragEtResize(div, w);
+    return div;
+  }
+
+  // ── KPI : widget du canevas à part entière (même en-tête, déplacement et redimensionnement que les
+  // graphiques). La valeur vient de KPIS (calcul/cache de l'IndicateurKPI), rafraîchie sur place par
+  // renderKPIs sans reconstruire le canevas. ─────────────────────────────────────────────────────
+  if(w.type_widget === "kpi"){
+    div.classList.add("widget-bi-kpi");
+    div.innerHTML = `
+      <div class="widget-entete">
+        <span class="widget-titre"></span>
+        <button class="btn-editer-widget edition-seule" title="${tj("engine/templates/engine/dashboard_bi.html:js:629:65")}">✎</button>
+        <button class="btn-relancer-widget edition-seule" title="${tj("engine/templates/engine/dashboard_bi.html:js:653:66")}">🔄</button>
+        <button class="btn-supprimer-widget" title="${tj("engine/templates/engine/dashboard_bi.html:js:631:54")}">✕</button>
+      </div>
+      <div class="widget-corps"></div>
+      <div class="poignee-resize"></div>
+    `;
+    majWidgetKPIDOM(div, w);
+    div.querySelector(".btn-editer-widget").onclick = (ev) => { ev.stopPropagation(); const k = kpiDuWidget(w); if(k) ouvrirModalKPI(k); };
+    div.querySelector(".btn-relancer-widget").onclick = (ev) => { ev.stopPropagation(); recalculerKPI(w.kpi_id); };
+    div.querySelector(".btn-supprimer-widget").onclick = (ev) => { ev.stopPropagation(); retirerKPIDuCanevas(w.id); };
+    brancherDragEtResize(div, w);
+    return div;
+  }
+
+  const carte = w.type_widget === "carte", nomW = w.titre || (carte ? tj("engine/templates/engine/dashboard_bi.html:js:644:72") : w.graphique.nom);
+  let corps;
+  if(w.statut === "pret"){
+    corps = carte ? (w.html_carte
+        ? `<div style="position:absolute;inset:0">${w.html_carte.startsWith("<") ? w.html_carte : `<img src="data:image/png;base64,${w.html_carte}">`}</div>`
+        : `<div class="widget-etat">${tj("engine/templates/engine/dashboard_bi.html:js:649:38")}</div>`)
+      : `<img src="data:image/png;base64,${w.image_base64}" alt="${escapeHtml(nomW)}">`;
+  } else if(w.statut === "echec" || w.statut === "erreur"){
+    corps = `<div class="widget-etat err">⚠ ${escapeHtml(w.erreur || tj("engine/templates/engine/dashboard_bi.html:js:652:71"))}</div>`;
+  } else {
+    corps = `<div class="widget-etat"><div class="spinner"></div>${tj("engine/templates/engine/dashboard_bi.html:js:654:67")}</div>`;
+  }
+
+  const btnVisualiser = w.statut === "pret" && !carte
+    ? `<button class="btn-visualiser-widget" title="${tj("engine/templates/engine/dashboard_bi.html:js:658:54")}">🔍</button>`
+    : "";
+
+  div.innerHTML = `
+    <div class="widget-entete">
+      <span class="widget-titre">${escapeHtml(nomW)}</span>
+      ${btnVisualiser}
+      <button class="btn-description-widget" title="${tj("engine/templates/engine/dashboard_bi.html:js:688:53")}">📝</button>
+      <button class="btn-editer-widget" title="${tj("engine/templates/engine/dashboard_bi.html:js:666:49")}">✎</button>
+      <button class="btn-relancer-widget" title="${tj("engine/templates/engine/dashboard_bi.html:js:667:51")}">🔄</button>
+      <button class="btn-supprimer-widget" title="${tj("engine/templates/engine/dashboard_bi.html:js:668:52")}">✕</button>
+    </div>
+    <div class="widget-corps">${corps}</div>
+    <div class="poignee-resize"></div>
+  `;
+
+  div.querySelector(".btn-supprimer-widget").onclick = (ev) => { ev.stopPropagation(); supprimerWidget(w.id); };
+  div.querySelector(".btn-editer-widget").onclick = (ev) => { ev.stopPropagation(); ouvrirModalWidget(w); };
+  div.querySelector(".btn-relancer-widget").onclick = (ev) => { ev.stopPropagation(); relancerWidget(w.id); };
+  div.querySelector(".btn-description-widget").onclick = (ev) => { ev.stopPropagation(); ouvrirModalDescriptionWidget(w); };
+  const elVisualiser = div.querySelector(".btn-visualiser-widget");
+  if(elVisualiser){
+    elVisualiser.onclick = (ev) => { ev.stopPropagation(); ouvrirVisualiseur(w); };
+    // Double-clic sur l'image elle-même : raccourci pour ouvrir le visualiseur.
+    div.querySelector(".widget-corps img").ondblclick = (ev) => { ev.stopPropagation(); ouvrirVisualiseur(w); };
+  }
+
+  if(carte) div.querySelectorAll(".btn-editer-widget,.btn-relancer-widget").forEach(b => b.style.display = "none");
+  if(carte && w.statut === "pret" && w.html_carte){ div._w = w; div._htmlCarte = w.html_carte; div._titreCarte = w.titre || ""; }   // voir renderCanevas
+  brancherDragEtResize(div, w);
+  return div;
+}
+
+function positionnerWidgetDOM(div, w, cw){
+  const col = (TABLEAU_ACTIF && TABLEAU_ACTIF.colonnes_grille) || 12;
+  const x = Math.max(0, Math.min(w.position_x, col - 1)), l = Math.max(1, Math.min(w.largeur, col - x));
+  div.style.left   = (x * cw + GAP/2) + "px";
+  div.style.top    = (Math.max(0, w.position_y) * ROW_H + GAP/2) + "px";
+  div.style.width  = Math.max(cw * l - GAP, 16) + "px";
+  div.style.height = Math.max(ROW_H * w.hauteur - GAP, 40) + "px";
+}
+
+// ── Drag & resize (grille maison, unités = position_x/y/largeur/hauteur) ──
+function brancherDragEtResize(div, w){
+  if(LECTURE_SEULE) return;   // consultation seule : jamais de déplacement ni de redimensionnement (rien n'est enregistré)
+  const entete = div.querySelector(".widget-entete");
+  const poignee = div.querySelector(".poignee-resize");
+
+  entete.addEventListener("pointerdown", (ev) => {
+    if(ev.target.tagName === "BUTTON") return;
+    ev.preventDefault();
+    entete.setPointerCapture(ev.pointerId);
+    const cw = cellWidth();
+    const depart = {x: ev.clientX, y: ev.clientY};
+    const origine = {x: w.position_x, y: w.position_y};
+    div.classList.add("glisse");
+    const colonnesGrille = TABLEAU_ACTIF.colonnes_grille || 12;
+
+    function onMove(e){
+      const dx = e.clientX - depart.x, dy = e.clientY - depart.y;
+      let nx = Math.round(origine.x + dx / cw);
+      let ny = Math.round(origine.y + dy / ROW_H);
+      nx = Math.max(0, Math.min(nx, colonnesGrille - w.largeur));
+      ny = Math.max(0, ny);
+      div.style.left = (nx * cw + GAP/2) + "px";
+      div.style.top  = (ny * ROW_H + GAP/2) + "px";
+      div._nx = nx; div._ny = ny;
+      const canevas = div.parentElement; canevas.style.minHeight = Math.max(parseFloat(canevas.style.minHeight) || 0, (ny + w.hauteur + 2) * ROW_H) + "px";
+    }
+    function onUp(){
+      entete.removeEventListener("pointermove", onMove);
+      entete.removeEventListener("pointerup", onUp);
+      div.classList.remove("glisse");
+      if(div._nx !== undefined && (div._nx !== w.position_x || div._ny !== w.position_y)){
+        w.position_x = div._nx; w.position_y = div._ny;
+        api(`/api/widgets-bi/${w.id}/`, {method:"PATCH", body: JSON.stringify({
+          position_x: w.position_x, position_y: w.position_y,
+        })}).catch(()=>{});
+      }
+    }
+    entete.addEventListener("pointermove", onMove);
+    entete.addEventListener("pointerup", onUp);
+  });
+
+  poignee.addEventListener("pointerdown", (ev) => {
+    ev.preventDefault(); ev.stopPropagation();
+    poignee.setPointerCapture(ev.pointerId);
+    const cw = cellWidth();
+    const depart = {x: ev.clientX, y: ev.clientY};
+    const origine = {largeur: w.largeur, hauteur: w.hauteur};
+    const colonnesGrille = TABLEAU_ACTIF.colonnes_grille || 12;
+
+    function onMove(e){
+      const dx = e.clientX - depart.x, dy = e.clientY - depart.y;
+      let nl = Math.round(origine.largeur + dx / cw);
+      let nh = Math.round(origine.hauteur + dy / ROW_H);
+      nl = Math.max(1, Math.min(nl, colonnesGrille - w.position_x));
+      nh = Math.max(1, nh);
+      div.style.width  = Math.max(cw * nl - GAP, 16) + "px";
+      div.style.height = Math.max(ROW_H * nh - GAP, 40) + "px";
+      div._nl = nl; div._nh = nh;
+    }
+    function onUp(){
+      poignee.removeEventListener("pointermove", onMove);
+      poignee.removeEventListener("pointerup", onUp);
+      if(div._nl !== undefined && (div._nl !== w.largeur || div._nh !== w.hauteur)){
+        w.largeur = div._nl; w.hauteur = div._nh;
+        api(`/api/widgets-bi/${w.id}/`, {method:"PATCH", body: JSON.stringify({
+          largeur: w.largeur, hauteur: w.hauteur,
+        })}).catch(()=>{});
+        renderCanevas();
+      }
+    }
+    poignee.addEventListener("pointermove", onMove);
+    poignee.addEventListener("pointerup", onUp);
+  });
+}
+
+{ let _l = 0; new ResizeObserver(() => { const w = document.getElementById("zone-canevas-wrap").clientWidth; if(w !== _l){ _l = w; if(TABLEAU_ACTIF) renderCanevas(); } }).observe(document.getElementById("zone-canevas-wrap")); }
+
+// ── Polling du rendu d'un widget ─────────────────────────────────────────
+// Le rendu est désormais synchrone côté serveur (voir views.py), donc en
+// temps normal ce polling se termine dès la 1ère itération. Le timeout
+// ci-dessous est un filet de sécurité : si jamais un widget reste bloqué
+// (erreur serveur non remontée, etc.), l'utilisateur voit une erreur au
+// lieu d'un cercle qui tourne indéfiniment.
+async function suivreWidget(id){
+  if(POLLING.has(id)) return;
+  POLLING.add(id);
+  const MAX_TENTATIVES = 30; // ~30s
+  let tentatives = 0;
+  try {
+    while(true){
+      let data;
+      try { data = await api(`/api/widgets-bi/${id}/statut/`); }
+      catch(e){ break; }
+      if(data.fini){
+        const idx = TABLEAU_ACTIF.widgets.findIndex(w => w.id === id);
+        if(idx !== -1){
+          TABLEAU_ACTIF.widgets[idx] = data.widget;
+          renderCanevas();
+        }
+        break;
+      }
+      tentatives++;
+      if(tentatives >= MAX_TENTATIVES){
+        const idx = TABLEAU_ACTIF.widgets.findIndex(w => w.id === id);
+        if(idx !== -1){
+          TABLEAU_ACTIF.widgets[idx].statut = "echec";
+          TABLEAU_ACTIF.widgets[idx].erreur = tj("engine/templates/engine/dashboard_bi.html:js:806:48");
+          renderCanevas();
+        }
+        break;
+      }
+      await new Promise(r => setTimeout(r, 800));
+    }
+  } finally {
+    POLLING.delete(id);
+  }
+}
+
+// ── Rafraîchissement automatique depuis la table source ─────────────────
+// Toutes les quelques secondes, on redemande au serveur si des widgets sont
+// périmés par rapport à l'état actuel de la table (comparaison d'empreinte,
+// pas de recalcul si rien n'a changé — voir tableau_bord_bi.widgets_a_recalculer).
+// C'est ce qui fait que modifier une valeur dans la table met à jour le
+// dashboard tout seul, sans clic sur "Actualiser".
+let AUTO_REFRESH_TIMER = null;
+const AUTO_REFRESH_INTERVALLE = 8000;
+
+async function actualiserSiPerime(silencieux){
+  if(FILTRE_ACTIF) return rafraichirAvecFiltre(); // garde le filtre actif à chaque tick d'auto-refresh
+  // Séquentiel : le recalcul KPI (écriture) doit être terminé avant de
+  // lancer le recalcul des widgets (écriture) — jamais les deux écritures
+  // en parallèle, pour éviter tout conflit de verrou SQLite.
+  await chargerKPIs(); // le GET /kpis/ recalcule lui-même les KPI périmés
+  if(!TABLEAU_ACTIF) return;
+  try {
+    const data = await api(`/api/tableaux-bord-bi/${TABLEAU_ACTIF.id}/recalculer/`, {method:"POST"});
+    if(data.widgets_en_cours.length){
+      for(const w of TABLEAU_ACTIF.widgets){
+        if(data.widgets_en_cours.includes(w.id)) w.statut = "en_cours";
+      }
+      renderCanevas();
+      data.widgets_en_cours.forEach(id => suivreWidget(id));
+    } else if(!silencieux){
+      toast(tj("engine/templates/engine/dashboard_bi.html:js:843:14"));
+    }
+  } catch(e){ /* déjà notifié si non silencieux via api() */ }
+}
+
+function demarrerAutoRefresh(){
+  if(AUTO_REFRESH_TIMER) clearInterval(AUTO_REFRESH_TIMER);
+  AUTO_REFRESH_TIMER = setInterval(() => {
+    if(document.hidden) return; // pas de requêtes inutiles si l'onglet n'est pas visible
+    actualiserSiPerime(true);
+  }, AUTO_REFRESH_INTERVALLE);
+}
+
+// ── Filtre croisé : fait "discuter" les widgets et les KPI entre eux ────
+// Un filtre {colonne, valeur} recalcule à la volée (sans rien persister)
+// tous les widgets ET tous les KPI sur le même sous-ensemble de lignes.
+async function appliquerFiltre(){
+  const colonne = document.getElementById("filtre-colonne").value;
+  const valeur = document.getElementById("filtre-valeur").value.trim();
+  if(!colonne || !valeur){ toast(tj("engine/templates/engine/dashboard_bi.html:js:862:35")); return; }
+  FILTRE_ACTIF = {colonne, valeur};
+  document.getElementById("btn-effacer-filtre").style.display = "";
+  await rafraichirAvecFiltre();
+}
+
+function effacerFiltre(){
+  FILTRE_ACTIF = null;
+  document.getElementById("btn-effacer-filtre").style.display = "none";
+  // Séquentiel pour la même raison que actualiserSiPerime : ne jamais
+  // lancer le recalcul KPI et le recalcul widgets en même temps.
+  (async () => {
+    await chargerKPIs();
+    if(TABLEAU_ACTIF) await actualiserSiPerime(true);
+  })();
+}
+
+async function rafraichirAvecFiltre(){
+  if(!FILTRE_ACTIF) return;
+  const q = `?colonne_filtre=${encodeURIComponent(FILTRE_ACTIF.colonne)}&valeur_filtre=${encodeURIComponent(FILTRE_ACTIF.valeur)}`;
+  await chargerKPIs();
+  if(!TABLEAU_ACTIF) return;
+  try {
+    const data = await api(`/api/tableaux-bord-bi/${TABLEAU_ACTIF.id}/recalculer/${q}`, {method:"POST"});
+    for(const r of data.widgets_filtres){
+      const w = TABLEAU_ACTIF.widgets.find(x => x.id === r.id);
+      if(w){ w.image_base64 = r.image_base64; if(w.type_widget === "carte") w.html_carte = r.html_carte || ""; w.erreur = r.erreur; w.statut = r.erreur ? "echec" : "pret"; }
+    }
+    renderCanevas();
+  } catch(e){ /* déjà notifié */ }
+}
+
+document.getElementById("btn-appliquer-filtre").onclick = appliquerFiltre;
+document.getElementById("btn-effacer-filtre").onclick = effacerFiltre;
+
+async function relancerWidget(id){
+  // Un simple PATCH sans changement ne relance rien : on force via l'action
+  // "recalculer" ciblée n'existe pas widget-par-widget, donc on repasse par
+  // une modification neutre des colonnes (même valeurs) pour redéclencher le rendu.
+  const w = TABLEAU_ACTIF.widgets.find(x => x.id === id);
+  if(!w) return;
+  try {
+    const data = await api(`/api/widgets-bi/${id}/`, {method:"PATCH", body: JSON.stringify({
+      champs_cibles_ids: w.champs_cibles_ids,
+    })});
+    Object.assign(w, data.widget);
+    renderCanevas();
+    suivreWidget(id);
+  } catch(e){}
+}
+
+async function supprimerWidget(id){
+  if(!await GY.confirmer(tj("engine/templates/engine/dashboard_bi.html:js:914:16"))) return;
+  try {
+    await api(`/api/widgets-bi/${id}/`, {method:"DELETE"});
+    TABLEAU_ACTIF.widgets = TABLEAU_ACTIF.widgets.filter(w => w.id !== id);
+    renderCanevas();
+  } catch(e){}
+}
+
+// ── Gestion des tableaux de bord ─────────────────────────────────────────
+document.getElementById("sel-tableau").onchange = (ev) => selectionnerTableau(parseInt(ev.target.value, 10));
+
+document.getElementById("btn-creer-tableau").onclick = async () => {
+  const input = document.getElementById("input-nouveau-tableau");
+  const nom = input.value.trim();
+  if(!nom){ toast(tj("engine/templates/engine/dashboard_bi.html:js:928:20"), true); return; }
+  try {
+    const data = await api(`/api/tables/${TABLE_ID}/tableaux-bord-bi/`, {method:"POST", body: JSON.stringify({nom})});
+    TABLEAUX.push(data.tableau_bord_bi);
+    input.value = "";
+    renderSelectTableaux();
+    await selectionnerTableau(data.tableau_bord_bi.id);
+    toast(tj("engine/templates/engine/dashboard_bi.html:js:935:12"));
+  } catch(e){}
+};
+
+document.getElementById("btn-renommer-tableau").onclick = async () => {
+  if(!TABLEAU_ACTIF) return;
+  const nom = await GY.demander(tj("engine/templates/engine/dashboard_bi.html:js:941:23"), TABLEAU_ACTIF.nom);
+  if(!nom || !nom.trim() || nom.trim() === TABLEAU_ACTIF.nom) return;
+  try {
+    const data = await api(`/api/tableaux-bord-bi/${TABLEAU_ACTIF.id}/`, {method:"PATCH", body: JSON.stringify({nom: nom.trim()})});
+    Object.assign(TABLEAU_ACTIF, data.tableau_bord_bi);
+    const idx = TABLEAUX.findIndex(t => t.id === TABLEAU_ACTIF.id);
+    if(idx !== -1) TABLEAUX[idx].nom = TABLEAU_ACTIF.nom;
+    renderSelectTableaux();
+    toast(tj("engine/templates/engine/dashboard_bi.html:js:949:12"));
+  } catch(e){}
+};
+
+document.getElementById("btn-supprimer-tableau").onclick = async () => {
+  if(!TABLEAU_ACTIF) return;
+  if(!await GY.confirmer(tj("engine/templates/engine/dashboard_bi.html:js:955:16", {v1: TABLEAU_ACTIF.nom}))) return;
+  try {
+    await api(`/api/tableaux-bord-bi/${TABLEAU_ACTIF.id}/`, {method:"DELETE"});
+    TABLEAUX = TABLEAUX.filter(t => t.id !== TABLEAU_ACTIF.id);
+    TABLEAU_ACTIF = null;
+    renderSelectTableaux();
+    if(TABLEAUX.length) await selectionnerTableau(TABLEAUX[0].id);
+    else renderCanevasVide();
+    toast(tj("engine/templates/engine/dashboard_bi.html:js:963:12"));
+  } catch(e){}
+};
+
+document.getElementById("chk-tableau-visible-client").onchange = async (ev) => {
+  if(!TABLEAU_ACTIF) { ev.target.checked = !ev.target.checked; return; }
+  try {
+    const data = await api(`/api/tableaux-bord-bi/${TABLEAU_ACTIF.id}/`, {method:"PATCH", body: JSON.stringify({visible_client: ev.target.checked})});
+    TABLEAU_ACTIF.visible_client = data.tableau_bord_bi.visible_client;
+    toast(TABLEAU_ACTIF.visible_client ? tj("engine/templates/engine/dashboard_bi.html:js:972:43") : tj("engine/templates/engine/dashboard_bi.html:js:972:85"));
+  } catch(e){ ev.target.checked = !ev.target.checked; }
+};
+document.getElementById("btn-actualiser").onclick = () => actualiserSiPerime(false);
+document.getElementById("btn-fiche-objet-table").onclick = () => { ouvrirFicheObjet(tj("engine/templates/engine/dashboard_bi.html:js:976:86", {v1: TABLE_ID})); };
+document.getElementById("btn-exporter-pdf").onclick = () => {
+  if (!TABLEAU_ACTIF) return;
+  const ori = document.getElementById("sel-orientation-pdf").value;
+  // window.open sur une reponse « attachment » ne telecharge rien dans la webview de l'app : telechargement commun.
+  gyTelecharger(`/api/tableaux-bord-bi/${TABLEAU_ACTIF.id}/exporter-pdf/?orientation=${ori}`, `dashboard_${TABLEAU_ACTIF.id}.pdf`,
+    {bouton: document.getElementById("btn-exporter-pdf"), succes: () => toast(tj("engine/templates/engine/dashboard_bi.html:js:982:80")), erreur: m => toast(m, true)});
+};
+GYPleinEcran.init(document.getElementById("zone-canevas-wrap"), document.getElementById("btn-quitter-plein-ecran"));   // plein écran = le canevas seul
+document.getElementById("btn-plein-ecran").onclick = GYPleinEcran.basculer;
+
+// ── Modal ajout/édition de widget ────────────────────────────────────────
+function ouvrirModalWidget(widgetExistant){
+  WIDGET_EN_EDITION = widgetExistant ? widgetExistant.id : null;
+  GRAPHIQUE_CHOISI = widgetExistant ? widgetExistant.graphique.id : null;
+  COLONNES_CHOISIES = widgetExistant ? [...widgetExistant.champs_cibles_ids] : [];
+  document.getElementById("mw-titre").textContent = widgetExistant ? tj("engine/templates/engine/dashboard_bi.html:js:995:71") : tj("engine/templates/engine/dashboard_bi.html:js:995:94");
+  document.getElementById("mw-titre-input").value = widgetExistant ? (widgetExistant.titre || "") : "";
+  document.getElementById("mw-recherche-graphique").value = "";
+  renderGraphiquesModal();
+  renderColonnesModal();
+  document.getElementById("modal-widget").classList.add("ouvert");
+}
+
+function fermerModalWidget(){
+  document.getElementById("modal-widget").classList.remove("ouvert");
+}
+
+// ── Modal ajout/édition d'une zone de texte ──────────────────────────────
+let TEXTE_EN_EDITION = null; // id du widget texte édité, ou null si création
+
+function ouvrirModalTexte(widgetExistant){
+  TEXTE_EN_EDITION = widgetExistant ? widgetExistant.id : null;
+  document.getElementById("mt-titre").textContent = widgetExistant ? tj("engine/templates/engine/dashboard_bi.html:js:1012:71") : tj("engine/templates/engine/dashboard_bi.html:js:1012:101");
+  document.getElementById("mt-style").value = widgetExistant ? widgetExistant.style_texte : "paragraphe";
+  document.getElementById("mt-contenu").value = widgetExistant ? (widgetExistant.contenu_texte || "") : "";
+  document.getElementById("modal-texte").classList.add("ouvert");
+}
+
+function fermerModalTexte(){
+  document.getElementById("modal-texte").classList.remove("ouvert");
+}
+
+// ── Modal description libre d'un widget (pourquoi ce graphe est utilisé) ──
+let DESCRIPTION_WIDGET_EN_EDITION = null;
+
+function ouvrirModalDescriptionWidget(widget){
+  DESCRIPTION_WIDGET_EN_EDITION = widget.id;
+  document.getElementById("md-texte").value = widget.description || "";
+  document.getElementById("md-texte").readOnly = LECTURE_SEULE;
+  document.getElementById("md-enregistrer").style.display = LECTURE_SEULE ? "none" : "";
+  document.getElementById("modal-description-widget").classList.add("ouvert");
+}
+
+document.getElementById("md-annuler").onclick = () => {
+  document.getElementById("modal-description-widget").classList.remove("ouvert");
+};
+
+document.getElementById("md-enregistrer").onclick = async () => {
+  const description = document.getElementById("md-texte").value.trim();
+  try {
+    const data = await api(`/api/widgets-bi/${DESCRIPTION_WIDGET_EN_EDITION}/`, {method:"PATCH", body: JSON.stringify({description})});
+    const idx = TABLEAU_ACTIF.widgets.findIndex(w => w.id === DESCRIPTION_WIDGET_EN_EDITION);
+    if(idx !== -1) TABLEAU_ACTIF.widgets[idx] = data.widget;
+    document.getElementById("modal-description-widget").classList.remove("ouvert");
+    toast(tj("engine/templates/engine/dashboard_bi.html:js:1042:12"));
+  } catch(e){ /* déjà notifié */ }
+};
+
+document.getElementById("btn-ajouter-texte").onclick = () => {
+  if(!TABLEAU_ACTIF){ toast(tj("engine/templates/engine/dashboard_bi.html:js:1047:30"), true); return; }
+  ouvrirModalTexte(null);
+};
+document.getElementById("mt-annuler").onclick = fermerModalTexte;
+
+document.getElementById("mt-valider").onclick = async () => {
+  const contenu = document.getElementById("mt-contenu").value.trim();
+  const style_texte = document.getElementById("mt-style").value;
+  if(!contenu){ toast(tj("engine/templates/engine/dashboard_bi.html:js:1055:24"), true); return; }
+
+  try {
+    if(TEXTE_EN_EDITION){
+      const data = await api(`/api/widgets-bi/${TEXTE_EN_EDITION}/`, {method:"PATCH", body: JSON.stringify({
+        contenu_texte: contenu, style_texte,
+      })});
+      const idx = TABLEAU_ACTIF.widgets.findIndex(w => w.id === TEXTE_EN_EDITION);
+      if(idx !== -1) TABLEAU_ACTIF.widgets[idx] = data.widget;
+    } else {
+      const data = await api(`/api/tableaux-bord-bi/${TABLEAU_ACTIF.id}/widgets/`, {method:"POST", body: JSON.stringify({
+        type_widget: "texte", contenu_texte: contenu, style_texte,
+        position_x: 0, position_y: 0, largeur: 4, hauteur: 2,
+      })});
+      TABLEAU_ACTIF.widgets.push(data.widget);
+    }
+    fermerModalTexte();
+    renderCanevas();
+    toast(tj("engine/templates/engine/dashboard_bi.html:js:1073:12"));
+  } catch(e){}
+};
+
+function renderGraphiquesModal(){
+  const zone = document.getElementById("mw-graphiques");
+  const recherche = (document.getElementById("mw-recherche-graphique").value || "").trim().toLowerCase();
+  const filtres = !recherche ? GRAPHIQUES : GRAPHIQUES.filter(g =>
+    (g.nom || "").toLowerCase().includes(recherche) ||
+    (g.description || "").toLowerCase().includes(recherche) ||
+    (g.categorie || "").toLowerCase().includes(recherche)
+  );
+  const parCategorie = {};
+  for(const g of filtres){
+    (parCategorie[g.categorie] = parCategorie[g.categorie] || []).push(g);
+  }
+  let html = "";
+  for(const [cat, liste] of Object.entries(parCategorie)){
+    html += `<div class="categorie-titre" style="grid-column:1/-1">${escapeHtml(cat)}</div>`;
+    for(const g of liste){
+      html += `
+        <div class="graphique-carte${g.id === GRAPHIQUE_CHOISI ? " actif" : ""}" data-id="${g.id}">
+          <div class="nom">${escapeHtml(g.nom)}</div>
+          <div class="desc">${escapeHtml(g.description || "")}</div>
+        </div>`;
+    }
+  }
+  zone.innerHTML = html || `<p class="aide" style="grid-column:1/-1">${tj("engine/templates/engine/dashboard_bi.html:js:1100:71")}</p>`;
+  zone.querySelectorAll(".graphique-carte").forEach(carte => {
+    carte.onclick = () => {
+      GRAPHIQUE_CHOISI = parseInt(carte.dataset.id, 10);
+      const g = GRAPHIQUES.find(x => x.id === GRAPHIQUE_CHOISI);
+      // Un changement de graphique invalide la sélection de colonnes si elle
+      // ne respecte plus les contraintes du nouveau graphique.
+      if(g && COLONNES_CHOISIES.length > (g.nombre_colonnes_max || Infinity)){
+        COLONNES_CHOISIES = COLONNES_CHOISIES.slice(0, g.nombre_colonnes_max);
+      }
+      renderGraphiquesModal();
+      renderColonnesModal();
+    };
+  });
+}
+document.getElementById("mw-recherche-graphique").addEventListener("input", renderGraphiquesModal);
+
+// Le choix des colonnes se fait exclusivement dans le sélecteur graphique
+// (voir plus bas) : ici on affiche seulement un résumé en lecture seule de
+// la sélection courante, dans l'ordre choisi (l'ordre compte pour certains
+// graphiques, ex. axe X/Y d'un nuage de points).
+function renderColonnesModal(){
+  const g = GRAPHIQUES.find(x => x.id === GRAPHIQUE_CHOISI);
+  const bloc = document.getElementById("mw-bloc-colonnes");
+  if(!g){ bloc.style.display = "none"; return; }
+  bloc.style.display = "";
+
+  const zone = document.getElementById("mw-colonnes");
+  const parId = Object.fromEntries(CHAMPS_TABLE.map(c => [c.id, c]));
+  zone.innerHTML = COLONNES_CHOISIES.map((id, i) => {
+    const c = parId[id];
+    return `<div class="colonne-chip actif"><span class="ordre-badge">${i+1}</span>${escapeHtml(c ? c.nom : `#${id}`)}</div>`;
+  }).join("") || `<span class="muted-txt">${tj("engine/templates/engine/dashboard_bi.html:js:1132:44")}</span>`;
+
+  const aide = document.getElementById("mw-aide-colonnes");
+  const besoin = g.nombre_colonnes_max
+    ? tj("engine/templates/engine/dashboard_bi.html:js:1136:8", {v1: g.nombre_colonnes_min, v2: g.nombre_colonnes_max})
+    : tj("engine/templates/engine/dashboard_bi.html:js:1137:8", {v1: g.nombre_colonnes_min});
+  aide.textContent = tj("engine/templates/engine/dashboard_bi.html:js:1138:23", {v1: COLONNES_CHOISIES.length, v2: besoin});
+}
+
+// ── Sélecteur de colonnes graphique : clic/glisser directement sur le
+// vrai tableau de données, à la place des chips cliquables. ──────────────
+let _selColEtat = null; // {champs, ids: [...ordre choisi]} — copie de travail, validée par btn-valider
+
+async function _ouvrirSelecteurColonnesBI(){
+  const g = GRAPHIQUES.find(x => x.id === GRAPHIQUE_CHOISI);
+  if(!g){ toast(tj("engine/templates/engine/dashboard_bi.html:js:1147:18"), true); return; }
+
+  const fond = document.getElementById("modal-selcol-fond");
+  const grilleEl = document.getElementById("selcol-grille");
+  const resumeEl = document.getElementById("selcol-resume");
+  resumeEl.textContent = tj("engine/templates/engine/dashboard_bi.html:js:1152:27");
+  grilleEl.innerHTML = `<tr><td style="padding:20px;color:var(--muted)">${tj("engine/templates/engine/dashboard_bi.html:js:1153:74")}</td></tr>`;
+  fond.classList.add("ouvert");
+
+  const compatibles = new Set(
+    (g.types_cibles_compatibles && g.types_cibles_compatibles.length
+      ? CHAMPS_TABLE.filter(c => g.types_cibles_compatibles.includes(c.type))
+      : CHAMPS_TABLE
+    ).map(c => c.id)
+  );
+
+  let lignes = [];
+  try {
+    const data = await api(`/api/tables/${TABLE_ID}/lignes/`);
+    lignes = (data.lignes || []).slice().reverse();
+  } catch(e) {
+    grilleEl.innerHTML = `<tr><td style="padding:20px;color:var(--danger)">${tj("engine/templates/engine/dashboard_bi.html:js:1168:77")}</td></tr>`;
+    return;
+  }
+
+  // Copie de travail : on repart des colonnes déjà choisies (ordre conservé),
+  // annulée si l'utilisateur clique "Annuler".
+  _selColEtat = { champs: CHAMPS_TABLE, compatibles, ids: [...COLONNES_CHOISIES] };
+
+  document.getElementById("selcol-hint").textContent = g.nombre_colonnes_max
+    ? tj("engine/templates/engine/dashboard_bi.html:js:1177:8", {v1: g.nombre_colonnes_max})
+    : tj("engine/templates/engine/dashboard_bi.html:js:1178:8");
+
+  let html = `<thead><tr>`;
+  CHAMPS_TABLE.forEach((c, ci) => {
+    const compat = compatibles.has(c.id);
+    html += `<th class="${compat ? "" : "selcol-incompatible"}" data-col="${ci}">${escapeHtml(c.nom)}</th>`;
+  });
+  html += `</tr></thead><tbody>`;
+  lignes.slice(0, 100).forEach(l => {
+    html += `<tr>`;
+    CHAMPS_TABLE.forEach(c => {
+      let v = l[c.slug];
+      if(v === null || v === undefined) v = "";
+      else if(typeof v === "object") v = JSON.stringify(v);
+      html += `<td data-col-slug="${c.slug}">${escapeHtml(String(v).slice(0, 40))}</td>`;
+    });
+    html += `</tr>`;
+  });
+  html += `</tbody>`;
+  grilleEl.innerHTML = html;
+
+  _redessinerSelColonnes();
+  _brancherInteractionsSelColonnes();
+}
+
+function _redessinerSelColonnes(){
+  const grilleEl = document.getElementById("selcol-grille");
+  const resumeEl = document.getElementById("selcol-resume");
+  const etat = _selColEtat;
+  grilleEl.querySelectorAll("th").forEach(th => {
+    th.classList.remove("selcol-actif");
+    const badge = th.querySelector(".selcol-badge");
+    if(badge) badge.remove();
+  });
+  grilleEl.querySelectorAll("td").forEach(td => td.classList.remove("selcol-actif"));
+
+  etat.ids.forEach((id, i) => {
+    const ci = etat.champs.findIndex(c => c.id === id);
+    if(ci === -1) return;
+    const th = grilleEl.querySelector(`th[data-col="${ci}"]`);
+    if(th){
+      th.classList.add("selcol-actif");
+      th.insertAdjacentHTML("afterbegin", `<span class="selcol-badge">${i+1}</span>`);
+    }
+    const slug = etat.champs[ci].slug;
+    grilleEl.querySelectorAll(`td[data-col-slug="${slug}"]`).forEach(td => td.classList.add("selcol-actif"));
+  });
+
+  if(!etat.ids.length){ resumeEl.textContent = tj("engine/templates/engine/dashboard_bi.html:js:1226:49"); return; }
+  resumeEl.textContent = etat.ids.map((id, i) => {
+    const c = etat.champs.find(x => x.id === id);
+    return `${i+1}. ${c ? c.nom : `#${id}`}`;
+  }).join(" · ");
+}
+
+function _toggleColonneSel(id, forcerAjout){
+  const etat = _selColEtat;
+  const g = GRAPHIQUES.find(x => x.id === GRAPHIQUE_CHOISI);
+  const idx = etat.ids.indexOf(id);
+  if(idx !== -1 && !forcerAjout){
+    etat.ids.splice(idx, 1);
+    return true;
+  }
+  if(idx !== -1) return true; // déjà sélectionnée, rien à faire
+  if(g && g.nombre_colonnes_max && etat.ids.length >= g.nombre_colonnes_max){
+    toast(tj("engine/templates/engine/dashboard_bi.html:js:1243:12", {v1: g.nombre_colonnes_max}), true);
+    return false;
+  }
+  etat.ids.push(id);
+  return true;
+}
+
+function _brancherInteractionsSelColonnes(){
+  const grilleEl = document.getElementById("selcol-grille");
+  let glisse = false;
+  let colDebut = null;
+  let pointerId = null;
+
+  const colIndexSousPointeur = (e) => {
+    if(typeof e.clientX !== "number") return null;
+    const el = document.elementFromPoint(e.clientX, e.clientY);
+    const th = el && el.closest("th[data-col]");
+    return th ? parseInt(th.dataset.col, 10) : null;
+  };
+
+  grilleEl.onpointerdown = (e) => {
+    const th = e.target.closest("th[data-col]");
+    if(!th || th.classList.contains("selcol-incompatible")) return;
+    glisse = true;
+    colDebut = parseInt(th.dataset.col, 10);
+    const id = _selColEtat.champs[colDebut].id;
+    _toggleColonneSel(id, false);
+    _redessinerSelColonnes();
+    pointerId = e.pointerId;
+    try { grilleEl.setPointerCapture(pointerId); } catch(err){ /* sans gravité */ }
+    e.preventDefault();
+  };
+
+  grilleEl.onpointermove = (e) => {
+    if(!glisse || colDebut === null) return;
+    if(pointerId !== null && e.pointerId !== pointerId) return;
+    const ci = colIndexSousPointeur(e);
+    if(ci === null || ci === colDebut) return;
+    const champ = _selColEtat.champs[ci];
+    const th = grilleEl.querySelector(`th[data-col="${ci}"]`);
+    if(!th || th.classList.contains("selcol-incompatible")) return;
+    // Ajoute chaque nouvelle colonne survolée pendant le glissement (sans
+    // jamais retirer une colonne déjà confirmée par ce même geste) —
+    // conserve l'ordre du glissement.
+    _toggleColonneSel(champ.id, true);
+    colDebut = ci; // évite de re-déclencher sur la même colonne en boucle
+    _redessinerSelColonnes();
+    e.preventDefault();
+  };
+
+  const terminer = (e) => {
+    if(pointerId !== null){
+      try { grilleEl.releasePointerCapture(pointerId); } catch(err){ /* déjà relâché */ }
+    }
+    pointerId = null; glisse = false; colDebut = null;
+  };
+  grilleEl.onpointerup = terminer;
+  grilleEl.onpointercancel = terminer;
+}
+
+document.getElementById("mw-btn-choisir-colonnes").onclick = () => _ouvrirSelecteurColonnesBI();
+document.getElementById("selcol-valider").onclick = () => {
+  COLONNES_CHOISIES = [..._selColEtat.ids];
+  document.getElementById("modal-selcol-fond").classList.remove("ouvert");
+  renderColonnesModal();
+};
+document.getElementById("selcol-annuler").onclick = () => {
+  document.getElementById("modal-selcol-fond").classList.remove("ouvert");
+};
+
+document.getElementById("btn-ajouter-widget").onclick = () => {
+  if(!TABLEAU_ACTIF){ toast(tj("engine/templates/engine/dashboard_bi.html:js:1314:30"), true); return; }
+  ouvrirModalWidget(null);
+};
+document.getElementById("mw-annuler").onclick = fermerModalWidget;
+
+document.getElementById("mw-valider").onclick = async () => {
+  const g = GRAPHIQUES.find(x => x.id === GRAPHIQUE_CHOISI);
+  if(!g){ toast(tj("engine/templates/engine/dashboard_bi.html:js:1321:18"), true); return; }
+  if(COLONNES_CHOISIES.length < g.nombre_colonnes_min || (g.nombre_colonnes_max && COLONNES_CHOISIES.length > g.nombre_colonnes_max)){
+    toast(tj("engine/templates/engine/dashboard_bi.html:js:1323:12"), true);
+    return;
+  }
+  const titre = document.getElementById("mw-titre-input").value.trim();
+  const corps = {graphique_id: GRAPHIQUE_CHOISI, champs_cibles_ids: COLONNES_CHOISIES, titre};
+
+  try {
+    if(WIDGET_EN_EDITION){
+      const data = await api(`/api/widgets-bi/${WIDGET_EN_EDITION}/`, {method:"PATCH", body: JSON.stringify(corps)});
+      const idx = TABLEAU_ACTIF.widgets.findIndex(w => w.id === WIDGET_EN_EDITION);
+      if(idx !== -1) TABLEAU_ACTIF.widgets[idx] = data.widget;
+    } else {
+      // Empile le nouveau widget sous les widgets existants (l'utilisateur
+      // le repositionne ensuite librement par glisser-déposer).
+      const y = TABLEAU_ACTIF.widgets.reduce((max, w) => Math.max(max, w.position_y + w.hauteur), 0);
+      const data = await api(`/api/tableaux-bord-bi/${TABLEAU_ACTIF.id}/widgets/`, {method:"POST", body: JSON.stringify({
+        ...corps, position_x: 0, position_y: y, largeur: 4, hauteur: 3,
+      })});
+      TABLEAU_ACTIF.widgets.push(data.widget);
+      suivreWidget(data.widget.id);
+    }
+    fermerModalWidget();
+    renderCanevas();
+  } catch(e){}
+};
+
+// ── Modal création/édition d'un graphique BI personnalisé ────────────────
+let graphiqueEnEdition = null; // id en édition, ou null si création
+
+function ouvrirModalGraphiquePerso(){
+  graphiqueEnEdition = null;
+  document.getElementById("ng-nom").value = "";
+  document.getElementById("ng-description").value = "";
+  document.getElementById("ng-categorie").value = "personnalisee";
+  document.getElementById("ng-cible-type").value = "colonne_unique";
+  document.getElementById("ng-types").value = "";
+  document.getElementById("ng-code").value = "";
+  document.getElementById("ng-prompt-ia").value = "";
+  document.getElementById("ng-enregistrer").textContent = tj("engine/templates/engine/dashboard_bi.html:js:1361:60");
+  document.getElementById("modal-graphique-perso").classList.add("ouvert");
+  chargerGraphiquesPerso();
+}
+function fermerModalGraphiquePerso(){
+  document.getElementById("modal-graphique-perso").classList.remove("ouvert");
+}
+
+function editerGraphiquePerso(g){
+  graphiqueEnEdition = g.id;
+  document.getElementById("ng-nom").value = g.nom;
+  document.getElementById("ng-description").value = g.description || "";
+  document.getElementById("ng-categorie").value = g.categorie;
+  document.getElementById("ng-cible-type").value = g.cible_type;
+  document.getElementById("ng-types").value = (g.types_cibles_compatibles || []).join(",");
+  document.getElementById("ng-code").value = g.code;
+  document.getElementById("ng-enregistrer").textContent = tj("engine/templates/engine/dashboard_bi.html:js:1377:60");
+}
+
+async function chargerGraphiquesPerso(){
+  const zone = document.getElementById("liste-graphiques-perso");
+  zone.innerHTML = `<p class="aide">${tj("engine/templates/engine/dashboard_bi.html:js:1382:38")}</p>`;
+  try {
+    const rep = await api(`/api/graphiques-bi/`);
+    const perso = (rep.graphiques || []).filter(g => g.entreprise);
+    if(!perso.length){
+      zone.innerHTML = `<p class="aide">${tj("engine/templates/engine/dashboard_bi.html:js:1387:42")}</p>`;
+      return;
+    }
+    zone.innerHTML = perso.map(g => `
+      <div style="display:flex;justify-content:space-between;align-items:center;padding:5px 8px;background:var(--fond-noir,#000);border:1px solid var(--border);border-radius:6px;margin-bottom:4px">
+        <span style="font-size:12px">${escapeHtml(g.nom)} <span class="aide" style="display:inline">(${escapeHtml(g.categorie)})</span></span>
+        <span style="display:flex;gap:4px">
+          <button class="btn-editer-graphique-perso" data-id="${g.id}" style="padding:2px 7px;font-size:11px;background:transparent;border:1px solid var(--border);border-radius:4px;cursor:pointer">✎</button>
+          <button class="btn-suppr-graphique-perso" data-id="${g.id}" style="padding:2px 7px;font-size:11px;background:transparent;border:1px solid var(--border);border-radius:4px;cursor:pointer;color:var(--danger)">✕</button>
+        </span>
+      </div>`).join("");
+    zone.querySelectorAll(".btn-editer-graphique-perso").forEach(btn => {
+      btn.onclick = () => {
+        const g = perso.find(x => String(x.id) === btn.dataset.id);
+        if(g) editerGraphiquePerso(g);
+      };
+    });
+    zone.querySelectorAll(".btn-suppr-graphique-perso").forEach(btn => {
+      btn.onclick = async () => {
+        if(!await GY.confirmer(tj("engine/templates/engine/dashboard_bi.html:js:1406:22"))) return;
+        try {
+          await api(`/api/graphiques-bi/${btn.dataset.id}/`, {method:"DELETE"});
+          const dataGraphiques = await api(`/api/graphiques-bi/`);
+          GRAPHIQUES = dataGraphiques.graphiques;
+          await chargerGraphiquesPerso();
+        } catch(e) { /* déjà notifié (ex: graphique utilisé par un widget) */ }
+      };
+    });
+  } catch(e) {
+    zone.innerHTML = `<p class="aide" style="color:var(--danger)">${tj("engine/templates/engine/dashboard_bi.html:js:1416:68")}</p>`;
+  }
+}
+
+document.getElementById("btn-creer-graphique").onclick = ouvrirModalGraphiquePerso;
+document.getElementById("ng-annuler").onclick = fermerModalGraphiquePerso;
+
+document.getElementById("ng-fichier").addEventListener("change", async e => {
+  const fichier = e.target.files[0];
+  if (!fichier) return;
+  document.getElementById("ng-code").value = await fichier.text();
+  if (!document.getElementById("ng-nom").value.trim()) {
+    document.getElementById("ng-nom").value = fichier.name.replace(/\.py$/i, "");
+  }
+});
+
+document.getElementById("btn-generer-graphique-ia").onclick = async (ev) => {
+  const description = document.getElementById("ng-prompt-ia").value.trim();
+  if(!description){ toast(tj("engine/templates/engine/dashboard_bi.html:js:1434:28"), true); return; }
+  ev.target.textContent = tj("engine/templates/engine/dashboard_bi.html:js:1435:28"); ev.target.disabled = true;
+  try {
+    const lancement = await api(`/api/graphiques-bi/generer/`, {method:"POST", body: JSON.stringify({
+      description,
+      cible_type: document.getElementById("ng-cible-type").value,
+      table_id: TABLE_ID,
+    })});
+    const generation = await attendreFinGenerationGraphiqueBI(lancement.generation_id);
+    if(generation.statut === "echec"){
+      toast(generation.erreur || tj("engine/templates/engine/dashboard_bi.html:js:1444:35"), true);
+      return;
+    }
+    document.getElementById("ng-code").value = generation.code || "";
+    // La description demandée à l'IA devient la description du graphique (lisible dans la bibliothèque comme les prédéfinis).
+    const champDescription = document.getElementById("ng-description");
+    if(!champDescription.value.trim()) champDescription.value = description;
+    toast(tj("engine/templates/engine/dashboard_bi.html:js:1448:12"));
+  } catch(e) { /* déjà notifié */ } finally {
+    ev.target.textContent = tj("engine/templates/engine/dashboard_bi.html:js:1450:30"); ev.target.disabled = false;
+  }
+};
+
+document.getElementById("ng-enregistrer").onclick = async (ev) => {
+  const nom = document.getElementById("ng-nom").value.trim();
+  const code = document.getElementById("ng-code").value;
+  if(!nom){ toast(tj("engine/templates/engine/dashboard_bi.html:js:1457:20"), true); return; }
+  if(!code.includes("def dessiner(")){ toast(tj("engine/templates/engine/dashboard_bi.html:js:1458:47"), true); return; }
+  const corps = {
+    nom,
+    description: document.getElementById("ng-description").value.trim(),
+    categorie: document.getElementById("ng-categorie").value,
+    cible_type: document.getElementById("ng-cible-type").value,
+    types_cibles_compatibles: document.getElementById("ng-types").value.trim(),
+    code,
+  };
+  ev.target.textContent = "…"; ev.target.disabled = true;
+  try {
+    if(graphiqueEnEdition){
+      await api(`/api/graphiques-bi/${graphiqueEnEdition}/`, {method:"PATCH", body: JSON.stringify(corps)});
+      toast(tj("engine/templates/engine/dashboard_bi.html:js:1471:14"));
+    } else {
+      await api(`/api/graphiques-bi/`, {method:"POST", body: JSON.stringify(corps)});
+      toast(tj("engine/templates/engine/dashboard_bi.html:js:1474:14"));
+    }
+    const dataGraphiques = await api(`/api/graphiques-bi/`);
+    GRAPHIQUES = dataGraphiques.graphiques;
+    ouvrirModalGraphiquePerso(); // repasse en mode création, liste rafraîchie
+  } catch(e) { /* déjà notifié */ } finally {
+    ev.target.textContent = graphiqueEnEdition ? tj("engine/templates/engine/dashboard_bi.html:js:1480:51") : tj("engine/templates/engine/dashboard_bi.html:js:1480:82"); ev.target.disabled = false;
+  }
+};
+
+// ── Indicateurs KPI ──────────────────────────────────────────────────────
+let KPIS = [];
+let FORMULES_KPI = [];   // formules cible_type="colonne" uniquement
+let KPI_EN_EDITION = null; // id du KPI édité, ou null si création
+
+async function chargerKPIs(){
+  try {
+    const q = FILTRE_ACTIF ? `?colonne_filtre=${encodeURIComponent(FILTRE_ACTIF.colonne)}&valeur_filtre=${encodeURIComponent(FILTRE_ACTIF.valeur)}` : "";
+    const [dataKpis, dataFormules] = await Promise.all([
+      api(`/api/tables/${TABLE_ID}/kpis/${q}`),
+      LECTURE_SEULE ? Promise.resolve({formules: []}) : api(`/api/formules-calcul/`),
+    ]);
+    KPIS = dataKpis.kpis;
+    FORMULES_KPI = dataFormules.formules.filter(f => f.cible_type === "colonne");
+    renderKPIs();
+  } catch(e){ /* déjà notifié */ }
+}
+
+function _kpiFormatValeur(v){
+  if(v === null || v === undefined) return "—";
+  const abs = Math.abs(v);
+  const decimales = abs !== 0 && abs < 10 ? 2 : (abs < 1000 ? 1 : 0);
+  return v.toLocaleString((window.I18N_LOCALE||"fr-FR"), {minimumFractionDigits:0, maximumFractionDigits:decimales});
+}
+
+function _kpiSparklineSVG(historique){
+  if(!historique || historique.length < 2) return "";
+  const valeurs = historique.map(p => p.valeur);
+  const min = Math.min(...valeurs), max = Math.max(...valeurs);
+  const w = 100, h = 26;
+  const pts = valeurs.map((v,i) => {
+    const x = valeurs.length === 1 ? 0 : (i / (valeurs.length - 1)) * w;
+    const y = max === min ? h/2 : h - ((v - min) / (max - min)) * h;
+    return [x, y];
+  });
+  // Historique du KPI = évolution : dégradé de la couleur d'accent, du plus sombre (ancien) au plus clair (récent).
+  return `<svg class="kpi-sparkline" viewBox="0 0 ${w} ${h}" preserveAspectRatio="none">
+    ${gyLigneDegradeMarkup(pts, gyCouleur("--accent", "#6bcfff"), {"stroke-width": 1.6, "vector-effect": "non-scaling-stroke"})}
+  </svg>`;
+}
+
+// Un KPI n'existe à l'écran que comme widget du canevas : ces fonctions remplissent/rafraîchissent ce widget.
+function kpiDuWidget(w){ return KPIS.find(k => k.id === w.kpi_id) || null; }
+
+function kpiCorpsHTML(k){
+  if(!k) return `<div class="kpi-etat-vide">${tj("engine/templates/engine/dashboard_bi.html:js:1528:46")}</div>`;
+  const badge = {succes:tj("engine/templates/engine/dashboard_bi.html:js:lbl_objectif_atteint"), alerte:tj("engine/templates/engine/dashboard_bi.html:js:lbl_alerte"), danger:tj("engine/templates/engine/dashboard_bi.html:js:1529:74")}[k.etat] || "";
+  if(k.statut === "echec") return `<div class="kpi-etat-vide">⚠ ${escapeHtml(k.erreur || tj("engine/templates/engine/dashboard_bi.html:js:1530:91"))}</div>`;
+  if(k.valeur_actuelle === null || k.valeur_actuelle === undefined) return `<div class="kpi-etat-vide">${tj("engine/templates/engine/dashboard_bi.html:js:1531:105")}</div>`;
+  const objectifTxt = (k.valeur_cible !== null && k.valeur_cible !== undefined)
+    ? tj("engine/templates/engine/dashboard_bi.html:js:lbl_objectif", {v1: `${_kpiFormatValeur(k.valeur_cible)}${escapeHtml(k.unite||"")}`}) : "";
+  const v = k.variation_pct; // tendance vs point d'historique précédent
+  const variationTxt = (v === null || v === undefined) ? "" :
+    `<span class="kpi-objectif" style="color:${v > 0 ? 'var(--ok)' : v < 0 ? 'var(--danger)' : 'var(--muted)'}">${v > 0 ? "▲" : v < 0 ? "▼" : "→"} ${Math.abs(v)}${tj("engine/templates/engine/dashboard_bi.html:js:1536:163")}</span>`;
+  return `<div class="kpi-valeur">${_kpiFormatValeur(k.valeur_actuelle)}${k.unite ? `<span class="kpi-unite">${escapeHtml(k.unite)}</span>` : ""}</div>
+    ${badge ? `<span class="kpi-badge">${badge}</span>` : ""}
+    <div class="kpi-objectif">${escapeHtml(objectifTxt)}</div>${variationTxt}${_kpiSparklineSVG(k.historique)}`;
+}
+
+function majWidgetKPIDOM(div, w){
+  const k = kpiDuWidget(w);
+  div.classList.remove("etat-succes", "etat-alerte", "etat-danger");
+  if(k && k.etat) div.classList.add(`etat-${k.etat}`);
+  const titre = div.querySelector(".widget-titre");
+  titre.textContent = w.titre || (k ? k.nom : "KPI");
+  titre.title = titre.textContent;
+  div.querySelector(".widget-corps").innerHTML = `<div class="kpi-contenu">${kpiCorpsHTML(k)}</div>`;
+}
+
+function renderKPIs(){
+  if(!TABLEAU_ACTIF) return;
+  document.querySelectorAll("#canevas .widget-bi-kpi").forEach(div => {
+    const w = TABLEAU_ACTIF.widgets.find(x => x.id === parseInt(div.dataset.id, 10));
+    if(w) majWidgetKPIDOM(div, w);
+  });
+}
+
+async function ajouterKPIAuCanevas(kpiId){
+  if(!TABLEAU_ACTIF) return false;
+  // Comme un graphique : empilé sous les widgets existants, l'utilisateur le déplace ensuite à la main.
+  const y = TABLEAU_ACTIF.widgets.reduce((max, w) => Math.max(max, w.position_y + w.hauteur), 0);
+  try {
+    const data = await api(`/api/tableaux-bord-bi/${TABLEAU_ACTIF.id}/widgets/`, {method:"POST", body: JSON.stringify({
+      type_widget: "kpi", kpi_id: kpiId, position_x: 0, position_y: y, largeur: 3, hauteur: 2,
+    })});
+    TABLEAU_ACTIF.widgets.push(data.widget);
+    renderCanevas();
+    return true;
+  } catch(e){ return false; }
+}
+
+async function retirerKPIDuCanevas(widgetId){
+  if(!await GY.confirmer(tj("engine/templates/engine/dashboard_bi.html:js:1575:16"))) return;
+  try {
+    await api(`/api/widgets-bi/${widgetId}/`, {method:"DELETE"});
+    TABLEAU_ACTIF.widgets = TABLEAU_ACTIF.widgets.filter(w => w.id !== widgetId);
+    renderCanevas();
+    renderListeKPIsModal();
+  } catch(e){}
+}
+
+async function recalculerKPI(id){
+  try {
+    const data = await api(`/api/kpis/${id}/recalculer/`, {method:"POST"});
+    const idx = KPIS.findIndex(k => k.id === id);
+    if(idx !== -1) KPIS[idx] = data.kpi;
+    renderKPIs();
+    toast(tj("engine/templates/engine/dashboard_bi.html:js:1590:12"));
+  } catch(e){ /* déjà notifié */ }
+}
+
+async function supprimerKPI(id){
+  if(!await GY.confirmer(tj("engine/templates/engine/dashboard_bi.html:js:1595:16"))) return;
+  try {
+    await api(`/api/kpis/${id}/`, {method:"DELETE"});
+    KPIS = KPIS.filter(k => k.id !== id);
+    if(TABLEAU_ACTIF){ TABLEAU_ACTIF.widgets = TABLEAU_ACTIF.widgets.filter(w => !(w.type_widget === "kpi" && w.kpi_id === id)); renderCanevas(); }
+    renderListeKPIsModal();
+    toast(tj("engine/templates/engine/dashboard_bi.html:js:1601:12"));
+  } catch(e){ /* déjà notifié */ }
+}
+
+function _remplirSelectChampsKPI(){
+  const sel = document.getElementById("mk-champ");
+  sel.innerHTML = `<option value="">${tj("engine/templates/engine/dashboard_bi.html:js:1607:38")}</option>` +
+    CHAMPS_TABLE.filter(c => c.id > 0).map(c => `<option value="${c.id}" data-type="${escapeHtml(c.type)}">${escapeHtml(c.nom)}</option>`).join("");   // le champ cible d'un KPI est un vrai champ
+}
+
+let _typeChampFormuleKPI = ""; // dernier type de champ utilisé, pour re-filtrer sans perdre le contexte
+
+function _remplirSelectFormulesKPI(typeChamp){
+  _typeChampFormuleKPI = typeChamp || "";
+  const sel = document.getElementById("mk-formule");
+  const valeurActuelle = sel.value;
+  const recherche = (document.getElementById("mk-recherche-formule").value || "").trim().toLowerCase();
+  const compatibles = FORMULES_KPI.filter(f =>
+    (!f.types_cibles_compatibles.length || !typeChamp || f.types_cibles_compatibles.includes(typeChamp)) &&
+    (!recherche || (f.nom || "").toLowerCase().includes(recherche))
+  );
+  sel.innerHTML = compatibles.map(f => `<option value="${f.id}">${escapeHtml(f.nom)}</option>`).join("")
+    || `<option value="">${tj("engine/templates/engine/dashboard_bi.html:js:1623:27")}</option>`;
+  // Conserve la sélection en cours si elle est toujours dans la liste filtrée.
+  if(compatibles.some(f => String(f.id) === valeurActuelle)) sel.value = valeurActuelle;
+}
+
+document.getElementById("mk-champ").onchange = (ev) => {
+  const opt = ev.target.selectedOptions[0];
+  _remplirSelectFormulesKPI(opt ? opt.dataset.type : "");
+};
+document.getElementById("mk-recherche-formule").addEventListener("input", () => _remplirSelectFormulesKPI(_typeChampFormuleKPI));
+
+let EDITEUR_KPI = null;   // éditeur de programme (programme_kpi.js) du KPI en cours d'édition
+
+function ouvrirModalKPI(kpi){
+  KPI_EN_EDITION = kpi ? kpi.id : null;
+  EDITEUR_KPI = ProgrammeKPI.monter(document.getElementById("mk-etapes"), CHAMPS_TABLE.map(c => ({slug:c.slug, nom:c.nom})), kpi && kpi.etapes ? JSON.parse(JSON.stringify(kpi.etapes)) : []);
+  document.getElementById("mk-titre").textContent = kpi ? tj("engine/templates/engine/dashboard_bi.html:js:1639:60") : tj("engine/templates/engine/dashboard_bi.html:js:1665:121");
+  _remplirSelectChampsKPI();
+  document.getElementById("mk-recherche-formule").value = "";
+  document.getElementById("mk-nom").value = kpi ? kpi.nom : "";
+  document.getElementById("mk-description").value = kpi ? kpi.description : "";
+  document.getElementById("mk-unite").value = kpi ? (kpi.unite || "") : "";
+  document.getElementById("mk-cible").value = kpi && kpi.valeur_cible !== null ? kpi.valeur_cible : "";
+  document.getElementById("mk-seuil").value = kpi && kpi.seuil_alerte !== null ? kpi.seuil_alerte : "";
+  document.getElementById("mk-sens").value = kpi ? kpi.sens_objectif : "hausse";
+  if(kpi && kpi.champ_cible_id){
+    document.getElementById("mk-champ").value = kpi.champ_cible_id;
+  }
+  const opt = document.getElementById("mk-champ").selectedOptions[0];
+  _remplirSelectFormulesKPI(opt ? opt.dataset.type : "");
+  if(kpi) document.getElementById("mk-formule").value = kpi.formule.id;
+  document.getElementById("mk-visible-client").checked = kpi ? !!kpi.visible_client : false;
+  document.getElementById("modal-kpi").classList.add("ouvert");
+}
+function fermerModalKPI(){
+  document.getElementById("modal-kpi").classList.remove("ouvert");
+  KPI_EN_EDITION = null;
+}
+
+document.getElementById("btn-nouveau-kpi").onclick = () => ouvrirModalKPI(null);
+document.getElementById("mk-annuler").onclick = fermerModalKPI;
+
+document.getElementById("mk-valider").onclick = async (ev) => {
+  const nom = document.getElementById("mk-nom").value.trim();
+  const formuleId = document.getElementById("mk-formule").value;
+  if(!nom){ toast(tj("engine/templates/engine/dashboard_bi.html:js:1668:20"), true); return; }
+  if(!formuleId){ toast(tj("engine/templates/engine/dashboard_bi.html:js:1669:26"), true); return; }
+  const corps = {
+    nom,
+    description: document.getElementById("mk-description").value.trim(),
+    champ_cible_id: document.getElementById("mk-champ").value || null,
+    formule_id: parseInt(formuleId, 10),
+    unite: document.getElementById("mk-unite").value.trim(),
+    valeur_cible: document.getElementById("mk-cible").value === "" ? null : parseFloat(document.getElementById("mk-cible").value),
+    seuil_alerte: document.getElementById("mk-seuil").value === "" ? null : parseFloat(document.getElementById("mk-seuil").value),
+    sens_objectif: document.getElementById("mk-sens").value,
+    etapes: EDITEUR_KPI ? EDITEUR_KPI.lire() : [],
+    visible_client: document.getElementById("mk-visible-client").checked,
+  };
+  ev.target.textContent = "…"; ev.target.disabled = true;
+  try {
+    if(KPI_EN_EDITION){
+      const data = await api(`/api/kpis/${KPI_EN_EDITION}/`, {method:"PATCH", body: JSON.stringify(corps)});
+      const idx = KPIS.findIndex(k => k.id === KPI_EN_EDITION);
+      if(idx !== -1) KPIS[idx] = data.kpi;
+    } else {
+      const data = await api(`/api/tables/${TABLE_ID}/kpis/`, {method:"POST", body: JSON.stringify(corps)});
+      KPIS.push(data.kpi);
+      if(TABLEAU_ACTIF) await ajouterKPIAuCanevas(data.kpi.id);  // posé directement sur le canevas
+    }
+    fermerModalKPI();
+    renderKPIs();
+    toast(tj("engine/templates/engine/dashboard_bi.html:js:1695:12"));
+  } catch(e){ /* déjà notifié */ } finally {
+    ev.target.textContent = tj("engine/templates/engine/dashboard_bi.html:js:1697:30"); ev.target.disabled = false;
+  }
+};
+
+function renderListeKPIsModal(){
+  const zone = document.getElementById("kpis-liste-modal");
+  if(!KPIS.length){ zone.innerHTML = `<div class="vide-kpis">${tj("engine/templates/engine/dashboard_bi.html:js:1703:63")}</div>`; return; }
+  zone.innerHTML = KPIS.map(k => `
+    <div class="kpi-ligne" data-id="${k.id}">
+      <span class="kl-nom">${escapeHtml(k.nom)}</span>
+      ${(TABLEAU_ACTIF && TABLEAU_ACTIF.widgets.some(w => w.type_widget === "kpi" && w.kpi_id === k.id))
+        ? `<button class="btn-kl-retirer">${tj("engine/templates/engine/dashboard_bi.html:js:1708:44")}</button>`
+        : `<button class="btn-kl-ajouter">${tj("engine/templates/engine/dashboard_bi.html:js:1709:44")}</button>`}
+      <button class="btn-kl-editer">${tj("engine/templates/engine/dashboard_bi.html:js:1710:38")}</button>
+      <button class="danger btn-kl-supprimer">${tj("engine/templates/engine/dashboard_bi.html:js:1711:48")}</button>
+    </div>`).join("");
+  zone.querySelectorAll(".kpi-ligne").forEach(div => {
+    const id = parseInt(div.dataset.id, 10);
+    const kpi = KPIS.find(k => k.id === id);
+    div.querySelector(".btn-kl-editer").onclick = () => {
+      document.getElementById("modal-gerer-kpis").classList.remove("ouvert");
+      ouvrirModalKPI(kpi);
+    };
+    div.querySelector(".btn-kl-supprimer").onclick = async () => await supprimerKPI(id);
+    const bRetirer = div.querySelector(".btn-kl-retirer"), bAjouter = div.querySelector(".btn-kl-ajouter");
+    if(bRetirer) bRetirer.onclick = () => { const w = TABLEAU_ACTIF.widgets.find(x => x.type_widget === "kpi" && x.kpi_id === id); if(w) retirerKPIDuCanevas(w.id); };
+    if(bAjouter) bAjouter.onclick = async () => { if(await ajouterKPIAuCanevas(id)) renderListeKPIsModal(); };
+  });
+}
+
+document.getElementById("btn-gerer-kpis").onclick = () => {
+  renderListeKPIsModal();
+  document.getElementById("modal-gerer-kpis").classList.add("ouvert");
+};
+document.getElementById("gk-fermer").onclick = () => {
+  document.getElementById("modal-gerer-kpis").classList.remove("ouvert");
+};
+
+// ── Visualiseur plein écran (zoom molette/pincement + navigation glissée) ──
+// Ouvert depuis le bouton 🔍 d'un widget graphique prêt, ou en double-cliquant
+// sur son image. Zoom centré sur le curseur/pincement, glissement pour
+// naviguer dans l'image agrandie — même logique qu'une visionneuse d'images.
+const VIS_ZOOM_MIN = 0.2, VIS_ZOOM_MAX = 8;
+let VIS_ZOOM = 1, VIS_X = 0, VIS_Y = 0;
+const visZoneEl = document.getElementById("vis-zone");
+const visFondEl = document.getElementById("visualiseur-fond");
+const visImageEl = document.getElementById("vis-image");
+
+function ouvrirVisualiseur(w){
+  visImageEl.src = `data:image/png;base64,${w.image_base64}`;
+  document.getElementById("vis-titre").textContent = w.titre || w.graphique.nom;
+  VIS_ZOOM = 1; VIS_X = 0; VIS_Y = 0;
+  appliquerTransformVis();
+  visFondEl.classList.add("ouvert");
+}
+
+function fermerVisualiseur(){
+  visFondEl.classList.remove("ouvert");
+}
+
+function appliquerTransformVis(){
+  visImageEl.style.transform = `translate(${VIS_X}px, ${VIS_Y}px) scale(${VIS_ZOOM})`;
+  document.getElementById("vis-pourcentage").textContent = Math.round(VIS_ZOOM * 100) + "%";
+}
+
+function distanceVis(a, b){ return Math.hypot(a.x - b.x, a.y - b.y); }
+
+// centreX/centreY : coordonnées écran du point à garder fixe pendant le zoom
+// (position du curseur ou milieu du pincement). Par défaut, centre de la zone.
+function zoomerVis(facteur, centreX, centreY){
+  const rect = visZoneEl.getBoundingClientRect();
+  const cx = (centreX ?? (rect.left + rect.width / 2)) - rect.left - rect.width / 2;
+  const cy = (centreY ?? (rect.top + rect.height / 2)) - rect.top - rect.height / 2;
+  const nouveauZoom = Math.max(VIS_ZOOM_MIN, Math.min(VIS_ZOOM_MAX, VIS_ZOOM * facteur));
+  const ratio = nouveauZoom / VIS_ZOOM;
+  VIS_X = (VIS_X - cx) * ratio + cx;
+  VIS_Y = (VIS_Y - cy) * ratio + cy;
+  VIS_ZOOM = nouveauZoom;
+  appliquerTransformVis();
+}
+
+document.getElementById("vis-zoom-plus").onclick = () => zoomerVis(1.25);
+document.getElementById("vis-zoom-moins").onclick = () => zoomerVis(0.8);
+document.getElementById("vis-reset").onclick = () => { VIS_ZOOM = 1; VIS_X = 0; VIS_Y = 0; appliquerTransformVis(); };
+document.getElementById("vis-fermer").onclick = fermerVisualiseur;
+visFondEl.addEventListener("click", (ev) => { if(ev.target === visFondEl) fermerVisualiseur(); });
+document.addEventListener("keydown", (ev) => {
+  if(ev.key === "Escape" && visFondEl.classList.contains("ouvert")) fermerVisualiseur();
+});
+
+// Molette = zoom centré sur le curseur.
+visZoneEl.addEventListener("wheel", (ev) => {
+  ev.preventDefault();
+  zoomerVis(ev.deltaY < 0 ? 1.12 : 0.89, ev.clientX, ev.clientY);
+}, {passive: false});
+
+// Pointer Events (souris + tactile) : un doigt/clic = glisser pour naviguer,
+// deux doigts = pincement pour zoomer.
+const VIS_POINTEURS = new Map();
+let VIS_PAN_DEPART = null;
+let VIS_PINCE_DEPART = null;
+
+visZoneEl.addEventListener("pointerdown", (ev) => {
+  visZoneEl.setPointerCapture(ev.pointerId);
+  VIS_POINTEURS.set(ev.pointerId, {x: ev.clientX, y: ev.clientY});
+  if(VIS_POINTEURS.size === 1){
+    VIS_PAN_DEPART = {x: ev.clientX, y: ev.clientY, ox: VIS_X, oy: VIS_Y};
+    visZoneEl.classList.add("attrape");
+  } else if(VIS_POINTEURS.size === 2){
+    const pts = [...VIS_POINTEURS.values()];
+    VIS_PINCE_DEPART = {
+      dist: distanceVis(pts[0], pts[1]), zoom: VIS_ZOOM, x: VIS_X, y: VIS_Y,
+      milieu: {x: (pts[0].x + pts[1].x) / 2, y: (pts[0].y + pts[1].y) / 2},
+    };
+    VIS_PAN_DEPART = null;
+  }
+});
+
+visZoneEl.addEventListener("pointermove", (ev) => {
+  if(!VIS_POINTEURS.has(ev.pointerId)) return;
+  VIS_POINTEURS.set(ev.pointerId, {x: ev.clientX, y: ev.clientY});
+  if(VIS_POINTEURS.size === 2 && VIS_PINCE_DEPART){
+    const pts = [...VIS_POINTEURS.values()];
+    const d = distanceVis(pts[0], pts[1]);
+    const nouveauZoom = Math.max(VIS_ZOOM_MIN, Math.min(VIS_ZOOM_MAX, VIS_PINCE_DEPART.zoom * (d / VIS_PINCE_DEPART.dist)));
+    const ratio = nouveauZoom / VIS_PINCE_DEPART.zoom;
+    const rect = visZoneEl.getBoundingClientRect();
+    const cx = VIS_PINCE_DEPART.milieu.x - rect.left - rect.width / 2;
+    const cy = VIS_PINCE_DEPART.milieu.y - rect.top - rect.height / 2;
+    VIS_X = (VIS_PINCE_DEPART.x - cx) * ratio + cx;
+    VIS_Y = (VIS_PINCE_DEPART.y - cy) * ratio + cy;
+    VIS_ZOOM = nouveauZoom;
+    appliquerTransformVis();
+  } else if(VIS_PAN_DEPART && VIS_POINTEURS.size === 1){
+    VIS_X = VIS_PAN_DEPART.ox + (ev.clientX - VIS_PAN_DEPART.x);
+    VIS_Y = VIS_PAN_DEPART.oy + (ev.clientY - VIS_PAN_DEPART.y);
+    appliquerTransformVis();
+  }
+});
+
+function finPointeurVis(ev){
+  VIS_POINTEURS.delete(ev.pointerId);
+  if(VIS_POINTEURS.size < 2) VIS_PINCE_DEPART = null;
+  if(VIS_POINTEURS.size === 0){ VIS_PAN_DEPART = null; visZoneEl.classList.remove("attrape"); }
+}
+visZoneEl.addEventListener("pointerup", finPointeurVis);
+visZoneEl.addEventListener("pointercancel", finPointeurVis);
+
+// Double-clic : bascule rapide entre vue ajustée (100%) et zoom x2.5.
+visImageEl.style.pointerEvents = "none"; // le glissement passe par la zone, pas l'image
+visZoneEl.addEventListener("dblclick", (ev) => {
+  if(VIS_ZOOM > 1){ VIS_ZOOM = 1; VIS_X = 0; VIS_Y = 0; }
+  else { zoomerVis(2.5, ev.clientX, ev.clientY); return; }
+  appliquerTransformVis();
+});
+
+// Chargement initial : séquentiel, jamais en parallèle. init() charge le
+// dashboard (widgets) et peut déclencher des écritures (recalcul des
+// widgets périmés) ; chargerKPIs() en déclenche aussi (recalcul KPI). Sur
+// SQLite, deux écritures concurrentes au démarrage se bloquent l'une
+// l'autre ("database is locked") — d'où l'attente explicite de la fin de
+// l'une avant de lancer l'autre.
+(async () => {
+  await init();
+  await chargerKPIs();
+})();
+</script>
+<script src="{% static 'engine/js/icones.js' %}"></script>
+
+<script src="{% static 'engine/js/sidebar_toggle.js' %}"></script>
+
+</div><!-- #principal -->
+</div><!-- #app -->
+<script src="{% static 'engine/js/selecteur_table_page.js' %}" defer></script>
+</body>
+</html>

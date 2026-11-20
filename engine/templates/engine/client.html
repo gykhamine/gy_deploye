@@ -1,0 +1,267 @@
+{% load static %}<!DOCTYPE html>
+{% load i18n_extras %}
+<html lang="{{ langue_html|default:'fr' }}">
+<head>
+<script src="{% static 'engine/js/coque_garde.js' %}" data-coque="{% url 'engine:coque' %}"></script>
+<link rel="stylesheet" href="{% static 'engine/css/app.css' %}"><link rel="stylesheet" href="{% url 'engine:marque_css' %}"><script src="{% static 'engine/js/marque.js' %}" defer></script><script src="{% static 'engine/js/gestes_tactiles.js' %}" defer></script>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>{% tf "engine/templates/engine/client.html:8:8" v1=nom_affiche %}</title>
+<script src="{% static 'engine/js/dialogues.js' %}"></script>
+</head>
+<body class="page-client">
+<div id="intro-overlay">
+  <img class="intro-logo-img" src="{% static 'engine/img/logo_agent_gy.png' %}" alt="{% t 'engine/templates/engine/client.html:11:86' %}">
+  <div class="intro-logo">{% t "engine/templates/engine/client.html:12:27" %}</div>
+  <div class="intro-sub">{% t "engine/templates/engine/client.html:13:26" %}</div>
+  <div class="intro-tagline">{% t "engine/templates/engine/client.html:14:30" %}</div>
+  <div class="intro-barre"></div>
+</div>
+<div id="app">
+  <div id="sidebar-overlay" onclick="fermerSidebar()"></div>
+
+  <!-- Sidebar -->
+  <div id="sidebar">
+    <div id="marque"><img class="logo-gy" src="{% if logo_url %}{{ logo_url }}{% else %}{% static 'engine/img/logo_agent_gy.png' %}{% endif %}" alt="{% if nom_affiche %}{{ nom_affiche }}{% else %}{% t "engine/templates/engine/index.html:16:27" %}{% endif %}"> {% if nom_affiche %}{{ nom_affiche }}{% else %}{% t "engine/templates/engine/index.html:16:27" %}{% endif %}</div>
+
+    <div id="liste-formulaires">
+      <h1>{% t "engine/templates/engine/client.html:33:11" %}</h1>
+      <p class="guide-hint">{% t "engine/templates/engine/client.html:34:29" %}</p>
+      {% if tables %}
+        {% for table in tables %}
+        <div class="nav-item" data-id="{{ table.id }}" onclick="ouvrirTable({{ table.id }})">
+          <span class="nav-dot"></span>{{ table.nom }}
+        </div>
+        {% endfor %}
+      {% else %}
+        <div id="nav-vide">{% t "engine/templates/engine/client.html:42:28" %}</div>
+      {% endif %}
+    </div>
+
+    {% if dashboards or kpis %}
+    <div id="liste-dashboards-client">
+      <h1>{% t "engine/templates/engine/client.html:48:11" %}</h1>
+      <p class="guide-hint">{% t "engine/templates/engine/client.html:49:29" %}</p>
+      {% for d in dashboards %}
+      <a class="nav-item" href="{% url 'engine:vue_dashboard_bi' d.table_id %}?tableau={{ d.id }}">
+        <span class="nav-dot"></span>{{ d.nom }}
+      </a>
+      {% endfor %}
+      {% for k in kpis %}
+      <div class="nav-item nav-item-kpi">
+        <span class="nav-dot"></span>{{ k.nom }} :
+        {% if k.valeur_actuelle != None %}{{ k.valeur_actuelle }} {{ k.unite }}{% else %}—{% endif %}
+      </div>
+      {% endfor %}
+    </div>
+    {% endif %}
+
+    {% if analyses_ouvertes %}
+    <div id="liste-analyses-client">
+      <h1>{% t "engine/templates/engine/client.html:67:11" %}</h1>
+      {% if 'geolocalisation' not in pages_fermees %}<a class="nav-item" href="{% url 'engine:vue_geolocalisation' table_analyses_id %}"><span class="nav-dot"></span>{% t "engine/templates/engine/client.html:68:119" %}</a>{% endif %}
+      {% if 'series_temporelles' not in pages_fermees %}<a class="nav-item" href="{% url 'engine:vue_series_temporelles' table_analyses_id %}"><span class="nav-dot"></span>{% t "engine/templates/engine/client.html:69:122" %}</a>{% endif %}
+      {% if 'statistiques' not in pages_fermees %}<a class="nav-item" href="{% url 'engine:vue_statistiques' table_analyses_id %}"><span class="nav-dot"></span>{% t "engine/templates/engine/client.html:70:116" %}</a>{% endif %}
+      {% if 'anova' not in pages_fermees %}<a class="nav-item" href="{% url 'engine:vue_anova' table_analyses_id %}"><span class="nav-dot"></span>{% t "engine/templates/engine/client.html:65:147" %}</a>{% endif %}
+      {% if 'analyse_factorielle' not in pages_fermees %}<a class="nav-item" href="{% url 'engine:vue_analyse_factorielle' table_analyses_id %}"><span class="nav-dot"></span>{% t "engine/templates/engine/client.html:74:123" %}</a>{% endif %}
+    </div>
+    {% endif %}
+
+    {% if pages_ontologie %}
+    <div id="liste-ontologie-client">
+      <h1>{% t "engine/templates/engine/client.html:66:11" %}</h1>
+      <p class="guide-hint">{% t "engine/templates/engine/client.html:67:29" %}</p>
+      {% for p in pages_ontologie %}
+      <a class="nav-item" href="{% url 'engine:vue_ontologie' %}?page={{ p.id }}">
+        <span class="nav-dot"></span>{{ p.nom }}
+      </a>
+      {% endfor %}
+    </div>
+    {% endif %}
+
+    {% if modeles_ia %}
+    <div id="liste-modeles-ia-client">
+      <h1>{% t "engine/templates/engine/client.html:88:11" %}</h1>
+      <p class="guide-hint">{% t "engine/templates/engine/client.html:89:29" %}</p>
+      {% for m in modeles_ia %}
+      <div class="nav-item nav-item-kpi">
+        <span class="nav-dot"></span>{{ m.nom }} <span class="muted-txt">({{ m.type_libelle }})</span>
+      </div>
+      {% endfor %}
+    </div>
+    {% endif %}
+
+    <div id="sidebar-bas">
+      <a class="nav-item" href="{% url 'engine:publicites_client' %}" style="text-decoration:none;display:flex"><span class="nav-dot"></span>{% t "engine/templates/engine/client.html:99:142" %}</a>
+      <a class="nav-item" href="{% url 'engine:messagerie' %}" style="text-decoration:none;display:flex"><span class="nav-dot"></span>{% t "engine/templates/engine/client.html:96:135" %}</a>
+      <a class="nav-item" href="{% url 'engine:agenda' %}" style="text-decoration:none;display:flex"><span class="nav-dot"></span>{% t "engine/templates/engine/client.html:104:136" %}</a>
+      <a class="nav-item" href="{% url 'engine:paiement_client' %}" style="text-decoration:none;display:flex">
+        <span class="nav-dot"></span>{% t "engine/templates/engine/client.html:102:38" %}
+      </a>
+      <select id="client-langue" title="{% t "engine/templates/engine/profile.html:langue:titre" %}" aria-label="{% t "engine/templates/engine/profile.html:langue:titre" %}" style="width:100%;margin:6px 0">
+        <option value=""{% if not langue_choisie %} selected{% endif %}>{% tf "engine/templates/engine/profile.html:langue:defaut" v1=langue_systeme_nom %}</option>
+        {% for l in langues_interface %}<option value="{{ l.code }}"{% if l.code == langue_choisie %} selected{% endif %}>{{ l.nom }}</option>{% endfor %}
+      </select>
+      <div id="sidebar-user">{% t "engine/templates/engine/client.html:80:30" %}</div>
+      <a href="/logout/" style="text-decoration:none">
+        <button id="btn-logout">{% t "engine/templates/engine/client.html:82:33" %}</button>
+      </a>
+    </div>
+  </div>
+
+  <!-- Zone principale -->
+  <div id="principal">
+    <div id="entete">
+      <div class="entete-rangee-titre">
+        <div class="entete-gauche">
+          <button id="btn-toggle-sidebar" onclick="toggleSidebar()" aria-label="{% t 'engine/templates/engine/client.html:90:77' %}">☰</button>
+        </div>
+      </div>
+    </div>
+
+    <div id="contenu">
+      <div id="ecran-accueil">
+        <div class="big">◈</div>
+        <div class="titre-accueil">{% if nom_affiche %}{{ nom_affiche }}{% else %}{% t "engine/templates/engine/index.html:16:27" %}{% endif %}</div>
+        <div>{% t "engine/templates/engine/client.html:99:14" %}</div>
+      </div>
+
+      <div id="zone-formulaire">
+        <div class="form-titre" id="form-titre"></div>
+        <div class="form-desc" id="form-desc"></div>
+
+        <!-- Recherche dans les donnees deja enregistrees de cette table.
+             Bascule INDEPENDANTE du formulaire ("Recherche seule" cote
+             entreprise, champ masquer_formulaire_client) : formulaire et
+             recherche s'affichent (ou non) chacun selon leur propre
+             bascule, independamment l'un de l'autre. -->
+        <div id="zone-recherche">
+          <div class="recherche-entete">
+            <span class="recherche-label">{% t "engine/templates/engine/client.html:113:43" %}</span>
+            <span id="recherche-compte" class="recherche-compte"></span>
+            <button type="button" id="btn-exporter-recherche-pdf" style="font-size:12px;padding:4px 8px" title="{% t 'engine/templates/engine/client.html:115:113' %}">{% t "engine/templates/engine/client.html:115:139" %}</button>
+          </div>
+          <input type="text" id="recherche-input" class="champ" placeholder="{% t 'engine/templates/engine/client.html:117:78' %}" oninput="filtrerRecherche()">
+          <button type="button" id="btn-scanner-qr-client" style="margin-bottom:10px">{% t "engine/templates/engine/client.html:118:87" %}</button>
+          <div class="tableau-recherche-scroll">
+            <div id="recherche-resultats"></div>
+          </div>
+        </div>
+
+        <div class="form-sep"></div>
+        <form id="le-form" novalidate></form>
+        <div class="form-actions" id="form-actions">
+          <button id="btn-soumettre" onclick="soumettre(event)">{% t "engine/templates/engine/client.html:127:65" %}</button>
+          <button id="btn-reset" type="button" onclick="reinitialiser()">{% t "engine/templates/engine/client.html:128:74" %}</button>
+        </div>
+      </div>
+
+      <div id="confirmation">
+        <!-- Message de succès centré (style original) -->
+        <div style="display:flex;flex-direction:column;align-items:center;gap:10px;padding:32px 0 24px;text-align:center;border-bottom:1px solid var(--border);margin-bottom:24px">
+          <div style="font-size:52px">✓</div>
+          <div style="font-size:16px;font-weight:700;color:var(--ok)">{% t "engine/templates/engine/client.html:136:71" %}</div>
+          <div style="font-size:12px;color:var(--muted)">{% t "engine/templates/engine/client.html:137:58" %}</div>
+        </div>
+        <!-- Récapitulatif DB -->
+        <div id="conf-ref">
+          <div>{% t "engine/templates/engine/client.html:141:16" %} <span class="ref-num" id="conf-ref-num">—</span></div>
+          <div class="ref-date" id="conf-ref-date"></div>
+        </div>
+        <div id="conf-recap">
+          <div id="conf-recap-titre">{% t "engine/templates/engine/client.html:145:38" %}</div>
+          <div id="conf-recap-lignes"></div>
+        </div>
+        <div class="print-footer" id="conf-print-footer"></div>
+        <div id="conf-actions">
+          <button id="btn-pdf">{% t "engine/templates/engine/client.html:150:32" %}</button>
+          <button id="btn-nouveau" onclick="remplirNouveau()">{% t "engine/templates/engine/client.html:151:63" %}</button>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<div id="toast"></div>
+
+
+
+<!-- Modal capture média : caméra/micro directement dans le navigateur -->
+<div id="modal-capture-fond" style="position:fixed;inset:0;background:color-mix(in srgb,var(--voile,#000000) 80%,transparent);display:none;align-items:center;justify-content:center;z-index:5000;padding:14px">
+  <div style="width:520px;max-width:100%;background:var(--panel);border:1px solid var(--border);border-radius:10px;padding:18px;max-height:92vh;display:flex;flex-direction:column;gap:10px">
+    <div id="capture-titre" style="margin:0;font-size:15px;font-weight:700">{% t "engine/templates/engine/client.html:163:77" %}</div>
+    <div id="capture-erreur" style="display:none;font-size:12px;color:var(--danger);background:var(--fond-danger,#2a1010);border:1px solid var(--danger);border-radius:6px;padding:8px"></div>
+    <div style="position:relative;background:var(--fond-noir,#000);border:1px solid var(--border);border-radius:8px;overflow:hidden;min-height:220px;display:flex;align-items:center;justify-content:center">
+      <video id="capture-video" autoplay playsinline muted style="width:100%;max-height:340px;display:block"></video>
+      <button type="button" id="capture-btn-basculer" title="{% t 'engine/templates/engine/client.html:167:62' %}" style="display:none;position:absolute;bottom:8px;right:8px;background:color-mix(in srgb,var(--voile,#000000) 55%,transparent);color:var(--texte-sombre,#fff);border:1px solid color-mix(in srgb,var(--voile-clair,#ffffff) 40%,transparent);border-radius:50%;width:34px;height:34px;font-size:16px;cursor:pointer">🔄</button>
+      <img id="capture-photo-apercu" style="width:100%;max-height:340px;display:none;object-fit:contain">
+      <audio id="capture-audio-apercu" controls style="width:90%;display:none"></audio>
+      <video id="capture-video-apercu" controls style="width:100%;max-height:340px;display:none"></video>
+      <div id="capture-rec-indicateur" style="display:none;position:absolute;top:8px;left:8px;align-items:center;gap:6px;background:color-mix(in srgb,var(--voile,#000000) 60%,transparent);padding:4px 8px;border-radius:12px">
+        <span id="capture-rec-point" style="width:9px;height:9px;border-radius:50%;background:var(--danger)"></span>
+        <span id="capture-rec-temps" style="font-size:11px;color:var(--texte-sombre,#fff)">00:00</span>
+      </div>
+    </div>
+    <canvas id="capture-canvas" style="display:none"></canvas>
+    <div style="display:flex;justify-content:space-between;gap:8px;margin-top:4px">
+      <button type="button" id="capture-btn-annuler">{% t "engine/templates/engine/client.html:178:54" %}</button>
+      <div style="display:flex;gap:8px">
+        <button type="button" id="capture-btn-reprendre" style="display:none">{% t "engine/templates/engine/client.html:180:79" %}</button>
+        <button type="button" id="capture-btn-action" style="background:var(--accent);color:var(--texte-noir,#000);font-weight:600">{% t "engine/templates/engine/client.html:181:115" %}</button>
+        <button type="button" id="capture-btn-utiliser" style="display:none;background:var(--accent);color:var(--texte-noir,#000);font-weight:600">{% t "engine/templates/engine/client.html:182:130" %}</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Modal Visionneuse : espace dédié pour ouvrir en grand une image/son/vidéo
+     depuis un champ média (bouton "⤢ Ouvrir" de _renduValeurMedia), même
+     logique que la visionneuse côté admin dans index.html. -->
+<div id="modal-visionneuse-fond" style="position:fixed;inset:0;background:color-mix(in srgb,var(--voile,#000000) 85%,transparent);display:none;align-items:center;justify-content:center;z-index:6000;padding:14px">
+  <div style="width:min(900px, 96vw);max-height:92vh;background:var(--panel);border:1px solid var(--border);border-radius:10px;padding:16px;display:flex;flex-direction:column;gap:10px">
+    <div style="display:flex;align-items:center;justify-content:space-between;flex-shrink:0;gap:10px">
+      <h2 id="visionneuse-titre" style="margin:0;font-size:14px;color:var(--muted);overflow:hidden;text-overflow:ellipsis;white-space:nowrap">{% t "engine/templates/engine/client.html:194:143" %}</h2>
+      <div style="display:flex;align-items:center;gap:8px;flex-shrink:0">
+        <a id="visionneuse-lien-original" href="#" target="_blank" rel="noopener" title="{% t 'engine/templates/engine/client.html:196:90' %}" style="color:var(--accent);text-decoration:none;font-size:13px;border:1px solid var(--border);border-radius:4px;padding:4px 8px;line-height:1">⤢</a>
+        <button type="button" id="btn-fermer-visionneuse" style="background:transparent;border:none;font-size:18px;cursor:pointer;color:var(--muted)">✕</button>
+      </div>
+    </div>
+    <div style="flex:1;min-height:0;background:var(--fond-noir,#000);border:1px solid var(--border);border-radius:8px;display:flex;align-items:center;justify-content:center;overflow:hidden">
+      <img id="visionneuse-image" style="display:none;max-width:100%;max-height:78vh;object-fit:contain">
+      <video id="visionneuse-video" controls autoplay style="display:none;max-width:100%;max-height:78vh"></video>
+      <audio id="visionneuse-audio" controls style="display:none;width:90%"></audio>
+      <div id="visionneuse-lisible" style="display:none;width:100%;align-self:stretch;overflow:auto"></div>
+    </div>
+  </div>
+</div>
+
+{{ tables|json_script:"tables-data" }}
+{% i18n_js %}
+<script src="{% static 'engine/js/agenda_alerte.js' %}" defer></script>
+<script src="{% static 'engine/js/telechargement.js' %}"></script>
+<script src="{% static 'engine/js/gy_couleur.js' %}"></script>
+<script src="{% static 'engine/js/selecteur_couleur.js' %}"></script>
+<script src="{% static 'engine/js/selecteur_lieu.js' %}"></script>
+<script>window.APERCU_PDFJS={lib:"{% static 'engine/vendor/pdfjs/pdf.min.js' %}",worker:"{% static 'engine/vendor/pdfjs/pdf.worker.min.js' %}",base:"{% static 'engine/vendor/pdfjs/' %}"};</script><script src="{% static 'engine/js/apercu_fichier.js' %}"></script>
+<script src="{% static 'engine/js/formulaire_theme.js' %}"></script>
+<script src="{% static 'engine/js/formulaire_conditionnel_client.js' %}"></script>
+<script src="{% static 'engine/js/champ_tenseur.js' %}"></script>
+<script src="{% static 'engine/js/client_1.js' %}"></script>
+<script>
+// Langue personnelle du client : enregistrée sur son compte, son espace se recharge dans sa langue.
+document.getElementById("client-langue").onchange = async e => {
+  try {
+    const r = await fetch("{% url 'engine:api_langue' %}", {method: "POST", headers: {"Content-Type": "application/json", "X-CSRFToken": (document.cookie.match(/gy_csrftoken=([^;]+)/) || [])[1] || ""}, body: JSON.stringify({langue: e.target.value})});
+    if(r.ok) location.reload();
+  } catch(err) { /* réseau : on garde la langue affichée */ }
+};
+</script>
+<div id="msg-402" style="display:none;position:fixed;bottom:20px;left:50%;transform:translateX(-50%);z-index:9999;background:var(--fond-avert-clair,#fff3cd);border:1px solid var(--warn,#ffc107);border-radius:8px;padding:16px 20px;box-shadow:0 4px 16px color-mix(in srgb,var(--ombre,#000000) 15%,transparent);max-width:400px;text-align:center">
+  <div style="font-weight:600;margin-bottom:6px">{% t "engine/templates/engine/client.html:211:50" %}</div>
+  <div class="msg402-texte" style="font-size:13px;margin-bottom:10px"></div>
+  <a class="msg402-lien" href="/espace-client/paiement/" style="display:inline-block;padding:8px 16px;background:var(--accent,#4a90d9);color:var(--texte-sombre,#fff);border-radius:6px;text-decoration:none;font-size:13px">{% t "engine/templates/engine/client.html:213:202" %}</a>
+  <button onclick="document.getElementById('msg-402').style.display='none'" style="display:block;margin:8px auto 0;background:none;border:none;color:var(--muted,#888);cursor:pointer;font-size:12px">{% t "engine/templates/engine/client.html:214:199" %}</button>
+</div>
+<script src="{% static 'engine/js/icones.js' %}"></script>
+</body>
+</html>

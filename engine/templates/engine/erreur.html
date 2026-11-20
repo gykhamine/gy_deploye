@@ -1,0 +1,28 @@
+{% load static %}{% load i18n_extras %}<!DOCTYPE html>
+<html lang="{{ langue }}">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="robots" content="noindex">
+<title>{{ code }} — {{ titre }} — {% t "engine/templates/engine/index.html:16:27" %}</title>
+<link rel="stylesheet" href="{% static 'engine/css/app.css' %}"><link rel="stylesheet" href="{% url 'engine:marque_css' %}"><script src="{% static 'engine/js/marque.js' %}" defer></script>
+{% i18n_js %}
+<script src="{% static 'engine/js/dialogues.js' %}"></script>
+</head>
+<body class="page-erreur">
+<main class="erreur-carte">
+  <img class="intro-logo-img" src="{% static 'engine/img/logo_agent_gy.png' %}" alt="{% t 'engine/templates/engine/index.html:16:27' %}">
+  <div class="intro-logo">{% t "engine/templates/engine/index.html:16:27" %}</div>
+  <div class="intro-sub">{% t "engine/templates/engine/index.html:17:26" %}</div>
+  <div class="intro-tagline">{% t "engine/templates/engine/index.html:18:30" %}</div>
+  <div class="erreur-code">{{ code }}</div>
+  <h1>{{ titre }}</h1>
+  <p class="erreur-message">{{ message }}</p>
+  <div class="erreur-actions">
+    <a class="btn-erreur" href="/">{% t "engine/templates/engine/erreur.html:accueil" %}</a>
+    <button type="button" class="btn-erreur secondaire" onclick="history.length > 1 ? history.back() : (location.href = '/')">{% t "engine/templates/engine/erreur.html:retour" %}</button>
+    {% if reessayer %}<button type="button" class="btn-erreur secondaire" onclick="location.reload()">{% t "engine/templates/engine/erreur.html:reessayer" %}</button>{% endif %}
+  </div>
+</main>
+</body>
+</html>

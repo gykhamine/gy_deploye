@@ -1,0 +1,284 @@
+{% extends "engine/page_simple.html" %}
+{% load i18n_extras %}
+{% load static i18n_extras %}
+{% block classe_page %}page-personnalisation{% endblock %}
+{% block titre %}{% t "engine/templates/engine/personnalisation.html:titre" %}{% endblock %}
+{% block contenu %}
+<p class="perso-intro">{% t "engine/templates/engine/personnalisation.html:intro" %}</p>
+
+<section class="carte">
+  <h2>{% t "engine/templates/engine/personnalisation.html:identite_titre" %}</h2>
+  <p class="perso-aide">{% t "engine/templates/engine/personnalisation.html:identite_aide" %}</p>
+  <label class="perso-etiquette"><input type="checkbox" id="marque-active" checked> {% t "engine/templates/engine/personnalisation.html:marque_active" %}</label>
+  <p class="perso-aide">{% t "engine/templates/engine/personnalisation.html:marque_active_aide" %}</p>
+  <div class="perso-ligne">
+    <div id="logo-apercu" class="perso-logo"><img class="logo-gy" src="{% static 'engine/img/logo_agent_gy.png' %}" alt=""></div>
+    <div class="perso-nom" style="flex:1;min-width:200px"><label class="perso-etiquette" for="id-nom">{% t "engine/templates/engine/personnalisation.html:nom" %}</label><input type="text" id="id-nom" class="perso-champ" maxlength="100" value="{{ entreprise.nom }}"></div>
+    <label class="perso-bouton">{% t "engine/templates/engine/personnalisation.html:logo_choisir" %}
+      <input type="file" id="logo-fichier" accept=".png,.jpg,.jpeg,.jfif,.webp,.gif,.apng,.svg,.bmp,.tif,.tiff,.ico,.avif,.heic,.heif,.jp2,.tga,.ppm,.pgm" hidden>
+    </label>
+  </div>
+</section>
+
+<section class="carte">
+  <h2>{% t "engine/templates/engine/personnalisation.html:langue_titre" %}</h2>
+  <p class="perso-aide">{% t "engine/templates/engine/personnalisation.html:langue_aide" %}</p>
+  <label class="perso-etiquette" for="id-langue">{% t "engine/templates/engine/personnalisation.html:langue_etiquette" %}</label>
+  <select id="id-langue" class="perso-champ">
+    <option value=""{% if not langue_serveur %} selected{% endif %}>{% tf "engine/templates/engine/personnalisation.html:langue_auto" v1=langue_detectee %}</option>
+    {% for l in langues %}<option value="{{ l.code }}"{% if l.code == langue_serveur %} selected{% endif %}>{{ l.nom }}</option>{% endfor %}
+  </select>
+</section>
+
+<section class="carte">
+  <h2>{% t "engine/templates/engine/employes.html:62:35" %}</h2>
+  <p class="perso-aide">{% t "engine/templates/engine/employes.html:63:69" %}</p>
+  <label class="perso-etiquette" for="id-adresse">{% t "engine/templates/engine/employes.html:68:136" %}</label>
+  <textarea id="id-adresse" class="perso-champ" rows="2" maxlength="500" placeholder="{% t 'engine/templates/engine/employes.html:69:56' %}">{{ entreprise.adresse }}</textarea>
+  <label class="perso-etiquette" for="id-tel">{% t "engine/templates/engine/employes.html:75:138" %}</label>
+  <input type="text" id="id-tel" class="perso-champ" maxlength="60" placeholder="+242 06 000 00 00" value="{{ entreprise.telephone_service_client }}">
+  <label class="perso-etiquette" for="id-email">{% t "engine/templates/engine/employes.html:81:138" %}</label>
+  <input type="email" id="id-email" class="perso-champ" maxlength="254" placeholder="{% t 'engine/templates/engine/employes.html:82:104' %}" value="{{ entreprise.email_contact }}">
+  <label class="perso-etiquette" for="id-site">{% t "engine/templates/engine/employes.html:88:136" %}</label>
+  <input type="url" id="id-site" class="perso-champ" maxlength="200" placeholder="{% t 'engine/templates/engine/employes.html:89:90' %}" value="{{ entreprise.site_web }}">
+</section>
+
+<section class="carte">
+  <h2>{% t "engine/templates/engine/personnalisation.html:slogans_titre" %}</h2>
+  <p class="perso-aide">{% t "engine/templates/engine/personnalisation.html:slogans_aide" %}</p>
+  <label class="perso-etiquette" for="slogan">{% t "engine/templates/engine/personnalisation.html:slogan" %}</label>
+  <input type="text" id="slogan" class="perso-champ" maxlength="120">
+  <label class="perso-etiquette" for="slogan2">{% t "engine/templates/engine/personnalisation.html:slogan2" %}</label>
+  <input type="text" id="slogan2" class="perso-champ" maxlength="120">
+</section>
+
+<section class="carte">
+  <h2>{% t "engine/templates/engine/personnalisation.html:couleurs_titre" %}</h2>
+  <p class="perso-aide">{% t "engine/templates/engine/personnalisation.html:couleurs_aide" %}</p>
+  <div id="couleurs" class="perso-couleurs">
+    {% for v in variables %}
+    <div class="perso-couleur">
+      <input type="color" data-var="{{ v.nom }}" data-defaut="{{ v.defaut }}" value="{{ v.defaut }}" aria-label="{{ v.libelle }}">
+      <span>{{ v.libelle }}</span>
+      <button type="button" class="perso-retour" data-var="{{ v.nom }}" title="{% t 'engine/templates/engine/personnalisation.html:couleur_origine' %}">{% t "engine/templates/engine/personnalisation.html:60:153" %}</button>
+    </div>
+    {% endfor %}
+  </div>
+</section>
+
+<section class="carte">
+  <h2>{% t "engine/templates/engine/personnalisation.html:couleurs_texte_titre" %}</h2>
+  <p class="perso-aide">{% t "engine/templates/engine/personnalisation.html:couleurs_texte_aide" %}</p>
+  <div id="couleurs-texte" class="perso-couleurs">
+    {% for v in variables_texte %}
+    <div class="perso-couleur">
+      <input type="color" data-var="{{ v.nom }}" data-defaut="{{ v.defaut }}" value="{{ v.defaut }}" aria-label="{{ v.libelle }}">
+      <span>{{ v.libelle }}</span>
+      <button type="button" class="perso-retour" data-var="{{ v.nom }}" title="{% t 'engine/templates/engine/personnalisation.html:couleur_origine' %}">{% t "engine/templates/engine/personnalisation.html:74:153" %}</button>
+    </div>
+    {% endfor %}
+  </div>
+</section>
+
+<section class="carte">
+  <h2>{% t "engine/templates/engine/personnalisation.html:couleurs_formes_titre" %}</h2>
+  <p class="perso-aide">{% t "engine/templates/engine/personnalisation.html:couleurs_formes_aide" %}</p>
+  <div id="couleurs-formes" class="perso-couleurs">
+    {% for v in variables_formes %}
+    <div class="perso-couleur">
+      <input type="color" data-var="{{ v.nom }}" data-defaut="{{ v.defaut }}" value="{{ v.defaut }}" aria-label="{{ v.libelle }}">
+      <span>{{ v.libelle }}</span>
+      <button type="button" class="perso-retour" data-var="{{ v.nom }}" title="{% t 'engine/templates/engine/personnalisation.html:couleur_origine' %}">{% t "engine/templates/engine/personnalisation.html:88:153" %}</button>
+    </div>
+    {% endfor %}
+  </div>
+</section>
+
+<section class="carte">
+  <h2>{% t "engine/templates/engine/personnalisation.html:couleurs_fonds_titre" %}</h2>
+  <p class="perso-aide">{% t "engine/templates/engine/personnalisation.html:couleurs_fonds_aide" %}</p>
+  <div id="couleurs-fonds" class="perso-couleurs">
+    {% for v in variables_fonds %}
+    <div class="perso-couleur">
+      <input type="color" data-var="{{ v.nom }}" data-defaut="{{ v.defaut }}" value="{{ v.defaut }}" aria-label="{{ v.libelle }}">
+      <span>{{ v.libelle }}</span>
+      <button type="button" class="perso-retour" data-var="{{ v.nom }}" title="{% t 'engine/templates/engine/personnalisation.html:couleur_origine' %}">{% t "engine/templates/engine/personnalisation.html:102:153" %}</button>
+    </div>
+    {% endfor %}
+  </div>
+</section>
+
+<section class="carte">
+  <h2>{% t "engine/templates/engine/personnalisation.html:couleurs_bordures_titre" %}</h2>
+  <p class="perso-aide">{% t "engine/templates/engine/personnalisation.html:couleurs_bordures_aide" %}</p>
+  <div id="couleurs-bordures" class="perso-couleurs">
+    {% for v in variables_bordures %}
+    <div class="perso-couleur">
+      <input type="color" data-var="{{ v.nom }}" data-defaut="{{ v.defaut }}" value="{{ v.defaut }}" aria-label="{{ v.libelle }}">
+      <span>{{ v.libelle }}</span>
+      <button type="button" class="perso-retour" data-var="{{ v.nom }}" title="{% t 'engine/templates/engine/personnalisation.html:couleur_origine' %}">{% t "engine/templates/engine/personnalisation.html:116:153" %}</button>
+    </div>
+    {% endfor %}
+  </div>
+</section>
+
+<section class="carte">
+  <h2>{% t "engine/templates/engine/personnalisation.html:couleurs_document_titre" %}</h2>
+  <p class="perso-aide">{% t "engine/templates/engine/personnalisation.html:couleurs_document_aide" %}</p>
+  <div id="couleurs-document" class="perso-couleurs">
+    {% for v in variables_document %}
+    <div class="perso-couleur">
+      <input type="color" data-var="{{ v.nom }}" data-defaut="{{ v.defaut }}" value="{{ v.defaut }}" aria-label="{{ v.libelle }}">
+      <span>{{ v.libelle }}</span>
+      <button type="button" class="perso-retour" data-var="{{ v.nom }}" title="{% t 'engine/templates/engine/personnalisation.html:couleur_origine' %}">{% t "engine/templates/engine/personnalisation.html:130:153" %}</button>
+    </div>
+    {% endfor %}
+  </div>
+</section>
+
+<section class="carte">
+  <h2>{% t "engine/templates/engine/personnalisation.html:mise_en_page_titre" %}</h2>
+  <p class="perso-aide">{% t "engine/templates/engine/personnalisation.html:mise_en_page_aide" %}</p>
+  <div class="perso-ligne">
+    <div><label class="perso-etiquette" for="police">{% t "engine/templates/engine/personnalisation.html:police" %}</label>
+      <select id="police" class="perso-champ">
+        <option value="">{% t "engine/templates/engine/personnalisation.html:police_origine" %}</option>
+        {% for p in polices %}<option value="{{ p.cle }}" data-pile='{{ p.pile }}'>{{ p.libelle }}</option>{% endfor %}
+      </select></div>
+    <div><label class="perso-etiquette" for="taille">{% t "engine/templates/engine/personnalisation.html:taille" %}</label>
+      <input type="number" id="taille" class="perso-champ" min="{{ limites.taille.0 }}" max="{{ limites.taille.1 }}" placeholder="{{ limites.taille.0 }}–{{ limites.taille.1 }}"></div>
+    <div><label class="perso-etiquette" for="barre">{% t "engine/templates/engine/personnalisation.html:barre" %}</label>
+      <input type="number" id="barre" class="perso-champ" min="{{ limites.barre.0 }}" max="{{ limites.barre.1 }}" placeholder="{{ limites.barre.0 }}–{{ limites.barre.1 }}"></div>
+  </div>
+</section>
+
+<section class="carte">
+  <h2>{% t "engine/templates/engine/personnalisation.html:fond_titre" %}</h2>
+  <p class="perso-aide">{% t "engine/templates/engine/personnalisation.html:fond_aide" %}</p>
+  <div class="perso-ligne">
+    <label class="perso-bouton">{% t "engine/templates/engine/personnalisation.html:fond_choisir" %}<input type="file" id="fond-fichier" accept=".png,.jpg,.jpeg,.jfif,.webp,.gif,.apng,.svg,.bmp,.tif,.tiff,.ico,.avif,.heic,.heif,.jp2,.tga,.ppm,.pgm" hidden></label>
+    <button type="button" id="fond-retirer">{% t "engine/templates/engine/personnalisation.html:fond_retirer" %}</button>
+    <div><label class="perso-etiquette" for="fond-ajust">{% t "engine/templates/engine/personnalisation.html:fond_ajust" %}</label>
+      <select id="fond-ajust" class="perso-champ"><option value="cover">{% t "engine/templates/engine/personnalisation.html:fond_cover" %}</option><option value="contain">{% t "engine/templates/engine/personnalisation.html:fond_contain" %}</option><option value="repeat">{% t "engine/templates/engine/personnalisation.html:fond_repeat" %}</option></select></div>
+    <label class="perso-etiquette"><input type="checkbox" id="fond-fixe" checked> {% t "engine/templates/engine/personnalisation.html:fond_fixe" %}</label>
+    <div><label class="perso-etiquette" for="fond-voile">{% t "engine/templates/engine/personnalisation.html:fond_voile" %}</label><input type="number" id="fond-voile" class="perso-champ" min="0" max="100" placeholder="0"></div>
+    <div><label class="perso-etiquette" for="fond-flou">{% t "engine/templates/engine/personnalisation.html:fond_flou" %}</label><input type="number" id="fond-flou" class="perso-champ" min="0" max="40" placeholder="0"></div>
+  </div>
+</section>
+
+<section class="carte">
+  <h2>{% t "engine/templates/engine/personnalisation.html:transp_titre" %}</h2>
+  <p class="perso-aide">{% t "engine/templates/engine/personnalisation.html:transp_aide" %}</p>
+  <div class="perso-ligne">
+    <div><label class="perso-etiquette" for="op-panneaux">{% t "engine/templates/engine/personnalisation.html:transp_panneaux" %}</label><input type="number" id="op-panneaux" class="perso-champ" min="0" max="100" placeholder="100"></div>
+    <div><label class="perso-etiquette" for="op-zones">{% t "engine/templates/engine/personnalisation.html:transp_zones" %}</label><input type="number" id="op-zones" class="perso-champ" min="0" max="100" placeholder="100"></div>
+    <div><label class="perso-etiquette" for="rayon">{% t "engine/templates/engine/personnalisation.html:rayon" %}</label><input type="number" id="rayon" class="perso-champ" min="0" max="40"></div>
+  </div>
+</section>
+
+<section class="carte">
+  <h2>{% t "engine/templates/engine/personnalisation.html:regles_titre" %}</h2>
+  <p class="perso-aide">{% t "engine/templates/engine/personnalisation.html:regles_aide" %}</p>
+  <div id="regles"></div>
+  <div class="perso-ligne">
+    <select id="regle-page" class="perso-champ" aria-label="{% t "engine/templates/engine/personnalisation.html:regle_page" %}"><option value="*">{% t "engine/templates/engine/personnalisation.html:regle_toutes" %}</option>{% for p in pages %}<option value="{{ p.chemin }}">{{ p.libelle }}</option>{% endfor %}</select>
+    <input type="text" id="regle-sel" class="perso-champ" maxlength="300" placeholder="{% t "engine/templates/engine/personnalisation.html:regle_selecteur" %}" value="body">
+    <button type="button" id="regle-styler">{% t "engine/templates/engine/personnalisation.html:regle_styler" %}</button>
+  </div>
+</section>
+
+<section class="carte">
+  <h2>{% t "engine/templates/engine/personnalisation.html:css_titre" %}</h2>
+  <p class="perso-aide">{% t "engine/templates/engine/personnalisation.html:css_aide" %}</p>
+  <textarea id="css-libre" class="perso-champ perso-css" rows="10" maxlength="{{ limites.css }}" spellcheck="false"></textarea>
+</section>
+
+<div class="perso-actions">
+  <button type="button" id="btn-enregistrer" class="principal">{% t "engine/templates/engine/personnalisation.html:enregistrer" %}</button>
+  <button type="button" id="btn-origine">{% t "engine/templates/engine/personnalisation.html:origine" %}</button>
+</div>
+{% endblock %}
+{% block script %}
+<script src="{% static 'engine/js/gy_couleur.js' %}"></script>
+<script src="{% static 'engine/js/selecteur_couleur.js' %}"></script>
+<script>
+const COULEURS = [...document.querySelectorAll("#couleurs input[type=color], #couleurs-texte input[type=color], #couleurs-formes input[type=color], #couleurs-fonds input[type=color], #couleurs-bordures input[type=color], #couleurs-document input[type=color]")];
+let REGLES = [];
+const VAR = inp => "--" + inp.dataset.var.replace(/_/g, "-");   // même règle que marque.nom_variable()
+const MODIFIEES = new Set();   // variables dont la couleur diffère de l'origine
+function pose(inp, valeur, modifiee){
+  inp.value = valeur;
+  inp.closest(".perso-couleur").classList.toggle("modifiee", modifiee);
+  if(modifiee){ MODIFIEES.add(inp.dataset.var); document.body.style.setProperty(VAR(inp), valeur); }
+  else { MODIFIEES.delete(inp.dataset.var); document.body.style.removeProperty(VAR(inp)); }
+}
+async function charger(){
+  const d = await api("/api/marque/?edition=1");
+  $("marque-active").checked = d.actif !== false;
+  $("slogan").value = d.slogan ?? ""; $("slogan").placeholder = d.defaut_slogan;
+  $("slogan2").value = d.slogan2 ?? ""; $("slogan2").placeholder = d.defaut_slogan2;
+  COULEURS.forEach(i => pose(i, (d.couleurs[i.dataset.var] || i.dataset.defaut).slice(0, 7), !!d.couleurs[i.dataset.var]));
+  $("police").value = d.police || ""; $("taille").value = d.taille || ""; $("barre").value = d.largeur_barre || ""; $("css-libre").value = d.css || "";
+  apercu();
+  const f = d.fond || {};
+  $("fond-ajust").value = f.ajustement || "cover"; $("fond-fixe").checked = f.fixe !== false; $("fond-voile").value = f.voile || ""; $("fond-flou").value = f.flou || "";
+  $("op-panneaux").value = d.opacite_panneaux ?? ""; $("op-zones").value = d.opacite_zones ?? ""; $("rayon").value = d.rayon ?? "";
+  REGLES = d.elements || [];
+  $("regles").innerHTML = REGLES.length ? "" : "<p class='perso-aide'>" + tj("engine/templates/engine/personnalisation.html:js:regles_vide") + "</p>";
+  REGLES.forEach((r, i) => { const l = document.createElement("div"); l.className = "perso-ligne"; l.textContent = r.page + " \u00b7 " + r.sel + " \u00b7 " + Object.keys(r.style).join(", ");
+    const b = document.createElement("button"); b.type = "button"; b.textContent = "\u00d7"; b.onclick = async () => { await api("/api/marque/", {elements: REGLES.filter((_, j) => j !== i)}); toast(tj("engine/templates/engine/personnalisation.html:js:regle_retiree")); charger(); };
+    l.appendChild(b); $("regles").appendChild(l); });
+  if(d.logo_url) $("logo-apercu").innerHTML = '<img src="' + encodeURI(d.logo_url) + "?t=" + Date.now() + '" alt="">';
+}
+function apercu(){   // aperçu en direct de la police, de la taille et de la barre latérale sur cette page
+  const o = $("police").selectedOptions[0], st = document.body.style;
+  o && o.dataset.pile ? st.setProperty("font-family", o.dataset.pile) : st.removeProperty("font-family");
+  $("taille").value ? st.setProperty("font-size", $("taille").value + "px") : st.removeProperty("font-size");
+}
+["police", "taille"].forEach(id => $(id).addEventListener("input", apercu));
+COULEURS.forEach(i => i.addEventListener("input", () => pose(i, i.value.slice(0, 7), true)));
+document.querySelectorAll(".perso-retour").forEach(b => b.onclick = () => { const i = COULEURS.find(c => c.dataset.var === b.dataset.var); pose(i, i.dataset.defaut, false); });
+$("btn-enregistrer").onclick = async () => {
+  await api("/api/entreprise/identite/", {nom: $("id-nom").value, adresse: $("id-adresse").value, telephone_service_client: $("id-tel").value, email_contact: $("id-email").value, site_web: $("id-site").value});
+  await api("/api/langue/serveur/", {langue: $("id-langue").value});   // langue de l'interface du serveur : enregistrée en base, reprise à chaque démarrage
+  const couleurs = {};
+  COULEURS.forEach(i => { couleurs[i.dataset.var] = MODIFIEES.has(i.dataset.var) ? i.value : ""; });
+  await api("/api/marque/", {slogan: $("slogan").value.trim() || null, slogan2: $("slogan2").value.trim() || null, couleurs,
+    police: $("police").value || null, taille: parseInt($("taille").value, 10) || null, largeur_barre: parseInt($("barre").value, 10) || null, css: $("css-libre").value.trim() || null,
+    rayon: $("rayon").value === "" ? null : parseInt($("rayon").value, 10), opacite_panneaux: $("op-panneaux").value === "" ? null : parseInt($("op-panneaux").value, 10), opacite_zones: $("op-zones").value === "" ? null : parseInt($("op-zones").value, 10),
+    ...($("fond-voile").dataset.actif ? {fond: {ajustement: $("fond-ajust").value, fixe: $("fond-fixe").checked, voile: parseInt($("fond-voile").value, 10) || 0, flou: parseInt($("fond-flou").value, 10) || 0}} : {})});
+  toast(tj("engine/templates/engine/personnalisation.html:js:enregistre"));
+  charger();
+};
+$("btn-origine").onclick = async () => {
+  await api("/api/marque/", {slogan: null, slogan2: null, couleurs: null, police: null, taille: null, largeur_barre: null, css: null, rayon: null, opacite_panneaux: null, opacite_zones: null, fond: null, elements: null});
+  toast(tj("engine/templates/engine/personnalisation.html:js:origine"));
+  charger();
+};
+$("marque-active").onchange = async e => {   // thème de l'entreprise activé / désactivé : les réglages restent enregistrés
+  const actif = e.target.checked;
+  await api("/api/marque/", {actif});
+  toast(tj(actif ? "engine/templates/engine/personnalisation.html:js:marque_active_on" : "engine/templates/engine/personnalisation.html:js:marque_active_off"));
+  charger();
+};
+$("logo-fichier").onchange = async e => {
+  const f = e.target.files[0]; if(!f) return;
+  const fd = new FormData(); fd.append("logo", f);
+  await api("/api/entreprise/logo/", fd);
+  toast(tj("engine/templates/engine/personnalisation.html:js:logo"));
+  charger();
+};
+$("fond-fichier").onchange = async e => {
+  const f = e.target.files[0]; if(!f) return;
+  const fd = new FormData(); fd.append("image", f);
+  const r = await api("/api/marque/image/", fd);
+  await api("/api/marque/", {fond: {url: r.url, ajustement: $("fond-ajust").value, fixe: $("fond-fixe").checked, voile: parseInt($("fond-voile").value, 10) || 0, flou: parseInt($("fond-flou").value, 10) || 0}});
+  toast(tj("engine/templates/engine/personnalisation.html:js:enregistre"));
+  charger();
+};
+$("fond-retirer").onclick = async () => { await api("/api/marque/", {fond: null}); charger(); };
+["fond-ajust", "fond-fixe", "fond-voile", "fond-flou"].forEach(id => $(id).addEventListener("input", () => { $("fond-voile").dataset.actif = "1"; }));
+$("regle-styler").onclick = () => { if(window.gyEditeurOuvrir) window.gyEditeurOuvrir($("regle-sel").value.trim() || "body", $("regle-page").value); };
+charger();
+</script>
+{% endblock %}

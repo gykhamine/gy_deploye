@@ -1,0 +1,66 @@
+{% load static %}
+{% load i18n_extras %}
+<!DOCTYPE html>
+<html lang="{{ langue_html|default:'fr' }}">
+<head>
+<script>if(window.top!==window){window.top.location=window.location.href;}</script>
+<link rel="stylesheet" href="{% static 'engine/css/app.css' %}"><link rel="stylesheet" href="{% url 'engine:marque_css' %}"><script src="{% static 'engine/js/marque.js' %}" defer></script><script src="{% static 'engine/js/gestes_tactiles.js' %}" defer></script>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>{% t "engine/templates/engine/login.html:9:8" %}</title>
+<script src="{% static 'engine/js/dialogues.js' %}"></script>
+</head>
+<body class="page-login">
+
+<div class="login-card">
+  <div class="login-logo">
+    <img src="{% static 'engine/img/logo_agent_gy.png' %}" alt="{% t 'engine/templates/engine/login.html:17:65' %}">
+    <h1>{% t "engine/templates/engine/login.html:18:9" %}</h1>
+    <p>{% t "engine/templates/engine/login.html:19:8" %}</p>
+  </div>
+
+  {% if formulaire.non_field_errors %}
+    <div class="erreur-global">{% for err in formulaire.non_field_errors %}{{ err }}{% endfor %}</div>
+  {% endif %}
+
+  {% if entreprise_choisie %}
+  {# Étape 2 : entreprise choisie, la page est déjà à ses couleurs (thème, logo, nom, langue) : identifiants. #}
+  <a class="lien-changer" href="{% url 'engine:login' %}?e={% if suite %}&amp;next={{ suite|urlencode }}{% endif %}">{% t "engine/templates/engine/login.html:changer_entreprise" %}</a>
+  <form method="post" action="{% url 'engine:login' %}{% if suite %}?next={{ suite|urlencode }}{% endif %}">
+    {% csrf_token %}
+    <div class="groupe-champ">
+      <label for="id_username">{{ formulaire.username.label }}</label>
+      {{ formulaire.username }}
+      {% if formulaire.username.errors %}<div class="erreur-global" style="margin-top:6px;margin-bottom:0">{% for e in formulaire.username.errors %}{{ e }}{% endfor %}</div>{% endif %}
+    </div>
+    <div class="groupe-champ">
+      <label for="id_password">{{ formulaire.password.label }}</label>
+      {{ formulaire.password }}
+      {% if formulaire.password.errors %}<div class="erreur-global" style="margin-top:6px;margin-bottom:0">{% for e in formulaire.password.errors %}{{ e }}{% endfor %}</div>{% endif %}
+    </div>
+    <p class="guide-hint">{% t "engine/templates/engine/login.html:35:27" %}</p>
+  <button type="submit" class="btn-connexion">{% t "engine/templates/engine/login.html:36:47" %}</button>
+  </form>
+
+  <div id="section-ent"></div>
+  {% else %}
+  {# Étape 1 : liste des entreprises (logo, nom, couleur du thème) avec recherche ; un clic recharge la page aux couleurs de l'entreprise. #}
+  <div id="choix-entreprise" data-suite="{{ suite }}">
+    <div class="groupe-champ">
+      <label for="recherche-entreprise">{% t "engine/templates/engine/login.html:titre_choix" %}</label>
+      <input type="search" id="recherche-entreprise" class="champ-formulaire" autocomplete="off" autofocus
+             placeholder="{% t 'engine/templates/engine/login.html:placeholder_recherche' %}">
+    </div>
+    <ul id="liste-entreprises" class="ent-liste"></ul>
+    <p id="statut-entreprises" class="guide-hint" role="status" aria-live="polite"></p>
+    <p class="guide-hint">{% t "engine/static/engine/js/login_1.js:ou_creer" %}</p>
+    <a class="btn-client" href="/inscription/">{% t "engine/static/engine/js/login_1.js:creer_entreprise" %}</a>
+  </div>
+  {% endif %}
+</div>
+
+{% i18n_js %}
+<script src="{% static 'engine/js/login_1.js' %}"></script>
+<script src="{% static 'engine/js/icones.js' %}"></script>
+</body>
+</html>

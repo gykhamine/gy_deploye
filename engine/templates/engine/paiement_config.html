@@ -1,0 +1,330 @@
+{% load static %}<!DOCTYPE html>
+{% load i18n_extras %}
+<html lang="{{ langue_html|default:'fr' }}">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<link rel="stylesheet" href="{% static 'engine/css/app.css' %}"><link rel="stylesheet" href="{% url 'engine:marque_css' %}"><script src="{% static 'engine/js/marque.js' %}" defer></script><script src="{% static 'engine/js/gestes_tactiles.js' %}" defer></script>
+<title>{% t "engine/templates/engine/paiement_config.html:6:8" %}</title>
+<style>
+/* Configuration paiement (côté agent) : un onglet = un sujet. Même identité que Recommandations (body.page-reco : variables, titres, boutons,
+   champs) ; ici seulement le propre à la configuration. */
+body.page-paiement_config [hidden]{display:none !important}
+body.page-paiement_config .layout{max-width:760px}
+
+/* Onglets : barre collante de Recommandations, onglet actif souligné */
+body.page-paiement_config .cfg-tabs{position:sticky;top:0;z-index:5;display:flex;gap:22px;overflow-x:auto;padding:12px 0;margin:0;background:var(--bg);border-bottom:1px solid var(--border);white-space:nowrap;-webkit-overflow-scrolling:touch}
+body.page-paiement_config .cfg-tabs button{flex:0 0 auto;border:0;border-bottom:2px solid transparent;border-radius:0;background:none;padding:2px 0;font-size:14px;color:var(--muted)}
+body.page-paiement_config .cfg-tabs button:hover{color:var(--text);border-color:transparent;border-bottom-color:var(--border)}
+body.page-paiement_config .cfg-tabs button[aria-selected="true"]{color:var(--text);font-weight:600;border-bottom-color:var(--text)}
+body.page-paiement_config .cfg-panel{padding-top:22px}
+body.page-paiement_config .cfg-hint{font-size:14px;color:var(--muted);margin:0 0 14px;max-width:70ch;line-height:1.6}
+body.page-paiement_config .cfg-groupe{font-family:var(--serif);font-size:17px;font-weight:600;color:var(--text);margin:26px 0 4px;padding-bottom:6px;border-bottom:2px solid var(--border)}
+
+/* Champs et interrupteurs */
+body.page-paiement_config .cfg-in{font:inherit;font-size:14px;color:var(--text);background:var(--panel);border:1px solid var(--bordure-info,#33414f);border-radius:4px;padding:7px 9px;min-width:0}
+body.page-paiement_config .cfg-in:focus{outline:none;border-color:var(--text)}
+body.page-paiement_config .cfg-in:disabled{opacity:.4}
+body.page-paiement_config input.cfg-in[type=text],body.page-paiement_config input.cfg-in[type=tel],body.page-paiement_config input.cfg-in[type=password],body.page-paiement_config textarea.cfg-in{width:100%;box-sizing:border-box}
+html body.page-paiement_config input.cfg-sw[type=checkbox]{-webkit-appearance:none;appearance:none;flex:0 0 40px;width:40px;min-width:40px;height:22px;padding:0;border-radius:11px;background:var(--fond-info,#1a232d);border:1px solid var(--bordure-info,#33414f);position:relative;cursor:pointer;transition:background .2s}
+html body.page-paiement_config input.cfg-sw[type=checkbox]::after{content:"";position:absolute;top:2px;left:2px;width:16px;height:16px;border-radius:50%;background:var(--muted);transition:left .2s,background .2s}
+html body.page-paiement_config input.cfg-sw[type=checkbox]:checked{background:var(--fond-info,#16202a);border-color:var(--text)}
+html body.page-paiement_config input.cfg-sw[type=checkbox]:checked::after{left:20px;background:var(--text)}
+body.page-paiement_config .cfg-champ{display:grid;gap:4px;margin-bottom:12px}
+body.page-paiement_config .cfg-champ>label{font-size:13px;color:var(--muted)}
+
+/* Lignes (services) : filets, comme les lignes de Recommandations */
+body.page-paiement_config .cfg-row{display:flex;align-items:center;justify-content:space-between;gap:10px;flex-wrap:wrap;padding:12px 0;border-bottom:1px solid var(--border)}
+body.page-paiement_config .cfg-row.off .cfg-prix{opacity:.45}
+body.page-paiement_config .cfg-nom{display:flex;align-items:center;gap:10px;cursor:pointer;font-size:15px;min-width:0}
+body.page-paiement_config .cfg-prix{display:flex;gap:6px}
+body.page-paiement_config .cfg-prix input{width:90px}
+
+/* Taxes */
+body.page-paiement_config .cfg-taxe{padding:16px 0;border-bottom:1px solid var(--border)}
+body.page-paiement_config .cfg-taxe-nom{font-family:var(--serif);font-weight:600;font-size:17px;margin-bottom:8px}
+body.page-paiement_config .cfg-sub{display:flex;align-items:center;gap:10px;font-size:14px;margin-bottom:8px;flex-wrap:wrap}
+body.page-paiement_config .cfg-sub span{flex:1 1 120px}
+body.page-paiement_config .cfg-sub input.cfg-in{width:100px}
+body.page-paiement_config .cfg-sub em{font-style:normal;color:var(--muted);width:14px}
+
+/* Opérateurs / fournisseurs : volets plats, repliés par défaut */
+body.page-paiement_config details.cfg-det{border-bottom:1px solid var(--border)}
+body.page-paiement_config details.cfg-det>summary{list-style:none;cursor:pointer;padding:14px 0;display:flex;align-items:center;gap:12px;font-size:14px}
+body.page-paiement_config details.cfg-det>summary::-webkit-details-marker{display:none}
+body.page-paiement_config details.cfg-det>summary::after{content:"+";margin-left:auto;font-size:18px;color:var(--muted)}
+body.page-paiement_config details.cfg-det[open]>summary::after{content:"\2212"}
+body.page-paiement_config .cfg-det-nom{font-family:var(--serif);font-weight:600;font-size:17px}
+body.page-paiement_config .cfg-det-sub{color:var(--muted);font-size:13px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+body.page-paiement_config .cfg-det-corps{padding:2px 0 18px}
+body.page-paiement_config .cfg-pill{font-size:13px;color:var(--muted)}
+body.page-paiement_config .cfg-pill.ok{color:var(--surveiller)}
+body.page-paiement_config details.cfg-avance{margin:6px 0 10px}
+body.page-paiement_config details.cfg-avance>summary{cursor:pointer;font-size:14px;color:var(--text);padding:6px 0;width:max-content}
+body.page-paiement_config .cfg-actions{display:flex;gap:10px;align-items:center;flex-wrap:wrap;margin-top:12px}
+body.page-paiement_config .cfg-msg{font-size:13px;color:var(--muted)}
+body.page-paiement_config .cfg-msg.ok{color:var(--surveiller)}
+body.page-paiement_config .cfg-msg.err{color:var(--agir)}
+
+/* Barre d'enregistrement collée en bas */
+body.page-paiement_config .cfg-barre{position:sticky;bottom:0;background:var(--bg);padding:12px 0;margin-top:18px;display:flex;gap:12px;align-items:center;border-top:1px solid var(--border)}
+body.page-paiement_config .cfg-barre button{flex:0 0 auto;max-width:none;overflow:visible}
+body.page-paiement_config .cfg-barre .cfg-msg{flex:1}
+
+/* Surveillance */
+body.page-paiement_config .cfg-tx{padding:12px 0;border-bottom:1px solid var(--border);font-size:14px}
+body.page-paiement_config .cfg-vide{color:var(--muted);font-size:14px;padding:8px 0}
+
+/* Partie « vérification USSD » (fichier partiel inclus) */
+body.page-paiement_config .verif-etapes-bloc input[type=text],body.page-paiement_config .verif-etapes-bloc input[type=number]{font:inherit;font-size:13px;color:var(--text);background:var(--panel);border:1px solid var(--bordure-info,#33414f);border-radius:4px;padding:7px 9px}
+
+body.page-paiement_config dialog.cfg-dlg{margin:auto;max-width:min(420px,92vw);width:100%;padding:20px;border:1px solid var(--bordure-info,#33414f);border-radius:4px;background:var(--panel);color:var(--text)}
+body.page-paiement_config dialog.cfg-dlg::backdrop{background:color-mix(in srgb,var(--voile,#000000) 70%,transparent)}
+body.page-paiement_config dialog.cfg-dlg p{font-size:15px;margin:0 0 16px;line-height:1.5}
+body.page-paiement_config .cfg-dlg-act{display:flex;gap:8px;justify-content:flex-end}
+</style>
+<script src="{% static 'engine/js/dialogues.js' %}"></script>
+</head>
+<body class="page-paiement_config page-notifications page-reco">
+<div class="header">{% include "engine/_marque_entete.html" %}</div>
+<div class="layout">
+
+  <nav class="cfg-tabs" id="cfg-tabs" role="tablist">
+    <button type="button" role="tab" data-tab="services" aria-selected="true">{% t "engine/templates/engine/paiement_config.html:95:79" %}</button>
+    <button type="button" role="tab" data-tab="taxes" aria-selected="false">{% t "engine/templates/engine/paiement_config.html:96:77" %}</button>
+  </nav>
+
+  <!-- ===== Services payants ===== -->
+  <section class="cfg-panel" id="tab-services" role="tabpanel">
+    <div class="cfg-hint">{% t "engine/templates/engine/paiement_config.html:106:27" %}</div>
+    <div class="cfg-groupe">{% t "engine/templates/engine/paiement_config.html:107:29" %}</div>
+    <div id="svc-actions"></div>
+    <div class="cfg-groupe">{% t "engine/templates/engine/paiement_config.html:109:29" %}</div>
+    <div id="svc-pages"></div>
+    <div class="cfg-barre">
+      <button class="principal" onclick="sauvegarderServices()">{% t "engine/templates/engine/paiement_config.html:81:98" %}</button>
+      <span class="cfg-msg" id="svc-msg"></span>
+    </div>
+  </section>
+
+  <!-- ===== Taxes par événement ===== -->
+  <section class="cfg-panel" id="tab-taxes" role="tabpanel" hidden>
+    <div class="cfg-hint">{% t "engine/templates/engine/paiement_config.html:90:70" %}</div>
+    {% for evt, nom in evenements_taxe %}
+    <div class="cfg-taxe">
+      <div class="cfg-taxe-nom">{{ nom }}</div>
+      <label class="cfg-sub">
+        <input type="checkbox" class="cfg-sw" id="taxe-pct-{{ evt }}">
+        <span>{% t "engine/templates/engine/paiement_config.html:92:57" %}</span>
+        <input type="number" class="cfg-in" id="taxe-taux-{{ evt }}" min="0" max="100" step="0.01" inputmode="decimal"><em>%</em>
+      </label>
+      <label class="cfg-sub">
+        <input type="checkbox" class="cfg-sw" id="taxe-fixe-{{ evt }}">
+        <span>{% t "engine/templates/engine/paiement_config.html:92:77" %}</span>
+        <input type="number" class="cfg-in" id="taxe-montant-{{ evt }}" min="0" step="1" inputmode="numeric"><em></em>
+      </label>
+    </div>
+    {% endfor %}
+    <div class="cfg-taxe">
+      <div class="cfg-taxe-nom">{% t "engine/templates/engine/paiement_config.html:tva:nom" %}</div>
+      <label class="cfg-sub">
+        <input type="checkbox" class="cfg-sw" id="tva-actif">
+        <span>{% t "engine/templates/engine/paiement_config.html:tva:taux" %}</span>
+        <input type="number" class="cfg-in" id="tva-taux" min="0" max="100" step="0.01" inputmode="decimal"><em>%</em>
+      </label>
+      <div class="cfg-hint">{% t "engine/templates/engine/paiement_config.html:tva:aide" %}</div>
+    </div>
+    <div class="cfg-barre">
+      <button onclick="sauvegarderTaxes()" class="principal">{% t "engine/templates/engine/paiement_config.html:101:83" %}</button>
+      <span class="cfg-msg" id="taxes-msg"></span>
+    </div>
+  </section>
+
+</div>
+
+<dialog class="cfg-dlg" id="dlg-confirm">
+  <p id="dlg-txt"></p>
+  <div class="cfg-dlg-act"><button type="button" id="dlg-non">{% t "engine/templates/engine/paiement_config.html:190:63" %}</button><button type="button" id="dlg-oui" class="principal">{% t "engine/templates/engine/paiement_config.html:190:131" %}</button></div>
+</dialog>
+
+{% i18n_js %}
+<script>
+const $ = id => document.getElementById(id);
+const esc = s => String(s == null ? '' : s).replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+const fmt = n => Math.round(Number(n) || 0).toLocaleString((window.I18N_LOCALE||'fr-FR')) + ' ' + (window.DEVISE_LABEL||'FCFA');
+const sansEmoji = s => String(s).replace(/^[^\p{L}\p{N}]+/u, '');
+const TX = {
+  dashboard_bi: "{% t 'engine/templates/engine/paiement_config.html:199:18' as v %}{{ v|escapejs }}",
+  ontologie: "{% t 'engine/templates/engine/paiement_config.html:200:15' as v %}{{ v|escapejs }}",
+  geolocalisation: "{% t 'engine/templates/engine/paiement_config.html:201:21' as v %}{{ v|escapejs }}",
+  series_temporelles: "{% t 'engine/templates/engine/paiement_config.html:202:24' as v %}{{ v|escapejs }}",
+  statistiques: "{% t 'engine/templates/engine/paiement_config.html:203:18' as v %}{{ v|escapejs }}",
+  prix: "{% t 'engine/templates/engine/paiement_config.html:53:43' as v %}{{ v|escapejs }}",
+  pctWallet: "{% t 'engine/templates/engine/paiement_config.html:205:15' as v %}{{ v|escapejs }}",
+  prixImpossible: "{% t 'engine/templates/engine/paiement_config.html:206:20' as v %}{{ v|escapejs }}",
+  enregistrement: "{% t 'engine/templates/engine/paiement_config.html:207:20' as v %}{{ v|escapejs }}",
+  servicesEnreg: "{% t 'engine/templates/engine/paiement_config.html:208:19' as v %}{{ v|escapejs }}",
+  taxesEnreg: "{% t 'engine/templates/engine/paiement_config.html:209:16' as v %}{{ v|escapejs }}",
+  erreur: "{% t 'engine/templates/engine/paiement_config.html:210:12' as v %}{{ v|escapejs }}",
+  erreurPoint: "{% t 'engine/templates/engine/paiement_config.html:211:17' as v %}{{ v|escapejs }}",
+  erreurReseau: "{% t 'engine/templates/engine/paiement_config.html:212:18' as v %}{{ v|escapejs }}",
+  enCours: "{% t 'engine/templates/engine/paiement_config.html:213:13' as v %}{{ v|escapejs }}",
+  arretee: "{% t 'engine/templates/engine/paiement_config.html:90:60' as v %}{{ v|escapejs }}",
+  aucuneTx: "{% t 'engine/templates/engine/paiement_config.html:215:14' as v %}{{ v|escapejs }}",
+  actif: "{% t 'engine/templates/engine/paiement_config.html:216:11' as v %}{{ v|escapejs }}",
+  inactif: "{% t 'engine/templates/engine/paiement_config.html:217:13' as v %}{{ v|escapejs }}",
+  numeroAbsent: "{% t 'engine/templates/engine/paiement_config.html:218:18' as v %}{{ v|escapejs }}",
+  enregistreOk: "{% t 'engine/templates/engine/paiement_config.html:219:18' as v %}{{ v|escapejs }}",
+  numOption: "{% t 'engine/templates/engine/paiement_config.html:220:15' as v %}{{ v|escapejs }}",
+  nomAttendu: "{% t 'engine/templates/engine/paiement_config.html:221:16' as v %}{{ v|escapejs }}",
+  reqManquante: "{% t 'engine/templates/engine/paiement_config.html:222:18' as v %}{{ v|escapejs }}",
+  execEnCours: "{% t 'engine/templates/engine/paiement_config.html:223:17' as v %}{{ v|escapejs }}",
+  proposeClients: "{% t 'engine/templates/engine/paiement_config.html:224:20' as v %}{{ v|escapejs }}",
+  nomAffiche: "{% t 'engine/templates/engine/paiement_config.html:225:16' as v %}{{ v|escapejs }}",
+  relaisJetonGenere: "{% t 'engine/templates/engine/paiement_config.html:relais_jeton_genere' as v %}{{ v|escapejs }}",
+  relaisTest: "{% t 'engine/templates/engine/paiement_config.html:relais_test_en_cours' as v %}{{ v|escapejs }}",
+  relaisCePc: "{% t 'engine/templates/engine/paiement_config.html:relais_ce_pc' as v %}{{ v|escapejs }}",
+  relaisHoteActuel: "{% t 'engine/templates/engine/paiement_config.html:relais_hote_actuel' as v %}{{ v|escapejs }}",
+  relaisServies: "{% t 'engine/templates/engine/paiement_config.html:relais_servies' as v %}{{ v|escapejs }}",
+  aideUssd: "{% t 'engine/templates/engine/paiement_config.html:226:14' as v %}{{ v|escapejs }}",
+  webhook: "{% t 'engine/templates/engine/paiement_config.html:227:13' as v %}{{ v|escapejs }}",
+  enregistrer: "{% t 'engine/templates/engine/paiement_config.html:228:17' as v %}{{ v|escapejs }}",
+  supprimer: "{% t 'engine/templates/engine/paiement_config.html:229:15' as v %}{{ v|escapejs }}",
+  enregistre: "{% t 'engine/templates/engine/paiement_config.html:230:16' as v %}{{ v|escapejs }}",
+  supprimerQ: "{% t 'engine/templates/engine/paiement_config.html:231:16' as v %}{{ v|escapejs }}",
+  nomCourt: "{% t 'engine/templates/engine/paiement_config.html:232:14' as v %}{{ v|escapejs }}",
+  suspect: "{% t 'engine/templates/engine/paiement_config.html:suspect' as v %}{{ v|escapejs }}",
+  suspectsAucun: "{% t 'engine/templates/engine/paiement_config.html:suspects_aucun' as v %}{{ v|escapejs }}",
+  accepter: "{% t 'engine/templates/engine/paiement_config.html:suspects_accepter' as v %}{{ v|escapejs }}",
+  rejeter: "{% t 'engine/templates/engine/paiement_config.html:suspects_rejeter' as v %}{{ v|escapejs }}",
+  confAccepter: "{% t 'engine/templates/engine/paiement_config.html:suspects_confirm_accepter' as v %}{{ v|escapejs }}",
+  confRejeter: "{% t 'engine/templates/engine/paiement_config.html:suspects_confirm_rejeter' as v %}{{ v|escapejs }}",
+  montants: "{% t 'engine/templates/engine/paiement_config.html:suspects_montants' as v %}{{ v|escapejs }}",
+  raison_remboursement_possible: "{% t 'engine/templates/engine/paiement_config.html:raison_remboursement_possible' as v %}{{ v|escapejs }}",
+  raison_montant_superieur: "{% t 'engine/templates/engine/paiement_config.html:raison_montant_superieur' as v %}{{ v|escapejs }}",
+  raison_montant_invalide: "{% t 'engine/templates/engine/paiement_config.html:raison_montant_invalide' as v %}{{ v|escapejs }}",
+  raison_confirme_apres_echec: "{% t 'engine/templates/engine/paiement_config.html:raison_confirme_apres_echec' as v %}{{ v|escapejs }}",
+};
+const fx = (s, o) => s.replace(/\{(\w+)\}/g, (_, k) => o[k]);
+function getCookie(name) { return document.cookie.match(new RegExp(name + '=([^;]+)'))?.[1] || ''; }
+const post = (url, corps) => fetch(url, {method: 'POST', headers: {'Content-Type': 'application/json', 'X-CSRFToken': getCookie('gy_csrftoken')}, body: JSON.stringify(corps)})
+  .then(r => r.json().catch(() => ({})).then(d => ({ok: r.ok, d})));
+function msg(el, texte, type) { el.textContent = texte; el.className = 'cfg-msg' + (type ? ' ' + type : ''); }
+function confirmer(texte) { return GY.confirmer(texte); }
+
+/* ---------- Onglets ---------- */
+function ouvrirOnglet(nom) {
+  if (!$('tab-' + nom)) nom = 'services';
+  document.querySelectorAll('.cfg-panel').forEach(p => { p.hidden = p.id !== 'tab-' + nom; });
+  document.querySelectorAll('#cfg-tabs button').forEach(b => b.setAttribute('aria-selected', String(b.dataset.tab === nom)));
+  history.replaceState(null, '', '#' + nom);
+}
+$('cfg-tabs').addEventListener('click', e => { const b = e.target.closest('button[data-tab]'); if (b) ouvrirOnglet(b.dataset.tab); });
+
+/* ---------- Services payants ---------- */
+// Chaque prix = montant fixe (FCFA) ou {mode: 'taux', valeur} = % du wallet du client.
+const SERVICES_ACTIONS = {
+  tables: "{% t 'engine/templates/engine/paiement_config.html:52:15' as l1 %}{{ l1|escapejs }}",
+  recherche: "{% t 'engine/templates/engine/paiement_config.html:57:15' as l2 %}{{ l2|escapejs }}",
+  enregistrement: "{% t 'engine/templates/engine/paiement_config.html:62:15' as l3 %}{{ l3|escapejs }}",
+  media: "{% t 'engine/templates/engine/paiement_config.html:67:15' as l4 %}{{ l4|escapejs }}",
+  ia: "{% t 'engine/templates/engine/paiement_config.html:72:15' as l5 %}{{ l5|escapejs }}",
+  ontology: "{% t 'engine/templates/engine/paiement_config.html:77:15' as l6 %}{{ l6|escapejs }}"
+};
+const SERVICES_PAGES = {dashboard_bi: TX.dashboard_bi, ontologie: TX.ontologie, geolocalisation: TX.geolocalisation, series_temporelles: TX.series_temporelles, statistiques: TX.statistiques, anova: "ANOVA", analyse_factorielle: tj("engine/templates/engine/paiement_config.html:js:312:230")};
+
+function ligneService(cle, nom) {
+  const l = document.createElement('div'); l.className = 'cfg-row off';
+  const ouvrable = Object.prototype.hasOwnProperty.call(SERVICES_PAGES, cle);
+  l.innerHTML = (ouvrable ? `<label class="cfg-nom" style="font-size:12px"><input type="checkbox" class="page-ouverte" data-page="${cle}"><span>${tj("engine/templates/engine/paiement_config.html:js:317:145")}</span></label>` : '') + `<label class="cfg-nom"><input type="checkbox" class="cfg-sw" id="pay-${cle}"><span>${esc(nom)}</span></label>
+    <div class="cfg-prix"><input type="number" min="0" class="cfg-in prix-service" data-service="${cle}" placeholder="${esc(TX.prix)}" inputmode="decimal" disabled>
+    <select class="cfg-in mode-service" data-service="${cle}" disabled><option value="fixe">${esc((window.DEVISE_LABEL||'FCFA'))}</option><option value="taux">${esc(TX.pctWallet)}</option></select></div>`;
+  l.querySelector('input.cfg-sw').addEventListener('change', e => togglePayableService(cle, e.target.checked));   // l'interrupteur de prix, pas la case « Ouvert au client » (1re case de la ligne)
+  return l;
+}
+function preparerServices() {
+  $('svc-actions').replaceChildren(...Object.entries(SERVICES_ACTIONS).map(([c, n]) => ligneService(c, sansEmoji(n))));
+  $('svc-pages').replaceChildren(...Object.entries(SERVICES_PAGES).map(([c, n]) => ligneService(c, n)));
+}
+function togglePayableService(service, enabled) {
+  const prix = document.querySelector(`.prix-service[data-service="${service}"]`), mode = document.querySelector(`.mode-service[data-service="${service}"]`);
+  prix.disabled = !enabled; if (mode) mode.disabled = !enabled;
+  $('pay-' + service).checked = enabled;
+  prix.closest('.cfg-row').classList.toggle('off', !enabled);
+}
+function chargerServicesPayants() {
+  preparerServices();
+  fetch('/api/paiement/pages-client').then(r => r.json()).then(d => (d.pages || []).filter(c => !(d.fermees || []).includes(c)).forEach(c => {
+    const b = document.querySelector(`.page-ouverte[data-page="${c}"]`); if (b) b.checked = true;
+  })).catch(() => {});
+  fetch('/api/paiement/services').then(r => r.json()).then(services => {
+    Object.entries(services).forEach(([service, prix]) => {
+      const inp = document.querySelector(`.prix-service[data-service="${service}"]`), mode = document.querySelector(`.mode-service[data-service="${service}"]`);
+      if (!inp) return;
+      togglePayableService(service, true);
+      inp.value = (prix && typeof prix === 'object') ? prix.valeur : prix;
+      if (mode) mode.value = (prix && prix.mode === 'taux') ? 'taux' : 'fixe';
+    });
+  }).catch(() => msg($('svc-msg'), TX.prixImpossible, 'err'));
+}
+async function sauvegarderServices() {
+  const services = {};
+  document.querySelectorAll('.prix-service').forEach(inp => {
+    if (!$('pay-' + inp.dataset.service)?.checked) return;
+    const valeur = parseFloat(inp.value) || 0, mode = document.querySelector(`.mode-service[data-service="${inp.dataset.service}"]`);
+    services[inp.dataset.service] = (mode && mode.value === 'taux') ? {mode: 'taux', valeur} : valeur;
+  });
+  msg($('svc-msg'), TX.enregistrement);
+  const fermees = [...document.querySelectorAll('.page-ouverte')].filter(b => !b.checked).map(b => b.dataset.page);
+  try { await post('/api/paiement/pages-client', {fermees}); } catch (e) { /* signalé par l'enregistrement des prix ci-dessous */ }
+  try { const {ok, d} = await post('/api/paiement/services', services); msg($('svc-msg'), ok ? TX.servicesEnreg : (d.error || TX.erreur), ok ? 'ok' : 'err'); }
+  catch (e) { msg($('svc-msg'), TX.erreurReseau, 'err'); }
+}
+
+/* ---------- Taxes ---------- */
+const EVT_TAXE = ['depot', 'retrait', 'transfert'];
+function majTaxeEtat() {
+  $('tva-taux').disabled = !$('tva-actif').checked;
+  EVT_TAXE.forEach(e => {
+    $('taxe-taux-' + e).disabled = !$('taxe-pct-' + e).checked;
+    $('taxe-montant-' + e).disabled = !$('taxe-fixe-' + e).checked;
+  });
+}
+function chargerTaxes() {
+  fetch('/api/wallet/frais').then(r => r.json()).then(f => {
+    EVT_TAXE.forEach(e => {
+      $('taxe-pct-' + e).checked = !!f['taux_' + e + '_actif'];
+      $('taxe-taux-' + e).value = f['taux_' + e] || 0;
+      $('taxe-fixe-' + e).checked = !!f['fixe_' + e + '_actif'];
+      $('taxe-montant-' + e).value = f['fixe_' + e] || 0;
+    });
+    $('tva-actif').checked = !!f.taux_tva_actif;
+    $('tva-taux').value = f.taux_tva || 0;
+    majTaxeEtat();
+  });
+}
+async function sauvegarderTaxes() {
+  const corps = {};
+  EVT_TAXE.forEach(e => {
+    corps['taux_' + e + '_actif'] = $('taxe-pct-' + e).checked;
+    corps['taux_' + e] = $('taxe-taux-' + e).value || 0;
+    corps['fixe_' + e + '_actif'] = $('taxe-fixe-' + e).checked;
+    corps['fixe_' + e] = $('taxe-montant-' + e).value || 0;
+  });
+  corps.taux_tva_actif = $('tva-actif').checked;
+  corps.taux_tva = $('tva-taux').value || 0;
+  msg($('taxes-msg'), TX.enregistrement);
+  try { const {ok, d} = await post('/api/wallet/frais', corps); msg($('taxes-msg'), ok ? TX.taxesEnreg : (d.error || TX.erreurPoint), ok ? 'ok' : 'err'); }
+  catch (e) { msg($('taxes-msg'), TX.erreurReseau, 'err'); }
+}
+document.querySelectorAll('#tva-actif,[id^="taxe-pct-"],[id^="taxe-fixe-"]').forEach(c => c.addEventListener('change', majTaxeEtat));
+
+/* ---------- Initialisation ---------- */
+document.addEventListener('DOMContentLoaded', () => {
+  chargerServicesPayants(); chargerTaxes();
+  ouvrirOnglet(location.hash.slice(1) || 'services');
+});
+</script>
+<script src="{% static 'engine/js/icones.js' %}"></script>
+</body>
+</html>

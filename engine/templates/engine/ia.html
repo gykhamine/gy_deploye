@@ -1,0 +1,1814 @@
+{% load i18n_extras %}
+<!DOCTYPE html>
+{% load static %}
+<html lang="{{ langue_html|default:'fr' }}">
+<head>
+<link rel="stylesheet" href="{% static 'engine/css/app.css' %}"><link rel="stylesheet" href="{% url 'engine:marque_css' %}"><script src="{% static 'engine/js/marque.js' %}" defer></script><script src="{% static 'engine/js/gestes_tactiles.js' %}" defer></script>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>{% t "engine/templates/engine/ia.html:8:8" %}</title>
+<script src="{% static 'engine/js/dialogues.js' %}"></script>
+<script src="{% static 'engine/js/colonne_toggle.js' %}" defer></script>
+</head>
+<body class="page-ia">
+
+<div class="header">{% include "engine/_marque_entete.html" %}
+
+</div>
+
+<div id="toast"></div>
+
+<div class="ia-app">
+
+  <!-- Barre latérale : la liste des modèles, puis la configuration du modèle à créer -->
+  <aside class="ia-side" data-colonne-laterale data-libelle="{% t 'engine/templates/engine/ia.html:colonne_bascule' %}" aria-label="{% t 'engine/templates/engine/ia.html:24:38' %}">
+    <div class="side-bloc">
+      <h2 class="side-titre"><span>{% t "engine/templates/engine/ia.html:26:36" %} <small id="mod-total"></small></span><button class="petit" id="btn-nouveau" type="button">{% t "engine/templates/engine/ia.html:26:btn-nouveau" %}</button></h2>
+      <div class="mod-liste" id="mod-liste"><span class="mod-vide">{% t "engine/templates/engine/ia.html:75:68" %}</span></div>
+    </div>
+
+    <div class="side-bloc" id="side-config">
+      <h2 class="side-titre"><span>{% t "engine/templates/engine/ia.html:31:36" %}</span></h2>
+      <p class="aide" style="margin-bottom:12px">{% t "engine/templates/engine/ia.html:32:50" %}</p>
+      <div class="grille">
+        <div class="champ">
+          <label for="nm-nom">{% t "engine/templates/engine/ia.html:31:16" %}</label>
+          <input type="text" id="nm-nom" placeholder="{% t 'engine/templates/engine/ia.html:32:53' %}">
+        </div>
+        <div class="champ">
+          <label for="nm-type">{% t "engine/templates/engine/ia.html:35:16" %}</label>
+          <select id="nm-type"></select>
+          {% if peut_ajouter_algo %}<button class="petit" id="btn-ajouter-algo" type="button" style="margin-top:8px">{% t "engine/templates/engine/ia.html:algo:bouton" %}</button>{% endif %}
+          <div id="aide-contraintes" class="indice"></div>
+        </div>
+      </div>
+      <div class="champ" style="margin-top:14px">
+        <label>{% t "engine/templates/engine/ia.html:41:14" %}</label>
+        <div class="tables-picker" id="nm-tables"></div>
+      </div>
+      <div class="champ" id="bloc-plage" style="margin-top:14px">
+        <label>{% t "engine/templates/engine/ia.html:plage_label" %}</label>
+        <div class="grille">
+          <div class="champ">
+            <label for="nm-plage-debut" style="font-weight:400">{% t "engine/templates/engine/ia.html:plage_debut" %}</label>
+            <input type="number" id="nm-plage-debut" min="1" step="1" placeholder="1">
+          </div>
+          <div class="champ">
+            <label for="nm-plage-fin" style="font-weight:400">{% t "engine/templates/engine/ia.html:plage_fin" %}</label>
+            <input type="number" id="nm-plage-fin" min="1" step="1" placeholder="{% t 'engine/templates/engine/ia.html:plage_fin_ph' %}">
+          </div>
+        </div>
+        <p class="indice" style="font-size:12px;color:var(--muted);margin-top:5px">{% t "engine/templates/engine/ia.html:plage_aide" %}</p>
+      </div>
+      <div class="champ" id="bloc-entree" style="margin-top:14px">
+        <label>{% t "engine/templates/engine/ia.html:46:14" %}</label>
+        <div class="colonnes-picker" id="nm-entree"></div>
+        <p class="indice" style="font-size:12px;color:var(--muted);margin-top:5px">{% t "engine/templates/engine/ia.html:48:46" %}</p>
+      </div>
+      <div class="champ" id="bloc-cible" style="margin-top:14px;display:none">
+        <label>{% t "engine/templates/engine/ia.html:52:14" %}</label>
+        <div class="colonnes-picker" id="nm-cible"></div>
+        <p class="indice" id="aide-cible" style="font-size:12px;color:var(--muted);margin-top:5px"></p>
+      </div>
+    </div>
+    {% include "engine/_retour_table.html" with auto=1 %}
+  </aside>
+
+  <main class="ia-main">
+
+    <!-- Vue « création » : explication du type choisi + réglages d'entraînement -->
+    <div id="vue-creation">
+      <header class="ia-hero">
+        <div class="hero-tete">
+          <div class="hero-texte">
+            <h2 id="cr-titre">{% t "engine/templates/engine/ia.html:68:31" %}</h2>
+            <p id="cr-role"></p>
+          </div>
+        </div>
+        <div class="guide" id="cr-guide"></div>
+      </header>
+      <section class="ia-section">
+        <h3>{% t "engine/templates/engine/ia.html:75:13" %}</h3>
+        <p class="aide">{% t "engine/templates/engine/ia.html:58:134" %} : {% t "engine/templates/engine/ia.html:76:76" %}</p>
+        <div class="grille" id="params-grid"></div>
+      </section>
+      <div class="barre-actions" style="margin-top:26px">
+        <button class="principal" id="btn-creer-modele">{% t "engine/templates/engine/ia.html:63:55" %}</button>
+        <span class="aide">{% t "engine/templates/engine/ia.html:81:28" %}</span>
+      </div>
+    </div>
+
+    <!-- Vue « modèle » : rendue par renderModele() -->
+    <div id="vue-modele" style="display:none"></div>
+
+  </main>
+</div>
+
+{% if peut_ajouter_algo %}
+<!-- Modal « Ajouter un algorithme » : même mécanisme que la commande ajouter_modele_ia (script NOM + entrainer + predire) -->
+<div class="modal-fond" id="modal-algo">
+  <div class="modal modal-large">
+    <h3>{% t "engine/templates/engine/ia.html:algo:titre" %}</h3>
+    <p class="aide" style="margin-top:4px">{% t "engine/templates/engine/ia.html:algo:aide" %}</p>
+    <div class="champ" style="margin-top:14px">
+      <label for="algo-description">{% t "engine/templates/engine/ia.html:algo:description" %}</label>
+      <textarea id="algo-description" rows="2" placeholder="{% t 'engine/templates/engine/ia.html:algo:description_ph' %}"></textarea>
+      <button class="petit" id="btn-algo-generer" type="button" style="margin-top:8px">{% t "engine/templates/engine/ia.html:algo:generer" %}</button>
+    </div>
+    <div class="champ" style="margin-top:14px">
+      <label for="algo-code">{% t "engine/templates/engine/ia.html:algo:code" %}</label>
+      <textarea id="algo-code" rows="14" spellcheck="false" style="font-family:monospace;font-size:12.5px"></textarea>
+      <div style="display:flex;flex-wrap:wrap;justify-content:flex-end;gap:6px;margin-top:6px">
+        <button class="petit" id="btn-algo-copier" type="button">{% t "engine/templates/engine/ia.html:108:66" %}</button>
+        <button class="petit" id="btn-algo-importer" type="button">{% t "engine/templates/engine/ia.html:109:68" %}</button>
+        <button class="petit" id="btn-algo-restaurer" type="button">{% t "engine/templates/engine/ia.html:110:69" %}</button>
+      </div>
+      <p class="indice" id="algo-modules" style="font-size:12px;color:var(--muted);margin-top:5px"></p>
+    </div>
+    <div class="champ" style="margin-top:14px">
+      <label>{% t "engine/templates/engine/ia.html:115:14" %}</label>
+      <input id="algo-court" placeholder="{% t 'engine/templates/engine/ia.html:116:43' %}">
+      <select id="algo-famille"><option value="1">{% t "engine/templates/engine/ia.html:117:51" %}</option><option value="0">{% t "engine/templates/engine/ia.html:117:91" %}</option></select>
+      <input id="algo-role" placeholder="{% t 'engine/templates/engine/ia.html:118:42' %}">
+      <input id="algo-donnees" placeholder="{% t 'engine/templates/engine/ia.html:119:45' %}">
+      <input id="algo-conseil" placeholder="{% t 'engine/templates/engine/ia.html:120:45' %}">
+    </div>
+    <div class="modal-actions">
+      <button id="btn-algo-annuler" type="button">{% t "engine/templates/engine/ia.html:algo:annuler" %}</button>
+      <button class="principal" id="btn-algo-installer" type="button">{% t "engine/templates/engine/ia.html:algo:installer" %}</button>
+    </div>
+  </div>
+</div>
+{% endif %}
+
+<!-- Modal inférence : formulaire + resultat (popup separe, voir
+     #modal-popup-reponse), plus d'historique ici (voir #modal-historique) -->
+<div class="modal-fond" id="modal-inference">
+  <div class="modal">
+    <h3 id="inf-titre">{% t "engine/templates/engine/ia.html:86:24" %}</h3>
+    <p class="aide" id="inf-aide" style="margin-top:4px">{% t "engine/templates/engine/ia.html:87:58" %}</p>
+    <div class="grille" id="inf-form"></div>
+    <div class="modal-actions">
+      <button id="btn-inf-annuler">{% t "engine/templates/engine/ia.html:90:36" %}</button>
+      <button class="principal" id="btn-inf-predire">{% t "engine/templates/engine/ia.html:91:54" %}</button>
+    </div>
+  </div>
+</div>
+
+<!-- Popup reponse : n'affiche QUE la valeur predite (label decode si
+     classification, sinon la valeur numerique), jamais le JSON brut. -->
+<div class="modal-fond" id="modal-popup-reponse">
+  <div class="modal">
+    <h3>{% t "engine/templates/engine/ia.html:100:9" %}</h3>
+    <div id="popup-reponse-valeur"></div>
+    <div class="modal-actions" style="justify-content:center">
+      <button class="principal" onclick="fermerPopupReponse()">{% t "engine/templates/engine/ia.html:103:64" %}</button>
+    </div>
+  </div>
+</div>
+
+<!-- Modal historique : separe de l'inference, affiche entree ET reponse
+     (jamais le JSON brut) pour chaque appel passe. -->
+<div class="modal-fond" id="modal-historique">
+  <div class="modal">
+    <h3 id="hist-titre">{% t "engine/templates/engine/ia.html:112:25" %}</h3>
+    <div id="hist-liste"></div>
+    <div class="modal-actions">
+      <button onclick="fermerHistorique()">{% t "engine/templates/engine/ia.html:115:44" %}</button>
+    </div>
+  </div>
+</div>
+
+
+<!-- Modal feature engineering : copie de travail de la table (colonnes choisies), lignes à écarter avant l'entraînement et le
+     fine-tuning. La vraie table n'est jamais modifiée. Textes posés par ouvrirFeatures() (clés engine/…/ia.html:js:fe_*). -->
+<div class="modal-fond" id="modal-features">
+  <div class="modal modal-large">
+    <h3 id="fe-titre"></h3>
+    <p class="aide" id="fe-aide"></p>
+    <div id="fe-zone"></div>
+    <div class="modal-actions">
+      <button id="btn-fe-fermer" onclick="fermerFeatures()"></button>
+    </div>
+  </div>
+</div>
+
+{% i18n_js %}
+<script>
+const CSRF = document.cookie.match(/gy_csrftoken=([^;]+)/)?.[1] || "{{ csrf_token }}";
+const $ = id => document.getElementById(id);
+let TYPES_IA = [];   // [{code, libelle, parametres:[{nom,defaut,widget}], supervise}]
+let TABLES   = [];   // [{id, nom, champs:[{slug,nom,type}]}]
+let TABLES_SELECTIONNEES = new Set();
+let COLONNES_ENTREE_SELECTIONNEES = new Set();  // slugs, table source (un groupe = une seule table)
+let COLONNES_SORTIE_SELECTIONNEES = new Set();  // slugs, table source (un groupe = une seule table)
+let MODELE_INFERENCE = null;
+
+function toast(msg, err=false){
+  const t = document.getElementById("toast");
+  t.textContent = msg; t.className = err ? "err" : "";
+  t.style.display = "block";
+  clearTimeout(t._t);
+  t._t = setTimeout(() => t.style.display="none", 3500);
+}
+
+async function api(url, opts={}){
+  const res = await fetch(url, {
+    headers:{"Content-Type":"application/json","X-CSRFToken":CSRF},
+    ...opts
+  });
+  const data = await res.json().catch(()=>({}));
+  if(!res.ok){ toast(data.erreur||tj("engine/templates/engine/ia.html:js:145:36", {v1: res.status}), true); throw data; }
+  return data;
+}
+
+function escapeHtml(s){
+  return String(s ?? "").replace(/[&<>"']/g, c => ({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));
+}
+
+// ── Type de modèle sélectionné -> formulaire de paramètres dynamique ──
+function typeActuel(){
+  return TYPES_IA.find(t => t.code === document.getElementById("nm-type").value);
+}
+// Modèles sans colonne cible (groupes...) : le serveur l'indique dans /api/ia/types-modeles/ (drapeau sans_cible).
+const SANS_CIBLE = code => !!(TYPES_IA.find(t => t.code === code) || {}).sans_cible;
+// Famille d'un modèle sans cible : "groupes" | "projection" | "anomalies" (null pour les autres types).
+const FAMILLE = code => (TYPES_IA.find(t => t.code === code) || {}).famille || null;
+
+// Aide courte sous les réglages d'entraînement les plus courants (le reste n'a pas d'aide).
+const AIDE_PARAMS = {
+  epochs: tj("engine/templates/engine/ia.html:js:170:12"),
+  learning_rate: tj("engine/templates/engine/ia.html:js:171:19"),
+  lr: tj("engine/templates/engine/ia.html:js:172:8"),
+  batch_size: tj("engine/templates/engine/ia.html:js:173:16"),
+  hidden_sizes: tj("engine/templates/engine/ia.html:js:174:18"),
+  hidden_layers: tj("engine/templates/engine/ia.html:js:175:19"),
+  n_estimators: tj("engine/templates/engine/ia.html:js:176:18"),
+  max_depth: tj("engine/templates/engine/ia.html:js:177:15"),
+  test_size: tj("engine/templates/engine/ia.html:js:178:15"),
+  validation_split: tj("engine/templates/engine/ia.html:js:179:22"),
+  dropout: tj("engine/templates/engine/ia.html:js:180:13"),
+  seed: tj("engine/templates/engine/ia.html:js:181:10"),
+  random_state: tj("engine/templates/engine/ia.html:js:182:18"),
+  C: tj("engine/templates/engine/ia.html:js:183:7"),
+  alpha: tj("engine/templates/engine/ia.html:js:184:11"),
+  n_neighbors: tj("engine/templates/engine/ia.html:js:185:17"),
+  n_clusters: tj("engine/templates/engine/ia.html:js:nonsup_aide_n_clusters"),
+  n_components: tj("engine/templates/engine/ia.html:js:nonsup_aide_n_components"),
+  eps: tj("engine/templates/engine/ia.html:js:nonsup_aide_eps"),
+  min_samples: tj("engine/templates/engine/ia.html:js:nonsup_aide_min_samples"),
+  linkage: tj("engine/templates/engine/ia.html:js:nonsup_aide_linkage"),
+  covariance_type: tj("engine/templates/engine/ia.html:js:nonsup_aide_covariance_type"),
+  n_init: tj("engine/templates/engine/ia.html:js:nonsup_aide_n_init"),
+  max_iter: tj("engine/templates/engine/ia.html:js:nonsup_aide_max_iter"),
+  algorithm: tj("engine/templates/engine/ia.html:js:nonsup_aide_algorithm"),
+  contamination: tj("engine/templates/engine/ia.html:js:nonsup_aide_contamination"),
+  nu: tj("engine/templates/engine/ia.html:js:nonsup_aide_nu"),
+};
+// Aide d'un réglage : n_components, n_neighbors, kernel et gamma ne veulent pas dire la même chose selon la famille du modèle.
+function aideParam(t, nom){
+  if(t.famille === "projection" && nom === "n_components") return tj("engine/templates/engine/ia.html:js:nonsup_aide_n_composantes");
+  if(t.famille === "anomalies" && nom === "n_neighbors") return tj("engine/templates/engine/ia.html:js:nonsup_aide_n_voisins");
+  if(t.famille === "anomalies" && nom === "kernel") return tj("engine/templates/engine/ia.html:js:nonsup_aide_kernel");
+  if(t.famille === "anomalies" && nom === "gamma") return tj("engine/templates/engine/ia.html:js:nonsup_aide_gamma");
+  return AIDE_PARAMS[nom];
+}
+
+function renderParametres(){
+  const t = typeActuel();
+  const grid = document.getElementById("params-grid");
+  grid.innerHTML = "";
+  if(!t) return;
+  for(const p of t.parametres){
+    const div = document.createElement("div");
+    const aideTexte = aideParam(t, p.nom);
+    const aide = aideTexte ? `<div class="indice">${escapeHtml(aideTexte)}</div>` : "";
+    if(p.widget === "booleen"){
+      div.className = "champ checkbox";
+      div.innerHTML = `<input type="checkbox" id="par-${p.nom}" ${p.defaut ? "checked" : ""}>
+        <label for="par-${p.nom}">${escapeHtml(p.nom)}</label>`;
+      if(aide) div.title = aideTexte;
+    } else {
+      div.className = "champ";
+      const step = p.widget === "decimal" ? "any" : (p.widget === "entier" ? "1" : null);
+      const type = (p.widget === "entier" || p.widget === "decimal") ? "number" : "text";
+      const placeholder = p.widget === "liste_entiers" ? "ex: 64, 32" : (p.defaut ?? "");
+      div.innerHTML = `<label for="par-${p.nom}">${escapeHtml(p.nom)}</label>
+        <input type="${type}" id="par-${p.nom}" ${step ? `step="${step}"` : ""}
+          placeholder="${escapeHtml(placeholder)}" value="${p.defaut !== null && p.widget !== "liste_entiers" ? escapeHtml(Array.isArray(p.defaut) ? p.defaut.join(",") : p.defaut) : ""}">${aide}`;
+    }
+    grid.appendChild(div);
+  }
+  if(t.vectorisable){   // images / sons : apprendre sur des caractéristiques (contours, ombres, couleurs, fréquences) plutôt que sur les pixels
+    const v = document.createElement("div");
+    v.className = "champ checkbox";
+    v.title = tj("engine/templates/engine/ia.html:js:vectorisation_aide");
+    v.innerHTML = `<input type="checkbox" id="par-vectorisation" checked>
+      <label for="par-vectorisation">${escapeHtml(tj("engine/templates/engine/ia.html:js:vectorisation"))}</label>`;
+    grid.appendChild(v);
+  }
+  document.getElementById("aide-contraintes").textContent =
+    (t.contraintes && t.contraintes.length) ? "Contraintes : " + t.contraintes.join(" · ") : "";
+  // Sans colonne cible (groupes) : seules les colonnes d'entrée sont demandées, et toute cible déjà cochée est abandonnée.
+  document.getElementById("bloc-cible").style.display = (t.supervise && !t.sans_cible) ? "" : "none";
+  document.getElementById("bloc-entree").style.display = t.supervise ? "" : "none";
+  if(t.sans_cible) COLONNES_SORTIE_SELECTIONNEES.clear();
+  majProfilCreation();
+}
+
+// Un type supervisé n'est proposé que si la table choisie a au moins une
+// colonne d'entrée de type compatible (les autres options sont grisées avec
+// la raison) ; le serveur re-vérifie tout au lancement de l'entraînement.
+function majTypesDisponibles(){
+  if(!TYPES_IA.length) return;
+  const sel = document.getElementById("nm-type");
+  const table = TABLES.find(t => t.id === [...TABLES_SELECTIONNEES][0]);
+  for(const opt of sel.options){
+    const t = TYPES_IA.find(x => x.code === opt.value);
+    const ok = t.types_entree_compatibles || [];
+    const incompatible = !!(table && t.supervise && ok.length && !table.champs.some(c => ok.includes(c.type)));
+    opt.disabled = incompatible;
+    opt.textContent = t.libelle + (incompatible ? tj("engine/templates/engine/ia.html:js:198:52") : "");
+  }
+  if(sel.selectedOptions[0] && sel.selectedOptions[0].disabled){
+    const libre = [...sel.options].find(o => !o.disabled);
+    if(libre){ sel.value = libre.value; renderParametres(); renderColonnesEntree(); renderColonnesCible(); }
+  }
+}
+
+function collecterParametres(){
+  const t = typeActuel();
+  const parametres = {};
+  if(!t) return parametres;
+  for(const p of t.parametres){
+    const el = document.getElementById(`par-${p.nom}`);
+    if(!el) continue;
+    if(p.widget === "booleen"){ parametres[p.nom] = el.checked; }
+    else if(el.value.trim() !== ""){ parametres[p.nom] = el.value.trim(); }
+  }
+  const vect = document.getElementById("par-vectorisation");
+  if(t.vectorisable && vect && !vect.checked) parametres.vectorisation = "brut";   // « auto » = valeur par défaut, rien à envoyer
+  return parametres;
+}
+
+// ── Liste déroulante multi-sélection (cases à cocher) ──
+// Remplace les pastilles étalées : un seul bouton par sélecteur, la liste n'apparaît qu'à l'ouverture.
+// `items` : [{id, label, desactive, titre}] ; `selection` : Set d'ids modifié en place ;
+// `apresToggle` : rappelé après chaque (dé)cochage. L'état ouvert et la recherche survivent au re-rendu.
+const COMBOS_ETAT = {};   // zoneId -> {ouvert, recherche}
+document.addEventListener("click", ev => {
+  document.querySelectorAll(".combo-multi.ouvert").forEach(c => {
+    if(!c.contains(ev.target)){ c.classList.remove("ouvert"); if(COMBOS_ETAT[c.dataset.zone]) COMBOS_ETAT[c.dataset.zone].ouvert = false; }
+  });
+});
+document.addEventListener("keydown", ev => {
+  if(ev.key !== "Escape") return;
+  document.querySelectorAll(".combo-multi.ouvert").forEach(c => { c.classList.remove("ouvert"); if(COMBOS_ETAT[c.dataset.zone]) COMBOS_ETAT[c.dataset.zone].ouvert = false; });
+});
+
+function comboMulti(zone, items, selection, apresToggle){
+  const etat = COMBOS_ETAT[zone.id] || (COMBOS_ETAT[zone.id] = {ouvert: false, recherche: ""});
+  zone.innerHTML = "";
+  const box = document.createElement("div");
+  box.className = "combo-multi" + (etat.ouvert ? " ouvert" : "");
+  box.dataset.zone = zone.id;
+
+  // Bouton : résumé de la sélection (2 premiers noms puis « +N ») et compteur
+  const choisis = items.filter(i => selection.has(i.id));
+  const btn = document.createElement("button");
+  btn.type = "button";
+  btn.className = "combo-multi-btn";
+  const resume = document.createElement("span");
+  resume.className = "combo-resume" + (choisis.length ? "" : " vide");
+  resume.textContent = choisis.length
+    ? choisis.slice(0, 2).map(i => i.label).join(", ") + (choisis.length > 2 ? " " + tj("engine/templates/engine/ia.html:js:combo_plus", {v1: choisis.length - 2}) : "")
+    : tj("engine/templates/engine/ia.html:js:combo_choisir");
+  btn.title = choisis.map(i => i.label).join(", ");
+  btn.appendChild(resume);
+  if(choisis.length){
+    const nb = document.createElement("span");
+    nb.className = "combo-nb";
+    nb.textContent = choisis.length;
+    btn.appendChild(nb);
+  }
+  const fl = document.createElement("span");
+  fl.className = "combo-fleche";
+  fl.textContent = "▼";
+  btn.appendChild(fl);
+  box.appendChild(btn);
+
+  // Panneau : recherche + liste de cases à cocher + « tout décocher »
+  const panneau = document.createElement("div");
+  panneau.className = "combo-multi-panneau";
+  const rech = document.createElement("input");
+  rech.type = "text";
+  rech.className = "combo-multi-recherche";
+  rech.placeholder = tj("engine/templates/engine/ia.html:js:combo_recherche");
+  rech.value = etat.recherche;
+  panneau.appendChild(rech);
+  const liste = document.createElement("div");
+  liste.className = "combo-multi-liste";
+  panneau.appendChild(liste);
+
+  function remplirListe(){
+    liste.innerHTML = "";
+    const q = etat.recherche.trim().toLowerCase();
+    const vus = items.filter(i => !q || i.label.toLowerCase().includes(q));
+    if(!vus.length){
+      const v = document.createElement("div");
+      v.className = "combo-multi-vide";
+      v.textContent = tj("engine/templates/engine/ia.html:js:combo_aucun_resultat");
+      liste.appendChild(v);
+      return;
+    }
+    for(const it of vus){
+      const ligne = document.createElement("label");
+      ligne.className = "combo-multi-item" + (selection.has(it.id) ? " actif" : "") + (it.desactive ? " desactive" : "");
+      if(it.titre) ligne.title = it.titre;
+      const cb = document.createElement("input");
+      cb.type = "checkbox";
+      cb.checked = selection.has(it.id);
+      cb.disabled = !!it.desactive;
+      cb.onchange = () => {
+        if(cb.checked) selection.add(it.id); else selection.delete(it.id);
+        apresToggle();
+      };
+      const txt = document.createElement("span");
+      txt.textContent = it.label;
+      ligne.appendChild(cb);
+      ligne.appendChild(txt);
+      liste.appendChild(ligne);
+    }
+  }
+  remplirListe();
+  rech.oninput = () => { etat.recherche = rech.value; remplirListe(); };
+
+  if(choisis.length){
+    const pied = document.createElement("div");
+    pied.className = "combo-multi-pied";
+    const effacer = document.createElement("button");
+    effacer.type = "button";
+    effacer.className = "petit";
+    effacer.textContent = tj("engine/templates/engine/ia.html:js:combo_effacer");
+    effacer.onclick = () => { selection.clear(); apresToggle(); };
+    pied.appendChild(effacer);
+    panneau.appendChild(pied);
+  }
+  box.appendChild(panneau);
+
+  btn.onclick = () => {
+    etat.ouvert = !etat.ouvert;
+    box.classList.toggle("ouvert", etat.ouvert);
+    if(etat.ouvert) rech.focus();
+  };
+  zone.appendChild(box);
+  // Re-rendu pendant que le panneau est ouvert : rendre le focus à la recherche si elle l'avait
+  if(etat.ouvert && etat.focusRecherche){ rech.focus(); rech.setSelectionRange(rech.value.length, rech.value.length); }
+  rech.onfocus = () => { etat.focusRecherche = true; };
+  rech.onblur  = () => { etat.focusRecherche = false; };
+}
+
+// ── Tables source (liste déroulante multi-sélection) + colonne cible ──
+function renderTablesPicker(){
+  const zone = document.getElementById("nm-tables");
+  zone.innerHTML = "";
+  if(!TABLES.length){
+    zone.innerHTML = `<span class="muted-txt">${tj("engine/templates/engine/ia.html:js:224:48")}</span>`;
+    return;
+  }
+  // Un groupe de tables est UNE table pour l'entraînement : une seule entrée par groupe (sa première partie, qui porte
+  // les lignes de tout le groupe), sous le nom du groupe — jamais ses parties une à une.
+  const _ancres = new Map();
+  for(const t of TABLES) if(t.groupe_id && (!_ancres.has(t.groupe_id) || (t.partie_index || 0) < (_ancres.get(t.groupe_id).partie_index || 0))) _ancres.set(t.groupe_id, t);
+  const _tablesVue = TABLES.filter(t => !t.groupe_id || _ancres.get(t.groupe_id) === t);
+  const items = _tablesVue.map(table => ({
+    id: table.id,
+    label: `${table.groupe_id ? tj("engine/templates/engine/ia.html:js:groupe_pastille", {v1: table.groupe_nom || table.nom}) : table.nom} ${tj("engine/templates/engine/ia.html:js:lbl_nb_col", {v1: table.champs.length})}`,
+  }));
+  comboMulti(zone, items, TABLES_SELECTIONNEES, () => {
+    // Changer de table source invalide les colonnes déjà cochées
+    // (elles appartenaient à l'ancienne table).
+    COLONNES_ENTREE_SELECTIONNEES.clear();
+    COLONNES_SORTIE_SELECTIONNEES.clear();
+    renderTablesPicker();
+    renderColonnesEntree();
+    renderColonnesCible();
+  });
+  majTypesDisponibles();
+}
+
+// ── Sélecteur générique de colonnes (liste déroulante à cases) sur la première table
+// source sélectionnée — utilisé pour les colonnes d'entrée (X) ET les
+// colonnes cible (y). `selection` est le Set (slugs) à modifier ; `autre`
+// est l'autre Set (pour ne jamais permettre à une colonne d'être à la fois
+// en entrée ET en sortie — évite une fuite de la cible dans les features).
+// `typesAutorises` (optionnel, colonnes d'entrée uniquement) : liste de
+// types de champ compatibles avec le type de modèle choisi — une colonne
+// qui n'en fait pas partie (ex: une colonne "Choix unique" pour un CNN) est
+// affichée mais non cochable, pour ne jamais laisser le client sélectionner
+// une variable que le modèle ne saura de toute façon pas exploiter.
+function renderColonnesPicker(zoneId, selection, autre, apresToggle, typesAutorises){
+  const zone = document.getElementById(zoneId);
+  zone.innerHTML = "";
+  const premiereId = [...TABLES_SELECTIONNEES][0];
+  const table = TABLES.find(t => t.id === premiereId);
+  if(!table){
+    zone.innerHTML = `<span class="muted-txt">${tj("engine/templates/engine/ia.html:js:263:48")}</span>`;
+    return;
+  }
+  const items = table.champs.map(c => {
+    const incompatible = !!(typesAutorises && typesAutorises.length && !typesAutorises.includes(c.type));
+    const dansAutre = autre.has(c.slug);
+    return {
+      id: c.slug,
+      label: `${c.nom} (${c.type})`,
+      desactive: dansAutre || incompatible,
+      titre: incompatible ? tj("engine/templates/engine/ia.html:js:274:34")
+        : (dansAutre ? tj("engine/templates/engine/ia.html:js:275:31") : ""),
+    };
+  });
+  comboMulti(zone, items, selection, apresToggle);
+}
+
+function renderColonnesEntree(){
+  const t = typeActuel();
+  const autorises = t ? t.types_entree_compatibles : [];
+  // Changer de type de modèle peut rendre une colonne déjà cochée
+  // incompatible (ex: passer de MLP à CNN avec une colonne "Nombre" cochée)
+  // — on la décoche automatiquement plutôt que de laisser une sélection
+  // invalide passer silencieusement à la création du modèle.
+  if(autorises && autorises.length){
+    const premiereId = [...TABLES_SELECTIONNEES][0];
+    const table = TABLES.find(t2 => t2.id === premiereId);
+    if(table){
+      const champsParSlug = Object.fromEntries(table.champs.map(c => [c.slug, c]));
+      for(const slug of [...COLONNES_ENTREE_SELECTIONNEES]){
+        const c = champsParSlug[slug];
+        if(c && !autorises.includes(c.type)) COLONNES_ENTREE_SELECTIONNEES.delete(slug);
+      }
+    }
+  }
+  renderColonnesPicker("nm-entree", COLONNES_ENTREE_SELECTIONNEES, COLONNES_SORTIE_SELECTIONNEES, () => {
+    renderColonnesEntree();
+    renderColonnesCible();
+  }, autorises);
+}
+
+function renderColonnesCible(){
+  const t = typeActuel();
+  const autorises = t ? t.types_sortie_compatibles : [];
+  // Meme garde-fou que renderColonnesEntree : changer de type de modele peut
+  // rendre une colonne cible deja cochee incompatible (ex: passer d'un MLP
+  // a un CNN avec une colonne "Choix unique" cochee en cible) — on la
+  // decoche automatiquement plutot que de laisser une selection invalide
+  // passer silencieusement a la creation du modele.
+  if(autorises && autorises.length){
+    const premiereId = [...TABLES_SELECTIONNEES][0];
+    const table = TABLES.find(t2 => t2.id === premiereId);
+    if(table){
+      const champsParSlug = Object.fromEntries(table.champs.map(c => [c.slug, c]));
+      for(const slug of [...COLONNES_SORTIE_SELECTIONNEES]){
+        const c = champsParSlug[slug];
+        if(c && !autorises.includes(c.type)) COLONNES_SORTIE_SELECTIONNEES.delete(slug);
+      }
+    }
+  }
+  renderColonnesPicker("nm-cible", COLONNES_SORTIE_SELECTIONNEES, COLONNES_ENTREE_SELECTIONNEES, () => {
+    renderColonnesCible();
+    renderColonnesEntree();
+  }, autorises);
+  const aide = document.getElementById("aide-cible");
+  if(TABLES_SELECTIONNEES.size > 1){
+    aide.textContent = tj("engine/templates/engine/ia.html:js:335:25")
+      + tj("engine/templates/engine/ia.html:js:336:10", {v1: TABLES_SELECTIONNEES.size - 1})
+      + tj("engine/templates/engine/ia.html:js:337:10");
+  } else if(COLONNES_SORTIE_SELECTIONNEES.size > 1){
+    aide.textContent = tj("engine/templates/engine/ia.html:js:339:25")
+      + tj("engine/templates/engine/ia.html:js:340:10");
+  } else {
+    aide.textContent = "";
+  }
+}
+
+// ── Chargement initial ──
+function appliquerTypes(types, choix){
+  TYPES_IA = types;
+  const sel = document.getElementById("nm-type");
+  sel.innerHTML = TYPES_IA.map(t => `<option value="${t.code}">${escapeHtml(profil(t.code).court)}</option>`).join("");
+  if(choix && TYPES_IA.some(t => t.code === choix)) sel.value = choix;
+  sel.onchange = () => { renderParametres(); renderColonnesEntree(); renderColonnesCible(); };
+  renderParametres();
+  renderColonnesEntree();
+  renderColonnesCible();
+  majTypesDisponibles();
+}
+
+async function chargerTypes(){
+  const data = await api("/api/ia/types-modeles/");
+  appliquerTypes(data.types);
+}
+
+// ── Ajouter un algorithme (administrateur) : script NOM + entrainer() + predire(), écrit à la main ou par l'IA ──
+async function ouvrirAjoutAlgo(){
+  $("modal-algo").classList.add("ouvert");
+  if($("algo-code").value.trim()) return;
+  try{
+    const d = await api("/api/ia/types-modeles/ajouter/");
+    EXEMPLE_ALGO = d.exemple || "";
+    $("algo-code").value = EXEMPLE_ALGO;
+    $("algo-modules").textContent = tj("engine/templates/engine/ia.html:js:algo:modules", {v1: d.modules || ""});
+  }catch(e){}
+}
+function fermerAjoutAlgo(){ $("modal-algo").classList.remove("ouvert"); }
+// Copier / importer / restaurer le script : mêmes gestes que l'onglet de configuration des rapports (fichier .py ou .txt lu tel quel).
+let EXEMPLE_ALGO = "";
+async function copierAlgo(){
+  const code = $("algo-code").value;
+  if(!code) return;
+  let ok = false;
+  if(navigator.clipboard && window.isSecureContext){ try{ await navigator.clipboard.writeText(code); ok = true; }catch(e){} }
+  if(!ok){ try{ const tmp = document.createElement("textarea"); tmp.value = code; tmp.style.cssText = "position:fixed;opacity:0;top:0;left:0"; document.body.appendChild(tmp); tmp.focus(); tmp.select(); ok = document.execCommand("copy"); tmp.remove(); }catch(e){} }
+  toast(ok ? tj("engine/templates/engine/ia.html:js:510:15") : tj("engine/templates/engine/ia.html:js:510:33"), !ok);
+}
+function importerAlgo(){
+  const inp = document.createElement("input");
+  inp.type = "file"; inp.accept = ".py,.txt,text/x-python,text/plain,text/*"; inp.style.display = "none";
+  inp.onchange = () => {
+    const f = inp.files[0]; if(!f) return;
+    const r = new FileReader();
+    r.onload = e => {
+      $("algo-code").value = e.target.result;
+      const nom = /NOM\s*=\s*["']([a-z0-9_]+)/.exec(e.target.result || "");
+      if(nom && !$("algo-court").value) $("algo-court").value = nom[1];
+    };
+    r.readAsText(f, "utf-8");
+  };
+  document.body.appendChild(inp); inp.click(); setTimeout(() => inp.remove(), 30000);
+}
+async function restaurerAlgo(){
+  if(!EXEMPLE_ALGO){ try{ EXEMPLE_ALGO = (await api("/api/ia/types-modeles/ajouter/")).exemple || ""; }catch(e){ return; } }
+  $("algo-code").value = EXEMPLE_ALGO;
+}
+async function genererAlgo(){
+  const description = $("algo-description").value.trim();
+  if(!description){ toast(tj("engine/templates/engine/ia.html:js:algo:description_requise"), true); return; }
+  const bouton = $("btn-algo-generer");
+  bouton.disabled = true; const libelle = bouton.textContent; bouton.textContent = tj("engine/templates/engine/ia.html:js:algo:generation");
+  try{
+    const d = await api("/api/ia/types-modeles/ajouter/", {method:"POST", body: JSON.stringify({description})});
+    $("algo-code").value = d.code || "";
+    const nom = /NOM\s*=\s*["']([a-z0-9_]+)/.exec(d.code || "");
+    if(nom && !$("algo-court").value) $("algo-court").value = nom[1];
+    toast(tj("engine/templates/engine/ia.html:js:algo:genere"));
+  }catch(e){}
+  bouton.disabled = false; bouton.textContent = libelle;
+}
+async function installerAlgo(){
+  const code = $("algo-code").value.trim();
+  if(!code){ toast(tj("engine/templates/engine/ia.html:js:algo:code_requis"), true); return; }
+  const bouton = $("btn-algo-installer");
+  bouton.disabled = true;
+  try{
+    const d = await api("/api/ia/types-modeles/ajouter/", {method:"POST", body: JSON.stringify({code, profil: {court: $("algo-court").value, role: $("algo-role").value, donnees: $("algo-donnees").value, conseil: $("algo-conseil").value, iteratif: $("algo-famille").value === "1"}})});
+    appliquerTypes(d.types, d.nom);
+    fermerAjoutAlgo();
+    ["code","description","court","role","donnees","conseil"].forEach(k => $("algo-" + k).value = "");
+    toast(tj("engine/templates/engine/ia.html:js:algo:installe", {v1: d.nom}));
+  }catch(e){}
+  bouton.disabled = false;
+}
+
+async function chargerTables(){
+  const data = await api("/api/tables/?systeme=1");
+  TABLES = data.tables;
+  renderTablesPicker();
+  renderColonnesEntree();
+  renderColonnesCible();
+  if(SELECTION != null) afficherVue();
+}
+
+function badgeStatut(s){
+  const labels = {brouillon:tj("engine/templates/engine/ia.html:js:lbl_brouillon"), entrainement:tj("engine/templates/engine/ia.html:js:366:56"), entraine:tj("engine/templates/engine/ia.html:js:366:82"), erreur:tj("engine/templates/engine/ia.html:js:366:101"), annule:tj("engine/templates/engine/ia.html:js:366:118")};
+  return `<span class="badge ${s}">${labels[s]||s}</span>`;
+}
+
+// ── Profils par type de modèle : textes qui guident l'utilisateur, adaptés à chaque famille ──
+const LIRE_PERTE = tj("engine/templates/engine/ia.html:js:405:21");
+const LIRE_PREC = tj("engine/templates/engine/ia.html:js:406:20");
+const LIRE_SK = tj("engine/templates/engine/ia.html:js:407:18");
+const LIRE_GROUPES = tj("engine/templates/engine/ia.html:js:nonsup_lire");
+const LIRE_PROJECTION = tj("engine/templates/engine/ia.html:js:nonsup_lire_projection");
+const LIRE_ANOMALIES = tj("engine/templates/engine/ia.html:js:nonsup_lire_anomalies");
+const PROFILS = {
+  mlp: {court: "MLP", role: tj("engine/templates/engine/ia.html:js:409:30"), donnees: tj("engine/templates/engine/ia.html:js:409:175"), lire: LIRE_PERTE + " " + LIRE_PREC, conseil: tj("engine/templates/engine/ia.html:js:409:300"), iteratif: true},
+  rnn: {court: "RNN", role: tj("engine/templates/engine/ia.html:js:410:30"), donnees: tj("engine/templates/engine/ia.html:js:410:135"), lire: LIRE_PERTE + " " + LIRE_PREC, conseil: tj("engine/templates/engine/ia.html:js:410:248"), iteratif: true},
+  cnn: {court: "CNN", role: tj("engine/templates/engine/ia.html:js:411:30"), donnees: tj("engine/templates/engine/ia.html:js:411:130"), lire: LIRE_PERTE + " " + LIRE_PREC, conseil: tj("engine/templates/engine/ia.html:js:411:244"), iteratif: true},
+  transformer: {court: "Transformer", role: tj("engine/templates/engine/ia.html:js:412:46"), donnees: tj("engine/templates/engine/ia.html:js:412:175"), lire: LIRE_PERTE + " " + LIRE_PREC, conseil: tj("engine/templates/engine/ia.html:js:412:255"), iteratif: true},
+  gan: {court: "GAN", role: tj("engine/templates/engine/ia.html:js:413:30"), donnees: tj("engine/templates/engine/ia.html:js:413:203"), lire: tj("engine/templates/engine/ia.html:js:413:264"), conseil: tj("engine/templates/engine/ia.html:js:413:427"), iteratif: true},
+  ldm: {court: "LDM", role: tj("engine/templates/engine/ia.html:js:414:30"), donnees: tj("engine/templates/engine/ia.html:js:414:140"), lire: LIRE_PERTE + tj("engine/templates/engine/ia.html:js:414:214"), conseil: tj("engine/templates/engine/ia.html:js:414:308"), iteratif: true},
+  slm: {court: "SLM", role: tj("engine/templates/engine/ia.html:js:415:30"), donnees: tj("engine/templates/engine/ia.html:js:415:132"), lire: LIRE_PERTE + tj("engine/templates/engine/ia.html:js:415:199"), conseil: tj("engine/templates/engine/ia.html:js:415:273"), iteratif: true},
+  slm_texte: {court: tj("engine/templates/engine/ia.html:js:416:23"), role: tj("engine/templates/engine/ia.html:js:416:42"), donnees: tj("engine/templates/engine/ia.html:js:416:116"), lire: LIRE_PERTE + " " + LIRE_PREC, conseil: tj("engine/templates/engine/ia.html:js:416:265"), iteratif: true},
+  image_classifier: {court: "Images", role: tj("engine/templates/engine/ia.html:js:417:46"), donnees: tj("engine/templates/engine/ia.html:js:417:129"), lire: LIRE_PERTE + " " + LIRE_PREC, conseil: tj("engine/templates/engine/ia.html:js:417:252"), iteratif: true},
+  speech_classifier: {court: "Audio", role: tj("engine/templates/engine/ia.html:js:418:46"), donnees: tj("engine/templates/engine/ia.html:js:418:112"), lire: LIRE_PERTE + " " + LIRE_PREC, conseil: tj("engine/templates/engine/ia.html:js:418:216"), iteratif: true},
+  sklearn_rf: {court: "Random Forest", role: tj("engine/templates/engine/ia.html:js:419:47"), donnees: tj("engine/templates/engine/ia.html:js:419:156"), lire: LIRE_SK + " " + LIRE_PREC, conseil: tj("engine/templates/engine/ia.html:js:419:255"), iteratif: false},
+  sklearn_gbm: {court: "Gradient Boosting", role: tj("engine/templates/engine/ia.html:js:420:52"), donnees: tj("engine/templates/engine/ia.html:js:420:155"), lire: LIRE_SK + " " + LIRE_PREC, conseil: tj("engine/templates/engine/ia.html:js:420:254"), iteratif: false},
+  sklearn_svm: {court: "SVM", role: tj("engine/templates/engine/ia.html:js:421:38"), donnees: tj("engine/templates/engine/ia.html:js:421:136"), lire: LIRE_SK + " " + LIRE_PREC, conseil: tj("engine/templates/engine/ia.html:js:421:237"), iteratif: false},
+  sklearn_knn: {court: "k-NN", role: tj("engine/templates/engine/ia.html:js:422:39"), donnees: tj("engine/templates/engine/ia.html:js:422:142"), lire: LIRE_SK + " " + LIRE_PREC, conseil: tj("engine/templates/engine/ia.html:js:422:243"), iteratif: false},
+  sklearn_lr: {court: tj("engine/templates/engine/ia.html:js:423:24"), role: tj("engine/templates/engine/ia.html:js:423:55"), donnees: tj("engine/templates/engine/ia.html:js:423:146"), lire: LIRE_SK + " " + LIRE_PREC, conseil: tj("engine/templates/engine/ia.html:js:423:247"), iteratif: false},
+  sklearn_nb: {court: "Naive Bayes", role: tj("engine/templates/engine/ia.html:js:424:45"), donnees: tj("engine/templates/engine/ia.html:js:424:153"), lire: LIRE_SK + " " + LIRE_PREC, conseil: tj("engine/templates/engine/ia.html:js:424:254"), iteratif: false},
+  sklearn_dt: {court: tj("engine/templates/engine/ia.html:js:425:24"), role: tj("engine/templates/engine/ia.html:js:425:51"), donnees: tj("engine/templates/engine/ia.html:js:425:147"), lire: LIRE_SK + " " + LIRE_PREC, conseil: tj("engine/templates/engine/ia.html:js:425:246"), iteratif: false},
+  sklearn_ridge: {court: "Ridge", role: tj("engine/templates/engine/ia.html:js:426:42"), donnees: tj("engine/templates/engine/ia.html:js:426:139"), lire: LIRE_SK, conseil: tj("engine/templates/engine/ia.html:js:conseil_ridge"), iteratif: false},
+  sklearn_kmeans: {court: "K-Means", role: tj("engine/templates/engine/ia.html:js:nonsup_role_kmeans"), donnees: tj("engine/templates/engine/ia.html:js:nonsup_donnees"), lire: LIRE_GROUPES, conseil: tj("engine/templates/engine/ia.html:js:nonsup_conseil_kmeans"), iteratif: false},
+  sklearn_dbscan: {court: "DBSCAN", role: tj("engine/templates/engine/ia.html:js:nonsup_role_dbscan"), donnees: tj("engine/templates/engine/ia.html:js:nonsup_donnees"), lire: LIRE_GROUPES, conseil: tj("engine/templates/engine/ia.html:js:nonsup_conseil_dbscan"), iteratif: false},
+  sklearn_hierarchique: {court: tj("engine/templates/engine/ia.html:js:nonsup_court_hierarchique"), role: tj("engine/templates/engine/ia.html:js:nonsup_role_hierarchique"), donnees: tj("engine/templates/engine/ia.html:js:nonsup_donnees"), lire: LIRE_GROUPES, conseil: tj("engine/templates/engine/ia.html:js:nonsup_conseil_hierarchique"), iteratif: false},
+  sklearn_gmm: {court: tj("engine/templates/engine/ia.html:js:nonsup_court_gmm"), role: tj("engine/templates/engine/ia.html:js:nonsup_role_gmm"), donnees: tj("engine/templates/engine/ia.html:js:nonsup_donnees"), lire: LIRE_GROUPES, conseil: tj("engine/templates/engine/ia.html:js:nonsup_conseil_gmm"), iteratif: false},
+  sklearn_acp: {court: tj("engine/templates/engine/ia.html:js:nonsup_court_acp"), role: tj("engine/templates/engine/ia.html:js:nonsup_role_acp"), donnees: tj("engine/templates/engine/ia.html:js:nonsup_donnees_projection"), lire: LIRE_PROJECTION, conseil: tj("engine/templates/engine/ia.html:js:nonsup_conseil_acp"), iteratif: false},
+  sklearn_ica: {court: "ICA", role: tj("engine/templates/engine/ia.html:js:nonsup_role_ica"), donnees: tj("engine/templates/engine/ia.html:js:nonsup_donnees_projection"), lire: LIRE_PROJECTION, conseil: tj("engine/templates/engine/ia.html:js:nonsup_conseil_ica"), iteratif: false},
+  sklearn_isoforest: {court: "Isolation Forest", role: tj("engine/templates/engine/ia.html:js:nonsup_role_isoforest"), donnees: tj("engine/templates/engine/ia.html:js:nonsup_donnees_anomalies"), lire: LIRE_ANOMALIES, conseil: tj("engine/templates/engine/ia.html:js:nonsup_conseil_isoforest"), iteratif: false},
+  sklearn_ocsvm: {court: "One-Class SVM", role: tj("engine/templates/engine/ia.html:js:nonsup_role_ocsvm"), donnees: tj("engine/templates/engine/ia.html:js:nonsup_donnees_anomalies"), lire: LIRE_ANOMALIES, conseil: tj("engine/templates/engine/ia.html:js:nonsup_conseil_ocsvm"), iteratif: false},
+  sklearn_lof: {court: "LOF", role: tj("engine/templates/engine/ia.html:js:nonsup_role_lof"), donnees: tj("engine/templates/engine/ia.html:js:nonsup_donnees_anomalies"), lire: LIRE_ANOMALIES, conseil: tj("engine/templates/engine/ia.html:js:nonsup_conseil_lof"), iteratif: false},
+  sklearn_lasso: {court: "Lasso", role: tj("engine/templates/engine/ia.html:js:427:42"), donnees: tj("engine/templates/engine/ia.html:js:427:115"), lire: LIRE_SK, conseil: tj("engine/templates/engine/ia.html:js:427:194"), iteratif: false},
+};
+function profil(code){
+  const f = (TYPES_IA.find(t => t.code === code) || {}).profil;   // fiche d'un modèle ajouté
+  if(!PROFILS[code] && f) return {...f, court: f.court || code, lire: f.iteratif ? LIRE_PERTE + " " + LIRE_PREC : LIRE_SK};
+  return PROFILS[code] || {court: code || tj("engine/templates/engine/ia.html:js:430:44"), role: tj("engine/templates/engine/ia.html:js:430:60"), donnees: tj("engine/templates/engine/ia.html:js:430:108"),
+    lire: LIRE_PERTE, conseil: tj("engine/templates/engine/ia.html:js:431:33"), iteratif: !String(code).startsWith("sklearn_")};
+}
+const LIB_MESURES = {loss: [tj("engine/templates/engine/ia.html:js:433:30"), -1], accuracy: [tj("engine/templates/engine/ia.html:js:433:64"), 1], val_loss: [tj("engine/templates/engine/ia.html:js:433:92"), -1], val_accuracy: [tj("engine/templates/engine/ia.html:js:433:135"), 1],
+  g_loss: [tj("engine/templates/engine/ia.html:js:434:13"), -1], d_loss: [tj("engine/templates/engine/ia.html:js:434:50"), -1]};
+function libMesure(k){
+  return LIB_MESURES[k] || [k, /loss|err|mse|mae/i.test(k) ? -1 : 1];
+}
+const fmtMesure = (k, x) => /acc/i.test(k) && Math.abs(x) <= 1 ? (x * 100).toFixed(1) + " %" : (Math.abs(x) < 1 ? x.toFixed(4) : x.toFixed(2));
+const scoreModele = m => (m.metriques && m.metriques.accuracy != null) ? (m.metriques.accuracy > 1 ? m.metriques.accuracy / 100 : m.metriques.accuracy) : null;   // fraction 0–1 ; un ancien modèle enregistré en pourcentage (> 1) est ramené à l'échelle
+const classeScore = a => a >= 0.9 ? "ok" : (a >= 0.7 ? "moyen" : "faible");
+const libStatut = s => badgeStatut(s).replace(/<[^>]+>/g, "");
+const guideHTML = (p, cartes) => cartes.map(([titre, txt]) => `<div class="guide-carte"><h4>${titre}</h4><p>${escapeHtml(txt)}</p></div>`).join("");
+
+let MODELES_IA = [];  // dernier chargement de /api/ia/modeles/, réutilisé par le moteur de formulaire d'inférence
+let SELECTION;        // id du modèle affiché ; null = création ; undefined = pas encore choisi
+const COURBES = {};   // id -> [{e, loss, accuracy, …}] : points relevés en direct ou lus dans le journal
+
+// ── Création : explication du type choisi ──
+function majProfilCreation(){
+  const t = typeActuel();
+  if(!t || !$("cr-guide")) return;
+  const p = profil(t.code);
+  $("cr-titre").textContent = tj("engine/templates/engine/ia.html:js:453:32") + p.court;
+  $("cr-role").textContent = p.role;
+  $("cr-guide").innerHTML = guideHTML(p, [[tj("engine/templates/engine/ia.html:js:455:45"), p.donnees], [tj("engine/templates/engine/ia.html:js:455:79"), p.lire], [tj("engine/templates/engine/ia.html:js:lbl_conseil"), p.conseil]]);
+}
+
+// ── Liste (barre latérale) ──
+function rendreListe(){
+  $("mod-total").textContent = MODELES_IA.length || "";
+  $("mod-liste").innerHTML = MODELES_IA.length ? MODELES_IA.map(m => {
+    const a = scoreModele(m);
+    return `<button type="button" class="mod-item s-${m.statut}${m.id === SELECTION ? " actif" : ""}" onclick="choisirModele(${m.id})">
+      <div class="mod-nom"><span>${escapeHtml(m.nom)}</span><span class="mod-score">${a != null ? (a * 100).toFixed(1) + " %" : ""}</span></div>
+      <div class="mod-sous">${escapeHtml(profil(m.type_modele).court)} · ${escapeHtml(libStatut(m.statut))}</div>
+      <div class="mod-barre" id="sb-barre-${m.id}"><i></i></div></button>`;
+  }).join("") : `<span class="mod-vide">${tj("engine/templates/engine/ia.html:js:377:58")}</span>`;
+}
+
+function choisirModele(id){ SELECTION = id; rendreListe(); afficherVue(); window.scrollTo(0, 0); }
+function nouveauModele(){ SELECTION = null; rendreListe(); afficherVue(); }
+
+// Reconfigurer : repart d'un modèle existant pour en créer un NOUVEAU (type, tables, colonnes et réglages préremplis, tout reste modifiable).
+// Le modèle d'origine est conservé tel quel : plus besoin de le supprimer pour essayer une autre configuration.
+function reconfigurerModele(id){
+  const m = modeleParId(id);
+  if(!m) return;
+  SELECTION = null;
+  rendreListe(); afficherVue();                                           // vue de création + panneau de configuration
+  const sel = $("nm-type");
+  if(TYPES_IA.some(t => t.code === m.type_modele)) sel.value = m.type_modele;
+  TABLES_SELECTIONNEES.clear();
+  (m.tables_source || []).forEach(t => TABLES_SELECTIONNEES.add(t));
+  ecrirePlageLignes(m.plage_lignes);
+  COLONNES_ENTREE_SELECTIONNEES.clear();
+  (m.colonnes_entree || []).forEach(c => COLONNES_ENTREE_SELECTIONNEES.add(c));
+  COLONNES_SORTIE_SELECTIONNEES.clear();
+  (m.colonnes_sortie && m.colonnes_sortie.length ? m.colonnes_sortie : (m.colonne_cible ? [m.colonne_cible] : [])).forEach(c => COLONNES_SORTIE_SELECTIONNEES.add(c));
+  renderParametres();                                                     // champs de réglage du type, puis leurs valeurs
+  for(const [k, v] of Object.entries(m.parametres || {})){
+    const el = $("par-" + k);
+    if(!el || k === "vectorisation") continue;
+    if(el.type === "checkbox") el.checked = !!v; else el.value = Array.isArray(v) ? v.join(",") : v;
+  }
+  const vect = $("par-vectorisation");
+  if(vect) vect.checked = (m.parametres || {}).vectorisation !== "brut";
+  renderTablesPicker();
+  renderColonnesEntree();
+  renderColonnesCible();
+  majProfilCreation();
+  $("nm-nom").value = tj("engine/templates/engine/ia.html:js:reconf_nom", {v1: m.nom});
+  $("nm-nom").focus();
+  window.scrollTo(0, 0);
+  toast(tj("engine/templates/engine/ia.html:js:reconf_toast", {v1: m.nom}));
+}
+
+function afficherVue(){
+  const m = modeleParId(SELECTION);
+  if(!m) SELECTION = null;
+  $("vue-creation").style.display = m ? "none" : "";
+  $("vue-modele").style.display = m ? "" : "none";
+  $("side-config").style.display = m ? "none" : "";
+  if(m) renderModele(m); else majProfilCreation();
+}
+
+async function chargerModeles(){
+  const data = await api("/api/ia/modeles/");
+  MODELES_IA = data.modeles;
+  if(SELECTION === undefined){
+    // Premier affichage : lien direct du portail (?modele=<id>), sinon un entraînement en cours, sinon le plus récent.
+    const demande = parseInt(new URLSearchParams(window.location.search).get("modele"), 10);
+    const choix = MODELES_IA.find(m => m.id === demande) || MODELES_IA.find(m => m.statut === "entrainement")
+      || [...MODELES_IA].sort((x, y) => y.id - x.id)[0];
+    SELECTION = choix ? choix.id : null;
+  }
+  MODELES_IA.forEach(m => fusionnerCourbe(m.id, courbeDepuisJournal(m.progression)));
+  rendreListe();
+  afficherVue();
+  // Un entrainement peut deja etre en cours (lance avant un rechargement de
+  // la page, ou par un autre onglet) : on reprend le suivi de sa
+  // progression au lieu d'attendre un clic sur "Entraîner".
+  MODELES_IA.filter(m => m.statut === "entrainement").forEach(m => {
+    afficherProgression(m.id, {statut: m.statut, progression: m.progression, metriques: m.metriques, inactif_depuis: 0});
+    suivreProgression(m.id);
+  });
+}
+
+// ── Courbes : lues dans le journal (1 point ≈ tous les 10 %) puis complétées en direct ──
+function courbeDepuisJournal(p){
+  const pts = [];
+  for(const l of ((p && p.journal) || [])){
+    const r = /^Epoque (\d+)\/\d+(?: — (.*))?$/.exec(l.m || "");
+    if(!r || !r[2]) continue;
+    const pt = {e: +r[1]};
+    for(const k of r[2].matchAll(/([\w.\/-]+)=(-?[\d.]+(?:e[+-]?\d+)?)/gi)) pt[k[1]] = parseFloat(k[2]);
+    pts.push(pt);
+  }
+  return pts;
+}
+function fusionnerCourbe(id, pts){
+  const par = new Map((COURBES[id] || []).map(q => [q.e, q]));
+  pts.forEach(q => par.set(q.e, {...(par.get(q.e) || {}), ...q}));
+  COURBES[id] = [...par.values()].sort((a, b) => a.e - b.e);
+}
+function enregistrerCourbe(id, p){
+  if(!(p.epoch > 0) || !p.metriques) return;
+  const pt = {e: p.epoch};
+  Object.entries(p.metriques).forEach(([k, v]) => { if(typeof v === "number") pt[k] = v; });
+  if(Object.keys(pt).length > 1) fusionnerCourbe(id, [pt]);
+}
+function carteCourbe(k, pts){
+  const v = pts.filter(q => typeof q[k] === "number");
+  if(!v.length) return "";
+  const [lib, sens] = libMesure(k), vals = v.map(q => q[k]);
+  const premier = vals[0], dernier = vals[vals.length - 1], min = Math.min(...vals), etendue = (Math.max(...vals) - min) || 1;
+  const W = 300, H = 96, X = i => v.length > 1 ? i * W / (v.length - 1) : W / 2, Y = y => H - 6 - ((y - min) / etendue) * (H - 12);
+  const trace = vals.map((y, i) => `${X(i).toFixed(1)},${Y(y).toFixed(1)}`).join(" ");
+  const gain = (dernier - premier) * sens;
+  const cls = v.length < 2 ? "" : (gain > 0 ? "mieux" : (gain < 0 ? "pire" : ""));
+  const verdict = v.length < 2 ? tj("engine/templates/engine/ia.html:js:536:35")
+    : tj("engine/templates/engine/ia.html:js:537:8", {v1: fmtMesure(k, premier), v2: fmtMesure(k, dernier)}) + (gain > 0 ? (sens < 0 ? tj("engine/templates/engine/ia.html:js:537:94") : tj("engine/templates/engine/ia.html:js:537:126"))
+      : (gain < 0 ? (sens < 0 ? tj("engine/templates/engine/ia.html:js:538:34") : tj("engine/templates/engine/ia.html:js:538:78")) : tj("engine/templates/engine/ia.html:js:538:100")));
+  return `<div class="courbe ${cls}"><h4><span>${escapeHtml(lib)}</span><b>${fmtMesure(k, dernier)}</b></h4>
+    <svg viewBox="0 0 ${W} ${H}" preserveAspectRatio="none" role="img" aria-label="${escapeHtml(lib)}">
+      ${v.length > 1 ? `<polygon class="zone-courbe" points="0,${H} ${trace} ${W},${H}"/>` : ""}<polyline class="trait-courbe" points="${v.length > 1 ? trace : `0,${Y(vals[0])} ${W},${Y(vals[0])}`}"/></svg>
+    <p>${escapeHtml(verdict)}</p></div>`;
+}
+function majCourbes(m){
+  const zone = $("courbes");
+  if(!zone) return;
+  const pts = COURBES[m.id] || [], pf = profil(m.type_modele);
+  const cles = [...new Set(pts.flatMap(q => Object.keys(q).filter(k => k !== "e")))];
+  if(cles.length){ zone.className = "courbes"; zone.innerHTML = cles.map(k => carteCourbe(k, pts)).join(""); }
+  else {
+    zone.className = "vide-courbes";
+    zone.textContent = !pf.iteratif ? tj("engine/templates/engine/ia.html:js:552:40")
+      : (m.statut === "entrainement" ? tj("engine/templates/engine/ia.html:js:553:41")
+      : tj("engine/templates/engine/ia.html:js:554:10"));
+  }
+  const d = $("diag");
+  if(d) d.innerHTML = diagnostics(m).map(([c, t]) => `<div class="${c}">${escapeHtml(t)}</div>`).join("");
+}
+
+// Résultat au niveau du hasard : classification = aucun progrès sur la réponse naïve (« toujours la classe la plus fréquente »),
+// régression = R² quasi nul (pas mieux que la moyenne). Même seuil que IA/separation.py (SEUIL_HASARD).
+const SEUIL_HASARD = 0.05;
+function auNiveauDuHasard(ta){
+  if(!ta || ta.verdict !== "inapproprie") return false;
+  return ta.metrique === "accuracy" ? (ta.gain != null && ta.gain < SEUIL_HASARD) : (ta.score != null && ta.score < SEUIL_HASARD);
+}
+function diagnostics(m){
+  const r = [], pts = COURBES[m.id] || [], a = scoreModele(m), l = pts.filter(q => typeof q.loss === "number");
+  const ta0 = m.metriques && m.metriques.test_automatique;
+  const hasard = m.statut === "entraine" && auNiveauDuHasard(ta0);
+  if(hasard){   // signalement net : ni « plus d'époques », ni « ajoutez des lignes » (conseils contradictoires quand le modèle est au hasard)
+    r.push(["ko", ta0.metrique === "accuracy"
+      ? tj("engine/templates/engine/ia.html:js:hasard_cls", {v1: (ta0.score * 100).toFixed(1) + " %", v2: ta0.reference != null ? (ta0.reference * 100).toFixed(1) + " %" : "–"})
+      : tj("engine/templates/engine/ia.html:js:hasard_reg", {v1: Number(ta0.score).toFixed(2)})]);
+  }
+  if(!hasard && l.length >= 3 && m.statut !== "brouillon"){
+    const f = l[0].loss, z = l[l.length - 1].loss;
+    if(z >= f * 0.999) r.push(["ko", tj("engine/templates/engine/ia.html:js:564:39")]);
+    else if(z < f * 0.5) r.push(["ok", tj("engine/templates/engine/ia.html:js:565:41", {v1: (f / z).toFixed(1)})]);
+    else r.push(["warn", tj("engine/templates/engine/ia.html:js:566:27")]);
+  }
+  const vl = pts.filter(q => typeof q.val_loss === "number");
+  if(l.length >= 3 && vl.length >= 3 && vl[vl.length - 1].val_loss > l[l.length - 1].loss * 1.3)
+    r.push(["warn", tj("engine/templates/engine/ia.html:js:570:22")]);
+  if(m.statut === "entraine" && a != null && SANS_CIBLE(m.type_modele)){
+    const f = FAMILLE(m.type_modele);
+    if(f === "anomalies"){
+      if(a === 0) r.push(["warn", tj("engine/templates/engine/ia.html:js:nonsup_diag_anom_zero")]);
+      else if(a > 0.3) r.push(["warn", tj("engine/templates/engine/ia.html:js:nonsup_diag_anom_beaucoup")]);
+    } else if(a < 0.65) r.push(["warn", f === "projection" ? tj("engine/templates/engine/ia.html:js:nonsup_diag_info_faible") : tj("engine/templates/engine/ia.html:js:nonsup_diag_faible")]);
+  } else if(!hasard && m.statut === "entraine" && a != null && a < 0.7)
+    r.push(["warn", tj("engine/templates/engine/ia.html:js:572:22")]);
+  if(m.statut === "entraine" && m.nouvelles_lignes > 0)
+    r.push(["", tj("engine/templates/engine/ia.html:js:574:18", {v1: m.nouvelles_lignes})]);
+  const ta = m.metriques && m.metriques.test_automatique;   // test automatique sur les 20 % de données jamais vues (IA/separation.py)
+  if(m.statut === "entraine" && ta){
+    const sc = ta.score != null ? (ta.metrique === "accuracy" ? (ta.score * 100).toFixed(1) + " %" : "R² " + Number(ta.score).toFixed(2)) : "";
+    if(ta.verdict === "bon") r.push(["ok", tj("engine/templates/engine/ia.html:js:test_auto_bon", {v1: sc})]);
+    else if(ta.verdict === "inapproprie"){ if(!hasard) r.push(["warn", tj("engine/templates/engine/ia.html:js:test_auto_inapproprie", {v1: sc})]); }
+    else r.push(["warn", tj("engine/templates/engine/ia.html:js:test_auto_non_verifiable")]);
+    if(ta.surapprentissage && ta.score_entrainement != null)
+      r.push(["warn", tj("engine/templates/engine/ia.html:js:test_auto_surapprentissage", {v1: (ta.score_entrainement * 100).toFixed(1) + " %", v2: sc})]);
+  }
+  if(m.metriques && m.metriques.finetune) r.push(["", tj("engine/templates/engine/ia.html:js:575:56", {v1: m.metriques.lignes_finetune ?? tj("engine/templates/engine/ia.html:js:575:117")})]);
+  if(!r.length) r.push(["", m.statut === "entraine" ? tj("engine/templates/engine/ia.html:js:576:56") : tj("engine/templates/engine/ia.html:js:576:109")]);
+  return r;
+}
+
+// ── Page d'un modèle ──
+function synthese(m){
+  const p = m.progression || {}, a = scoreModele(m);
+  if(m.statut === "entrainement")
+    return p.epochs_total > 1 && p.epoch != null ? tj("engine/templates/engine/ia.html:js:584:53", {v1: PHASES[p.phase] || tj("engine/templates/engine/ia.html:js:584:75"), v2: p.epoch, v3: p.epochs_total})
+      : tj("engine/templates/engine/ia.html:js:585:10", {v1: PHASES[p.phase] || tj("engine/templates/engine/ia.html:js:585:32")});
+  if(m.statut === "erreur") return tj("engine/templates/engine/ia.html:js:586:37");
+  if(m.statut === "annule") return tj("engine/templates/engine/ia.html:js:587:37");
+  if(m.statut === "entraine" && a != null && SANS_CIBLE(m.type_modele)){
+    const f = FAMILLE(m.type_modele), r = (m.metriques && m.metriques.resume) || {};
+    if(f === "anomalies") return tj("engine/templates/engine/ia.html:js:nonsup_synth_anom", {v1: r.n_anomalies ?? "–", v2: r.n_lignes ?? "–", v3: (a * 100).toFixed(1)});
+    if(f === "projection") return a >= 0.8 ? tj("engine/templates/engine/ia.html:js:nonsup_synth_proj_bien") : (a >= 0.65 ? tj("engine/templates/engine/ia.html:js:nonsup_synth_proj_moyen") : tj("engine/templates/engine/ia.html:js:nonsup_synth_proj_faible"));
+    return a >= 0.8 ? tj("engine/templates/engine/ia.html:js:nonsup_synth_bien") : (a >= 0.65 ? tj("engine/templates/engine/ia.html:js:nonsup_synth_moyen") : tj("engine/templates/engine/ia.html:js:nonsup_synth_faible"));
+  }
+  if(m.statut === "entraine") return a == null ? tj("engine/templates/engine/ia.html:js:588:51")
+    : (a >= 0.9 ? tj("engine/templates/engine/ia.html:js:589:20") : (a >= 0.7 ? tj("engine/templates/engine/ia.html:js:589:112") : tj("engine/templates/engine/ia.html:js:589:192")));
+  return tj("engine/templates/engine/ia.html:js:590:11");
+}
+function chiffreHero(m){
+  const p = m.progression || {}, a = scoreModele(m);
+  if(m.statut === "entrainement") return p.pourcentage != null ? {v: Math.round(p.pourcentage), u: tj("engine/templates/engine/ia.html:js:594:101"), c: ""} : {v: "…", u: tj("engine/templates/engine/ia.html:js:594:135"), c: ""};
+  if(a != null){
+    const f = FAMILLE(m.type_modele);   // anomalies : un taux, ni bon ni mauvais en soi -> pas de couleur de score
+    const u = f === "anomalies" ? tj("engine/templates/engine/ia.html:js:nonsup_unite_anomalies") : (f === "projection" ? tj("engine/templates/engine/ia.html:js:nonsup_unite_info") : (f ? tj("engine/templates/engine/ia.html:js:nonsup_unite_qualite") : tj("engine/templates/engine/ia.html:js:595:54")));
+    return {v: (a * 100).toFixed(1), u: u, c: f === "anomalies" ? "" : classeScore(a)};
+  }
+  const pts = COURBES[m.id] || [], l = pts.length ? pts[pts.length - 1].loss : null;
+  if(m.statut === "entraine" && typeof l === "number") return {v: l.toFixed(3), u: tj("engine/templates/engine/ia.html:js:lbl_perte_finale"), c: ""};
+  return {v: "–", u: m.statut === "entraine" ? tj("engine/templates/engine/ia.html:js:598:49") : tj("engine/templates/engine/ia.html:js:598:66"), c: ""};
+}
+function majHero(m){
+  const h = $("hero-haut");
+  if(!h) return;
+  const c = chiffreHero(m), p = m.progression || {}, mt = m.metriques || {};
+  h.innerHTML = `<div class="hero-chiffre ${c.c}" aria-live="polite"><b>${c.v}</b><span>${c.u}</span></div>
+    <div class="hero-texte"><span class="badge ${m.statut}">${escapeHtml(libStatut(m.statut))}</span>
+      <h2>${escapeHtml(m.nom)}</h2><p>${escapeHtml(synthese(m))}</p></div>`;
+  const duree = p.debut && p.maj ? Math.max(0, Math.round(p.maj - p.debut)) : null;
+  const ch = [[mt.epoques_effectuees != null ? mt.epoques_effectuees : (p.epoch || "–"), tj("engine/templates/engine/ia.html:js:808:91")], [duree != null ? duree + " s" : "–", tj("engine/templates/engine/ia.html:js:608:142")],
+    [m.entraine_le ? new Date(m.entraine_le).toLocaleDateString((window.I18N_LOCALE||"fr-FR")) : "–", tj("engine/templates/engine/ia.html:js:609:82")], [m.tables_noms.length, tj("engine/templates/engine/ia.html:js:609:130")]];
+  $("hero-chiffres").innerHTML = ch.map(([b, s]) => `<div class="chiffre"><b>${escapeHtml(b)}</b><span>${s}</span></div>`).join("");
+  majTrouve(m);
+  const e = $("erreur-modele");
+  if(e){ e.style.display = m.statut === "erreur" && m.erreur ? "" : "none"; e.textContent = m.erreur || ""; }
+}
+// Encart « ce que le modèle a trouvé » : groupes (nombre, tailles, bruit, silhouette), projection (composantes, information
+// conservée) ou anomalies (nombre, taux, part visée par le réglage).
+function majTrouve(m){
+  const z = $("trouve");
+  if(!z) return;
+  const f = FAMILLE(m.type_modele), mt = m.metriques || {};
+  const donnees = f === "groupes" ? mt.groupes : mt.resume;
+  if(!f || !donnees || m.statut !== "entraine"){ z.innerHTML = ""; return; }
+  const li = t => `<li>${escapeHtml(t)}</li>`;
+  let intro, items = [];
+  if(f === "groupes"){
+    const g = donnees, tailles = Object.entries(g.tailles || {}).sort((x, y) => y[1] - x[1]);
+    const total = tailles.reduce((n, [, v]) => n + v, 0) + (g.n_bruit || 0);
+    intro = tj("engine/templates/engine/ia.html:js:nonsup_trouve_nb", {v1: g.n, v2: total});
+    items = tailles.map(([num, n]) => li(tj("engine/templates/engine/ia.html:js:nonsup_trouve_ligne", {v1: Number(num) + 1, v2: n})));
+    if(g.n_bruit) items.push(li(tj("engine/templates/engine/ia.html:js:nonsup_trouve_bruit", {v1: g.n_bruit, v2: ((g.taux_bruit || 0) * 100).toFixed(1)})));
+    if(g.silhouette != null) items.push(li(tj("engine/templates/engine/ia.html:js:nonsup_trouve_silhouette", {v1: Number(g.silhouette).toFixed(2)})));
+  } else if(f === "projection"){
+    intro = tj("engine/templates/engine/ia.html:js:nonsup_trouve_comp_nb", {v1: donnees.n_composantes, v2: donnees.n_colonnes});
+    (donnees.variance_composantes || []).forEach((v, i) => items.push(li(tj("engine/templates/engine/ia.html:js:nonsup_trouve_comp_ligne", {v1: i + 1, v2: (v * 100).toFixed(1)}))));
+    items.push(li(tj("engine/templates/engine/ia.html:js:nonsup_trouve_info", {v1: ((donnees.information || 0) * 100).toFixed(1)})));
+  } else {
+    intro = tj("engine/templates/engine/ia.html:js:nonsup_trouve_anom_nb", {v1: donnees.n_anomalies, v2: donnees.n_lignes, v3: ((donnees.taux_anomalies || 0) * 100).toFixed(1)});
+    items.push(li(tj("engine/templates/engine/ia.html:js:nonsup_trouve_anom_attendu", {v1: ((donnees.attendu || 0) * 100).toFixed(1)})));
+  }
+  z.innerHTML = `<div class="guide-carte"><h4>${escapeHtml(tj("engine/templates/engine/ia.html:js:nonsup_trouve_titre"))}</h4>
+    <p>${escapeHtml(intro)}</p><ul>${items.join("")}</ul></div>`;
+}
+
+function majEtat(id, data){
+  const m = modeleParId(id);
+  if(!m) return;
+  m.statut = data.statut; m.progression = data.progression; m.erreur = data.erreur ?? m.erreur;
+  if(data.metriques) m.metriques = data.metriques;
+  enregistrerCourbe(id, data.progression || {});
+  const b = $(`sb-barre-${id}`);
+  if(b){ b.style.display = data.statut === "entrainement" ? "block" : "none"; b.firstElementChild.style.width = ((data.progression || {}).pourcentage || 0) + "%"; }
+  if(id === SELECTION){ majHero(m); majCourbes(m); }
+}
+
+function renderModele(m){
+  const p = profil(m.type_modele), enCours = m.statut === "entrainement", champs = colonnesEntreeModele(m);
+  const params = Object.entries(m.parametres || {}).map(([k, v]) => `${k} = ${Array.isArray(v) ? v.join(", ") : v}`)
+    .concat((m.structure_entree && m.structure_entree.vectorisation) ? [tj("engine/templates/engine/ia.html:js:vectorise")] : []).join(" · ");
+  $("vue-modele").innerHTML = `
+  <header class="ia-hero">
+    <div class="hero-tete" id="hero-haut"></div>
+    <div class="alerte-ia" id="erreur-modele" style="display:none"></div>
+    <div class="barre-progression" id="barre-wrap-${m.id}">
+      <div class="barre-progression-fond"><div class="barre-progression-remplissage" id="barre-fill-${m.id}"></div></div>
+      <div class="barre-progression-txt" id="barre-txt-${m.id}"></div>
+    </div>
+    <div class="alerte-ia" id="alerte-${m.id}" style="display:none"></div>
+    <div class="barre-actions">
+      <button class="principal" onclick="entrainerModele(${m.id}, this)" ${enCours ? "disabled" : ""}>${tj("engine/templates/engine/ia.html:js:403:120")}</button>
+      <button id="btn-pause-${m.id}" onclick="pauseEntrainement(${m.id}, this)" style="${enCours && !m.en_pause ? "" : "display:none"}">${tj("engine/templates/engine/ia.html:js:870:137")}</button>
+      <button id="btn-reprendre-${m.id}" onclick="reprendreEntrainement(${m.id}, this)" style="${enCours && m.en_pause ? "" : "display:none"}">${tj("engine/templates/engine/ia.html:js:871:144")}</button>
+      <button id="btn-finetune-${m.id}" onclick="finetunerModele(${m.id}, this)" ${!enCours && m.finetune_possible && m.nouvelles_lignes > 0 ? "" : "disabled"}
+        title="${m.finetune_possible ? (m.nouvelles_lignes > 0 ? tj("engine/templates/engine/ia.html:js:407:67") : tj("engine/templates/engine/ia.html:js:407:156")) : tj("engine/templates/engine/ia.html:js:407:226")}">${tj("engine/templates/engine/ia.html:js:873:219", {v1: m.nouvelles_lignes > 0 ? ` (+${m.nouvelles_lignes})` : ""})}</button>
+      <button class="danger" id="btn-annuler-${m.id}" onclick="annulerEntrainement(${m.id}, this)" style="${enCours ? "" : "display:none"}">${tj("engine/templates/engine/ia.html:js:408:168")}</button>
+      <button onclick="ouvrirInference(${m.id})" ${!m.a_un_fichier ? "disabled" : ""}>${tj("engine/templates/engine/ia.html:js:409:128")}</button>
+      <button onclick="ouvrirHistorique(${m.id})" ${!m.a_un_fichier ? "disabled" : ""}>${tj("engine/templates/engine/ia.html:js:876:88")}</button>
+      <button id="btn-features-${m.id}" onclick="ouvrirFeatures(${m.id})" ${enCours ? "disabled" : ""} title="${tj("engine/templates/engine/ia.html:js:fe_bouton_titre")}">🧹 ${tj("engine/templates/engine/ia.html:js:fe_bouton")}${m.nb_lignes_exclues ? ` (${m.nb_lignes_exclues})` : ""}</button>
+      <label class="vis" title="${tj("engine/templates/engine/ia.html:js:646:34")}"><input type="checkbox" ${m.visible_client ? "checked" : ""} onchange="toggleVisibleClientModele(${m.id}, this)"> ${tj("engine/templates/engine/ia.html:js:646:218")}</label>
+      <button onclick="reconfigurerModele(${m.id})" ${enCours ? "disabled" : ""} title="${escapeHtml(tj("engine/templates/engine/ia.html:js:reconf_titre"))}">${tj("engine/templates/engine/ia.html:js:reconf_bouton")}</button>
+      <button class="danger" onclick="supprimerModele(${m.id})">${tj("engine/templates/engine/ia.html:js:647:66")}</button>
+    </div>
+    <div class="chiffres" id="hero-chiffres"></div>
+  </header>
+  <nav class="nav-sections" aria-label="${tj("engine/templates/engine/ia.html:js:883:41")}"><a href="#s-courbes">${tj("engine/templates/engine/ia.html:js:883:72")}</a><a href="#s-guide">${tj("engine/templates/engine/ia.html:js:883:102")}</a><a href="#s-config">${tj("engine/templates/engine/ia.html:js:883:136")}</a><a href="#s-journal">${tj("engine/templates/engine/ia.html:js:883:174")}</a></nav>
+  <section class="ia-section" id="s-courbes">
+    <h3>${tj("engine/templates/engine/ia.html:js:653:10")}</h3>
+    <p class="aide">${tj("engine/templates/engine/ia.html:js:654:22")}</p>
+    <div id="courbes"></div>
+  </section>
+  <section class="ia-section" id="s-guide">
+    <h3>${tj("engine/templates/engine/ia.html:js:658:10")}</h3>
+    <div class="guide">${guideHTML(p, [[tj("engine/templates/engine/ia.html:js:659:42"), p.role], [tj("engine/templates/engine/ia.html:js:659:77"), p.lire], [tj("engine/templates/engine/ia.html:js:lbl_conseil"), p.conseil]])}</div>
+    <div class="diag" id="diag"></div>
+    <div class="guide" id="trouve"></div>
+  </section>
+  <section class="ia-section" id="s-config">
+    <h3>${tj("engine/templates/engine/ia.html:js:896:9")}</h3>
+    <dl class="recap">
+      <dt>${tj("engine/templates/engine/ia.html:js:898:11")}</dt><dd>${escapeHtml(m.type_libelle)}</dd>
+      <dt>${tj("engine/templates/engine/ia.html:js:666:12")}</dt><dd>${escapeHtml(m.tables_noms.join(", ") || "–")}</dd>
+      <dt>${tj("engine/templates/engine/ia.html:js:667:12")}</dt><dd>${escapeHtml(champs.length && m.colonnes_entree && m.colonnes_entree.length ? champs.map(c => c.nom).join(", ") : tj("engine/templates/engine/ia.html:js:667:152"))}</dd>
+      <dt>${tj("engine/templates/engine/ia.html:js:668:12")}</dt><dd>${escapeHtml(nomCibleModele(m))}</dd>
+      <dt>${tj("engine/templates/engine/ia.html:js:669:12")}</dt><dd>${escapeHtml(params || tj("engine/templates/engine/ia.html:js:669:52"))}</dd>
+      <dt>${tj("engine/templates/engine/ia.html:js:plage_recap")}</dt><dd>${escapeHtml(libellePlageLignes(m.plage_lignes))}</dd>
+      <dt>${tj("engine/templates/engine/ia.html:js:fe_lignes_ecartees")}</dt><dd>${m.nb_lignes_exclues || 0}</dd>
+      <dt>${tj("engine/templates/engine/ia.html:js:670:12")}</dt><dd>${new Date(m.cree_le).toLocaleString((window.I18N_LOCALE||"fr-FR"))}</dd>
+    </dl>
+  </section>
+  <section class="ia-section" id="s-journal">
+    <h3>${tj("engine/templates/engine/ia.html:js:674:10")}</h3>
+    <details class="journal-ia" id="journal-wrap-${m.id}" style="display:none" ${["entrainement", "erreur"].includes(m.statut) ? "open" : ""}>
+      <summary>${tj("engine/templates/engine/ia.html:js:395:21")}</summary><pre id="journal-${m.id}"></pre>
+    </details>
+    <p class="aide" id="journal-vide-${m.id}">${tj("engine/templates/engine/ia.html:js:678:48")}</p>
+  </section>`;
+  majHero(m); majCourbes(m);
+  afficherJournal(m.id, m.progression);
+  if(enCours) afficherProgression(m.id, {statut: m.statut, progression: m.progression, metriques: m.metriques, inactif_depuis: 0});
+}
+
+// Plage de lignes à entraîner (positions 1-based, bornes incluses, dans l'ordre de la table) : vide = toute la table.
+function lirePlageLignes(){
+  const d = parseInt($("nm-plage-debut").value, 10), f = parseInt($("nm-plage-fin").value, 10);
+  const plage = {};
+  if(d > 1) plage.debut = d;
+  if(f > 0) plage.fin = f;
+  if(plage.fin && plage.fin < (plage.debut || 1)){ toast(tj("engine/templates/engine/ia.html:js:plage_invalide"), true); throw new Error("plage"); }
+  return plage;
+}
+function ecrirePlageLignes(p){
+  $("nm-plage-debut").value = p && p.debut ? p.debut : "";
+  $("nm-plage-fin").value = p && p.fin ? p.fin : "";
+}
+function libellePlageLignes(p){
+  if(!p || (!p.debut && !p.fin)) return tj("engine/templates/engine/ia.html:js:plage_toutes");
+  return tj("engine/templates/engine/ia.html:js:plage_texte", {v1: p.debut || 1, v2: p.fin || "…"});
+}
+
+async function creerModele(){
+  const nom = document.getElementById("nm-nom").value.trim();
+  if(!nom){ toast(tj("engine/templates/engine/ia.html:js:434:20"), true); return; }
+  if(!TABLES_SELECTIONNEES.size){ toast(tj("engine/templates/engine/ia.html:js:435:42"), true); return; }
+  // Une seule colonne cible cochée -> colonne_cible (comportement historique,
+  // compatible avec le reste du moteur) ; plusieurs -> colonnes_sortie
+  // (sortie multi-colonnes). Zéro -> aucune cible (mode "une table = une
+  // classe", ou modèle non supervisé).
+  const cibles = [...COLONNES_SORTIE_SELECTIONNEES];
+  const colonneCible = cibles.length === 1 ? cibles[0] : "";
+  const colonnesSortie = cibles.length > 1 ? cibles : [];
+  try { lirePlageLignes(); } catch(e){ return; }   // plage invalide : toast déjà affiché
+  try {
+    const cree = await api("/api/ia/modeles/", {method:"POST", body: JSON.stringify({
+      nom,
+      type_modele: document.getElementById("nm-type").value,
+      tables_source: [...TABLES_SELECTIONNEES],
+      plage_lignes: lirePlageLignes(),
+      colonnes_entree: [...COLONNES_ENTREE_SELECTIONNEES],
+      colonne_cible: colonneCible,
+      colonnes_sortie: colonnesSortie,
+      parametres: collecterParametres(),
+    })});
+    toast(tj("engine/templates/engine/ia.html:js:453:12"));
+    document.getElementById("nm-nom").value = "";
+    ecrirePlageLignes(null);
+    TABLES_SELECTIONNEES.clear();
+    COLONNES_ENTREE_SELECTIONNEES.clear();
+    COLONNES_SORTIE_SELECTIONNEES.clear();
+    renderTablesPicker();
+    renderColonnesEntree();
+    renderColonnesCible();
+    if(cree && cree.modele) SELECTION = cree.modele.id;
+    chargerModeles();
+  } catch(e){ /* toast déjà affiché par api() */ }
+}
+
+// ── Suivi en direct de la progression d'entraînement (polling) ──
+const POLLING_EN_COURS = new Set();  // ids de modèles actuellement suivis, évite les boucles en double
+
+const PHASES = {file_attente:tj("engine/templates/engine/ia.html:js:468:31"), preparation:tj("engine/templates/engine/ia.html:js:468:69"),
+  entrainement:tj("engine/templates/engine/ia.html:js:469:17"), pause:tj("engine/templates/engine/ia.html:js:469:39"), termine:tj("engine/templates/engine/ia.html:js:469:59"), erreur:tj("engine/templates/engine/ia.html:js:469:77"), annule:tj("engine/templates/engine/ia.html:js:469:93"), refuse:tj("engine/templates/engine/ia.html:js:469:110")};
+
+function afficherJournal(id, p){
+  const wrap = document.getElementById(`journal-wrap-${id}`);
+  const pre  = document.getElementById(`journal-${id}`);
+  if(!wrap || !pre) return;
+  const lignes = (p && p.journal) || [];
+  wrap.style.display = lignes.length ? "" : "none";
+  const vide = document.getElementById(`journal-vide-${id}`);
+  if(vide) vide.style.display = lignes.length ? "none" : "";
+  pre.innerHTML = lignes.map(l => `<span class="jl-${l.n}">${escapeHtml(l.t)}  ${escapeHtml(l.m)}</span>`).join("\n");
+  pre.scrollTop = pre.scrollHeight;
+}
+
+function setAlerte(id, texte){
+  const el = document.getElementById(`alerte-${id}`);
+  if(!el) return;
+  el.textContent = texte || "";
+  el.style.display = texte ? "" : "none";
+}
+
+function afficherProgression(id, data){
+  const wrap = document.getElementById(`barre-wrap-${id}`);
+  const fill = document.getElementById(`barre-fill-${id}`);
+  const txt  = document.getElementById(`barre-txt-${id}`);
+  const btnAnnuler = document.getElementById(`btn-annuler-${id}`);
+  const enCours = data.statut === "entrainement";
+  const p = data.progression || {};
+  afficherJournal(id, p);
+  majEtat(id, data);
+  if(btnAnnuler) btnAnnuler.style.display = enCours ? "" : "none";
+  const enPause = enCours && p.phase === "pause";
+  const btnPause = document.getElementById(`btn-pause-${id}`);
+  const btnReprendre = document.getElementById(`btn-reprendre-${id}`);
+  const btnFine = document.getElementById(`btn-finetune-${id}`);
+  if(btnPause){ btnPause.style.display = (enCours && !enPause) ? "" : "none"; btnPause.disabled = !(p.epochs_total > 1 && p.phase === "entrainement"); }
+  if(btnReprendre){ btnReprendre.style.display = enPause ? "" : "none"; btnReprendre.disabled = false; }
+  if(btnFine && enCours) btnFine.disabled = true;
+  // Détection d'un worker absent/mort : le worker écrit un battement de cœur
+  // toutes les ~2 s ; sans lui, l'entraînement ne peut pas avancer.
+  const inactif = data.inactif_depuis || 0;
+  if(enCours && p.phase === "file_attente" && inactif > 8){
+    setAlerte(id, tj("engine/templates/engine/ia.html:js:508:20", {v1: Math.round(inactif)})
+      + tj("engine/templates/engine/ia.html:js:509:10"));
+  } else if(enCours && p.phase !== "file_attente" && inactif > 20){
+    setAlerte(id, tj("engine/templates/engine/ia.html:js:511:20", {v1: Math.round(inactif)}));
+  } else {
+    setAlerte(id, "");
+  }
+  if(!wrap || !fill || !txt) return;  // la ligne a été retirée du tableau entre-temps
+  if(!enCours){ wrap.style.display = "none"; return; }
+  wrap.style.display = "block";
+  const ecoule = Math.round(((p.maj || 0) - (p.debut || 0)) + inactif);
+  const phase = PHASES[p.phase] || tj("engine/templates/engine/ia.html:js:519:37");
+  const determine = p.epochs_total > 1 && p.epoch != null;
+  wrap.classList.toggle("indetermine", !determine);
+  if(!determine){
+    fill.style.width = "";
+    txt.textContent = `${phase}… ${ecoule} s`;
+    return;
+  }
+  const pct = p.pourcentage != null ? p.pourcentage : Math.round(100 * p.epoch / p.epochs_total);
+  fill.style.width = `${pct}%`;
+  const metsTxt = Object.entries(p.metriques || {})
+    .map(([k, v]) => `${k}=${typeof v === "number" ? v.toFixed(4) : v}`).join("  ");
+  txt.textContent = (enPause ? tj("engine/templates/engine/ia.html:js:531:33") : "") + tj("engine/templates/engine/ia.html:js:531:57", {v1: p.epoch, v2: p.epochs_total, v3: pct, v4: ecoule}) + (metsTxt ? `  (${metsTxt})` : "");
+}
+
+async function suivreProgression(id){
+  // Retourne le dernier statut connu (fin normale, erreur, ou null si le
+  // suivi était déjà en cours ailleurs / a été coupé par une erreur réseau).
+  if(POLLING_EN_COURS.has(id)) return null;
+  POLLING_EN_COURS.add(id);
+  let dernier = null;
+  try {
+    while(true){
+      let data;
+      try { data = await api(`/api/ia/modeles/${id}/progression/`); }
+      catch(e){
+        setAlerte(id, tj("engine/templates/engine/ia.html:js:545:24"));
+        break;
+      }
+      dernier = data;
+      afficherProgression(id, data);
+      if(data.statut !== "entrainement") break;
+      await new Promise(r => setTimeout(r, 600));
+    }
+  } finally {
+    POLLING_EN_COURS.delete(id);
+  }
+  return dernier;
+}
+
+async function entrainerModele(id, btn){
+  btn.disabled = true;
+  const texteOriginal = btn.textContent;
+  btn.textContent = tj("engine/templates/engine/ia.html:js:562:22");
+  try {
+    await api(`/api/ia/modeles/${id}/entrainer/`, {method:"POST"});
+  } catch(e){
+    // toast déjà affiché par api() ; on ne lance pas le suivi si le
+    // démarrage a échoué (ex: entraînement déjà en cours)
+    btn.textContent = texteOriginal;
+    btn.disabled = false;
+    chargerModeles();  // affiche l'erreur (contraintes non respectées) et son journal sur la ligne
+    return;
+  }
+  const resultat = await suivreProgression(id);
+  if(resultat && resultat.statut === "erreur"){
+    toast(resultat.erreur || tj("engine/templates/engine/ia.html:js:575:31"), true);
+  } else if(resultat && resultat.statut === "entraine"){
+    toast(tj("engine/templates/engine/ia.html:js:577:12"));
+  } else if(resultat && resultat.statut === "annule"){
+    toast(tj("engine/templates/engine/ia.html:js:579:12"));
+  }
+  btn.textContent = texteOriginal;
+  chargerModeles();
+}
+
+async function pauseEntrainement(id, btn){
+  btn.disabled = true;
+  try {
+    await api(`/api/ia/modeles/${id}/pause/`, {method:"POST"});
+    toast(tj("engine/templates/engine/ia.html:js:589:12"));
+  } catch(e){ btn.disabled = false; }
+}
+
+async function reprendreEntrainement(id, btn){
+  btn.disabled = true;
+  try {
+    await api(`/api/ia/modeles/${id}/reprendre/`, {method:"POST"});
+    toast(tj("engine/templates/engine/ia.html:js:597:12"));
+  } catch(e){ btn.disabled = false; }
+}
+
+async function finetunerModele(id, btn){
+  btn.disabled = true;
+  const texteOriginal = btn.textContent;
+  btn.textContent = "Fine-tuning…";
+  try {
+    await api(`/api/ia/modeles/${id}/finetuner/`, {method:"POST", body: JSON.stringify({})});
+  } catch(e){
+    btn.textContent = texteOriginal;
+    chargerModeles();
+    return;
+  }
+  const resultat = await suivreProgression(id);
+  const p = (resultat && resultat.progression) || {};
+  if(p.phase === "erreur"){
+    const err = [...(p.journal || [])].reverse().find(l => l.n === "err");
+    toast((err && err.m) || tj("engine/templates/engine/ia.html:js:616:30"), true);
+  } else if(p.phase === "annule"){
+    toast(tj("engine/templates/engine/ia.html:js:618:12"));
+  } else if(resultat && resultat.statut === "entraine"){
+    toast(tj("engine/templates/engine/ia.html:js:620:12"));
+  }
+  chargerModeles();
+}
+
+async function annulerEntrainement(id, btn){
+  btn.disabled = true;
+  const texteOriginal = btn.textContent;
+  btn.textContent = tj("engine/templates/engine/ia.html:js:annulation_en_cours");
+  try {
+    await api(`/api/ia/modeles/${id}/annuler/`, {method:"POST"});
+    // Pas de toast de succès ici : le statut "annulé" (et son toast) arrive
+    // via le polling de suivreProgression déjà lancé par entrainerModele,
+    // une fois que le thread de fond a réellement stoppé le Trainer.
+  } catch(e){
+    // toast déjà affiché par api() (ex: l'entraînement vient de se terminer
+    // entre-temps) ; on réactive le bouton, le prochain tick de polling le
+    // masquera de toute façon si l'entraînement n'est plus en cours.
+    btn.textContent = texteOriginal;
+    btn.disabled = false;
+  }
+}
+
+async function supprimerModele(id){
+  if(!await GY.confirmer(tj("engine/templates/engine/ia.html:js:644:16"))) return;
+  try {
+    await api(`/api/ia/modeles/${id}/`, {method:"DELETE"});
+    toast(tj("engine/templates/engine/ia.html:js:647:12"));
+    if(SELECTION === id) SELECTION = null;
+    chargerModeles();
+  } catch(e){}
+}
+
+async function toggleVisibleClientModele(id, ev){
+  const coche = ev.checked;
+  try {
+    const data = await api(`/api/ia/modeles/${id}/`, {method:"PATCH", body: JSON.stringify({visible_client: coche})});
+    const m = MODELES_IA.find(x => x.id === id);
+    if(m) m.visible_client = data.modele.visible_client;
+    toast(coche ? tj("engine/templates/engine/ia.html:js:658:20") : tj("engine/templates/engine/ia.html:js:658:53"));
+  } catch(e){ ev.checked = !coche; }
+}
+
+// ── Inférence : le formulaire réutilise le même principe que le moteur de
+// formulaire client (un widget par colonne, adapté à son type) plutôt que
+// de demander un JSON brut — un utilisateur non technicien n'a pas à
+// deviner comment sérialiser ses valeurs. La liste des colonnes à
+// demander et leur ordre viennent de `colonnes_entree` du modèle (ou, si
+// vide, de toutes les colonnes de la première table sauf la/les cible(s)),
+// et le "mode" (numérique / image / audio / vecteur-matrice / documents)
+// vient de `structure_entree`, calculée par le serveur à l'entraînement —
+// c'est la même information qui sert à `lancer_inference` côté serveur,
+// donc le formulaire ne peut pas diverger de ce que le serveur attend
+// réellement.
+let INF_CHAMPS = [];
+let INF_MODE = "numerique";
+
+function modeleParId(id){
+  return MODELES_IA.find(m => m.id === id);
+}
+
+// Colonnes d'entrée effectives du modèle, dans l'ordre, avec leur type —
+// même logique que ia_integration._detecter_structure_entree côté serveur.
+function colonnesEntreeModele(modele){
+  const premiereId = (modele.tables_source || [])[0];
+  const table = TABLES.find(t => t.id === premiereId);
+  if(!table) return [];
+  const cibles = new Set(
+    (modele.colonnes_sortie && modele.colonnes_sortie.length)
+      ? modele.colonnes_sortie
+      : (modele.colonne_cible ? [modele.colonne_cible] : [])
+  );
+  if(modele.colonnes_entree && modele.colonnes_entree.length){
+    return modele.colonnes_entree
+      .map(slug => table.champs.find(c => c.slug === slug))
+      .filter(Boolean);
+  }
+  return table.champs.filter(c => !cibles.has(c.slug));
+}
+
+// Un widget par colonne — types déjà restreints à ceux compatibles avec le
+// type de modèle (voir renderColonnesEntree / types_entree_compatibles),
+// donc seuls les types numériques directs peuvent atteindre ce cas.
+function modalitesChampInference(champ, modele){
+  // Modalités APPRISES à l'entraînement en priorité : ce sont les seules que le modèle connaît (une option
+  // déclarée sur le champ mais absente des données d'entraînement serait refusée par le serveur).
+  const enc = ((modele && modele.structure_entree && modele.structure_entree.encodeurs) || [])
+    .find(e => e.slug === champ.slug);
+  if(enc && enc.modalites && enc.modalites.length) return enc.modalites;
+  return String(champ.options || "").split(",").map(o => o.trim()).filter(Boolean);
+}
+
+function creerWidgetInference(champ, modele){
+  const div = document.createElement("div");
+  div.className = "champ";
+  const label = document.createElement("label");
+  label.textContent = champ.nom;
+  div.appendChild(label);
+  const t = champ.type;
+  if(t === "choix_unique" || t === "couleur" || t === "colonne"){
+    const sel = document.createElement("select");
+    sel.id = "inf-w-" + champ.slug;
+    modalitesChampInference(champ, modele).forEach(m => {
+      const o = document.createElement("option"); o.value = m; o.textContent = m; sel.appendChild(o);
+    });
+    div.appendChild(sel);
+    return div;
+  }
+  if(t === "choix_multiple"){
+    const boite = document.createElement("div");
+    boite.id = "inf-w-" + champ.slug;
+    modalitesChampInference(champ, modele).forEach(m => {
+      const l = document.createElement("label");
+      l.style.display = "block";
+      const cb = document.createElement("input");
+      cb.type = "checkbox"; cb.value = m;
+      l.appendChild(cb); l.appendChild(document.createTextNode(" " + m));
+      boite.appendChild(l);
+    });
+    div.appendChild(boite);
+    return div;
+  }
+  if(t === "date" || t === "datetime" || t === "heure" || t === "duree" || t === "texte" || t === "texte_long"){
+    const inp = document.createElement(t === "texte_long" ? "textarea" : "input");
+    if(t === "texte_long") inp.rows = 3;
+    else inp.type = {date:"date", datetime:"datetime-local", heure:"time"}[t] || "text";
+    if(t === "duree") inp.placeholder = "hh:mm:ss";
+    inp.id = "inf-w-" + champ.slug;
+    div.appendChild(inp);
+    return div;
+  }
+  if(champ.type === "booleen" || champ.type === "switch"){
+    const sel = document.createElement("select");
+    sel.id = "inf-w-" + champ.slug;
+    [["1",tj("engine/templates/engine/ia.html:js:752:12")], ["0",tj("engine/templates/engine/ia.html:js:752:25")]].forEach(([v,l]) => {
+      const o = document.createElement("option"); o.value = v; o.textContent = l; sel.appendChild(o);
+    });
+    div.appendChild(sel);
+    return div;
+  }
+  const inp = document.createElement("input");
+  inp.type = "number";
+  inp.step = champ.type === "nombre" ? "1" : "any";
+  inp.placeholder = "0";
+  inp.id = "inf-w-" + champ.slug;
+  div.appendChild(inp);
+  return div;
+}
+
+function construireFormulaireInference(modele){
+  const zone = document.getElementById("inf-form");
+  const aide = document.getElementById("inf-aide");
+  zone.innerHTML = "";
+  const structure = modele.structure_entree || {};
+  const mode = structure.mode || "numerique";
+  const champs = colonnesEntreeModele(modele);
+  INF_CHAMPS = champs;
+  INF_MODE = mode;
+
+  if(mode === "documents"){
+    aide.textContent = tj("engine/templates/engine/ia.html:js:778:25");
+    zone.innerHTML = `<div class="champ"><label>${champs[0] ? escapeHtml(champs[0].nom) : "Document"}</label>
+      <textarea id="inf-w-doc" rows="4" placeholder='${tj("engine/templates/engine/ia.html:js:780:55")}'></textarea></div>`;
+    return;
+  }
+  if(mode === "texte" || mode === "texte_slm"){
+    // Modèle texte (TF-IDF mono-colonne ou SLM) : le serveur attend UNE chaîne de texte, pas une liste de nombres.
+    aide.textContent = "";
+    const c = champs.find(c => c.type === "texte" || c.type === "texte_long") || champs[0];
+    zone.innerHTML = `<div class="champ"><label>${c ? escapeHtml(c.nom) : tj("engine/templates/engine/ia.html:js:lbl_texte")}</label>
+      <textarea id="inf-w-texte" rows="4"></textarea></div>`;
+    return;
+  }
+  if(mode === "image" || mode === "audio" || mode === "video"){
+    aide.textContent = mode === "image"
+      ? tj("engine/templates/engine/ia.html:js:785:10")
+      : mode === "audio" ? tj("engine/templates/engine/ia.html:js:786:10")
+      : tj("engine/templates/engine/ia.html:js:1288:10");
+    const c = champs.find(c => mode === "image" ? (c.type === "image" || c.type === "url") : mode === "audio" ? c.type === "son" : c.type === "video") || champs[0];
+    const div = document.createElement("div");
+    div.className = "champ";
+    div.innerHTML = `<label>${c ? escapeHtml(c.nom) : (mode === "image" ? "Image" : mode === "audio" ? "Audio" : tj("engine/templates/engine/ia.html:js:video"))}</label>`;
+    const inp = document.createElement("input");
+    inp.type = "text";
+    inp.id = "inf-w-media";
+    inp.placeholder = mode === "image" ? tj("engine/templates/engine/ia.html:js:794:43") : mode === "audio" ? tj("engine/templates/engine/ia.html:js:794:86") : tj("engine/templates/engine/ia.html:js:1296:162");
+    div.appendChild(inp);
+    zone.appendChild(div);
+    return;
+  }
+  if(mode === "tenseur" && champs.length === 1){
+    const c = champs[0];
+    aide.textContent = tj("engine/templates/engine/ia.html:js:801:25")
+      + (structure.forme_champ ? tj("engine/templates/engine/ia.html:js:lbl_forme", {v1: structure.forme_champ.join(" × ")}) : "") + ".";
+    const div = document.createElement("div");
+    div.className = "champ";
+    div.innerHTML = `<label>${escapeHtml(c.nom)}</label>`;
+    const ta = document.createElement("textarea");
+    ta.id = "inf-w-tenseur";
+    ta.rows = 3;
+    ta.placeholder = "[0.1, 0.2, 0.3, …]";
+    div.appendChild(ta);
+    zone.appendChild(div);
+    return;
+  }
+  // Cas standard : une valeur numérique par colonne d'entrée du modèle.
+  if(!champs.length){
+    aide.textContent = "";
+    zone.innerHTML = `<span class="muted-txt">${tj("engine/templates/engine/ia.html:js:817:48")}</span>`;
+    return;
+  }
+  aide.textContent = tj("engine/templates/engine/ia.html:js:820:23");
+  champs.forEach(c => zone.appendChild(creerWidgetInference(c, modele)));
+}
+
+function valeursFormulaireInference(modele){
+  const structure = modele.structure_entree || {};
+  const mode = structure.mode || "numerique";
+  if(mode === "documents"){
+    const brut = (document.getElementById("inf-w-doc").value || "").trim();
+    if(!brut) throw new Error(tj("engine/templates/engine/ia.html:js:829:32"));
+    try { return JSON.parse(brut); } catch(e){ return brut; }
+  }
+  if(mode === "texte" || mode === "texte_slm"){
+    const t = (document.getElementById("inf-w-texte").value || "").trim();
+    if(!t) throw new Error(tj("engine/templates/engine/ia.html:js:1336:29"));
+    return t;
+  }
+  if(mode === "image" || mode === "audio" || mode === "video"){
+    const v = (document.getElementById("inf-w-media").value || "").trim();
+    if(!v) throw new Error(tj("engine/templates/engine/ia.html:js:834:29"));
+    return v;
+  }
+  if(mode === "tenseur" && INF_CHAMPS.length === 1){
+    const brut = (document.getElementById("inf-w-tenseur").value || "").trim();
+    try { return JSON.parse(brut); }
+    catch(e){ throw new Error(tj("engine/templates/engine/ia.html:js:840:32", {v1: INF_CHAMPS[0].nom})); }
+  }
+  if(!INF_CHAMPS.length) throw new Error(tj("engine/templates/engine/ia.html:js:842:43"));
+  if(structure.encodeurs && structure.encodeurs.length){
+    // Les vrais champs de la table, tels que saisis : le serveur rejoue lui-même
+    // l'encodage mémorisé à l'entraînement (aucune représentation à fournir).
+    const valeurs = {};
+    INF_CHAMPS.forEach(c => {
+      const el = document.getElementById("inf-w-" + c.slug);
+      if(!el) return;
+      if(c.type === "choix_multiple"){
+        valeurs[c.slug] = Array.from(el.querySelectorAll("input:checked")).map(i => i.value);
+      } else if(c.type === "booleen" || c.type === "switch"){
+        valeurs[c.slug] = el.value === "1";
+      } else {
+        const v = (el.value || "").trim();
+        if(v === "" && c.type !== "texte" && c.type !== "texte_long") throw new Error(tj("engine/templates/engine/ia.html:js:856:88", {v1: c.nom}));
+        valeurs[c.slug] = v;
+      }
+    });
+    return valeurs;
+  }
+  return INF_CHAMPS.map(c => {
+    const el = document.getElementById("inf-w-" + c.slug);
+    const v = parseFloat(el.value);
+    if(el.value === "" || Number.isNaN(v)) throw new Error(tj("engine/templates/engine/ia.html:js:865:61", {v1: c.nom}));
+    return v;
+  });
+}
+
+async function ouvrirInference(id, nom){
+  MODELE_INFERENCE = id;
+  const modele = modeleParId(id);
+  nom = nom ?? (modele && modele.nom) ?? "";
+  document.getElementById("inf-titre").textContent = tj("engine/templates/engine/ia.html:js:873:55", {v1: nom});
+  if(modele) construireFormulaireInference(modele);
+  document.getElementById("modal-inference").classList.add("ouvert");
+}
+
+function fermerInference(){
+  document.getElementById("modal-inference").classList.remove("ouvert");
+  MODELE_INFERENCE = null;
+}
+
+// ── Extraction de la valeur "lisible" d'une reponse de modele ────────────
+// La sortie brute est toujours un dict JSON (ex: {"output":[3], "predictions_labels":"chat"})
+// — voir lancer_inference dans engine/ia_integration.py. On ne montre JAMAIS
+// ce JSON a l'utilisateur : seulement la valeur utile, decodee en label
+// pour une classification (classes_cible), ou le nombre brut pour une
+// regression, avec deballage d'un tableau a une seule valeur.
+function valeurLisibleReponse(sortie){
+  if(!sortie || typeof sortie !== "object") return String(sortie ?? "—");
+  let v = ("predictions_labels" in sortie) ? sortie.predictions_labels
+        : ("predictions" in sortie) ? sortie.predictions
+        : ("output" in sortie) ? sortie.output
+        : sortie;
+  if(Array.isArray(v)) v = v.length === 1 ? v[0] : v;
+  if(Array.isArray(v)) return v.map(x => typeof x === "number" ? +x.toFixed(4) : x).join(", ");
+  if(typeof v === "number") return String(+v.toFixed(4));
+  return String(v ?? "—");
+}
+
+// Nom metier de ce qui est predit (nom de la/les colonne(s) de sortie
+// configurees sur le modele), pour parler le langage du decideur plutot
+// que d'afficher un slug technique ou un "Résultat" generique.
+function nomCibleModele(modele){
+  if(SANS_CIBLE(modele.type_modele)) return tj("engine/templates/engine/ia.html:js:nonsup_cible_aucune");
+  const premiereId = (modele.tables_source || [])[0];
+  const table = TABLES.find(t => t.id === premiereId);
+  const slugs = (modele.colonnes_sortie && modele.colonnes_sortie.length)
+    ? modele.colonnes_sortie
+    : (modele.colonne_cible ? [modele.colonne_cible] : []);
+  if(!table || !slugs.length) return tj("engine/templates/engine/ia.html:js:910:39");
+  const noms = slugs.map(s => table.champs.find(c => c.slug === s)?.nom).filter(Boolean);
+  return noms.length ? noms.join(" / ") : tj("engine/templates/engine/ia.html:js:912:44");
+}
+
+// Formate les valeurs d'entree en lignes "Nom du champ : valeur" (jamais de
+// slug technique ni de JSON brut) — `champs` vient de colonnesEntreeModele(modele).
+function lignesLisiblesEntree(entree, champs){
+  const nomDe = slug => (champs || []).find(c => c.slug === slug)?.nom || slug;
+  if(entree == null) return [];
+  if(Array.isArray(entree)){
+    // Entree positionnelle (mode tenseur/image/audio/document) : pas de nom
+    // de colonne individuel a associer, on affiche la liste telle quelle.
+    return [{label: tj("engine/templates/engine/ia.html:js:923:22"), valeur: entree.join(", ")}];
+  }
+  if(typeof entree === "object"){
+    return Object.entries(entree).map(([k, v]) => ({label: nomDe(k), valeur: String(v)}));
+  }
+  return [{label: tj("engine/templates/engine/ia.html:js:928:20"), valeur: String(entree)}];
+}
+
+function ouvrirPopupReponse(sortie, modele){
+  document.querySelector("#modal-popup-reponse h3").textContent = modele ? nomCibleModele(modele) : tj("engine/templates/engine/ia.html:js:932:102");
+  document.getElementById("popup-reponse-valeur").textContent = valeurLisibleReponse(sortie);
+  document.getElementById("modal-popup-reponse").classList.add("ouvert");
+}
+
+function fermerPopupReponse(){
+  document.getElementById("modal-popup-reponse").classList.remove("ouvert");
+}
+
+// ── Feature engineering : copie de travail de la table (colonnes choisies) ; on choisit les lignes à écarter (valeurs vides,
+//    valeurs aberrantes, choix manuel) avant l'entraînement. Même comportement pour le fine-tuning. La vraie table n'est jamais modifiée.
+const FE_PREFIXE = "engine/templates/engine/ia.html:js:fe_";
+const feT = (cle, v) => tj(FE_PREFIXE + cle, v);
+let FE = {id: null, table: null, filtre: "toutes", page: 0, sel: new Set(), data: null};
+
+async function ouvrirFeatures(id){
+  const modele = modeleParId(id);
+  FE = {id, table: null, filtre: "toutes", page: 0, sel: new Set(), data: null};
+  $("fe-titre").textContent = feT("titre", {v1: modele ? modele.nom : ""});
+  $("fe-aide").textContent = feT("aide");
+  $("btn-fe-fermer").textContent = feT("fermer");
+  $("fe-zone").innerHTML = `<span class="muted-txt">${escapeHtml(feT("chargement"))}</span>`;
+  $("modal-features").classList.add("ouvert");
+  await chargerFeatures();
+}
+
+function fermerFeatures(){
+  $("modal-features").classList.remove("ouvert");
+  const m = modeleParId(FE.id);
+  if(m && SELECTION === FE.id) renderModele(m);   // compteurs (lignes écartées, nouvelles lignes) à jour
+}
+
+async function chargerFeatures(corps){
+  try {
+    let data;
+    if(corps){
+      data = await api(`/api/ia/modeles/${FE.id}/features/`, {method: "POST",
+        body: JSON.stringify(Object.assign({table_id: FE.table, filtre: FE.filtre, page: FE.page}, corps))});
+    } else {
+      const q = new URLSearchParams({filtre: FE.filtre, page: FE.page});
+      if(FE.table) q.set("table", FE.table);
+      data = await api(`/api/ia/modeles/${FE.id}/features/?${q}`);
+    }
+    FE.data = data.features; FE.table = FE.data.table.id; FE.page = FE.data.page; FE.filtre = FE.data.filtre;
+    const i = MODELES_IA.findIndex(m => m.id === FE.id);
+    if(i >= 0) MODELES_IA[i] = data.modele;
+    rendreFeatures();
+    return true;
+  } catch(e) { return false; /* api() a déjà affiché l'erreur */ }
+}
+
+function feChoisirFiltre(v){ FE.filtre = v; FE.page = 0; chargerFeatures(); }
+function feChoisirTable(v){ FE.table = parseInt(v, 10); FE.page = 0; FE.sel = new Set(); chargerFeatures(); }
+function fePage(d){ FE.page += d; chargerFeatures(); }
+function feBasculer(id, coche){ coche ? FE.sel.add(id) : FE.sel.delete(id); rendreFeatures(); }
+function feToutePage(coche){ FE.data.lignes.forEach(l => coche ? FE.sel.add(l.id) : FE.sel.delete(l.id)); rendreFeatures(); }
+async function feAppliquer(corps){
+  const reussi = await chargerFeatures(corps);
+  if(!reussi) return;
+  FE.sel = new Set();
+  rendreFeatures();
+  toast(feT("maj", {v1: FE.data.exclues}));
+}
+const feEcarterSelection = () => feAppliquer({ajouter: [...FE.sel]});
+const feRetablirSelection = () => feAppliquer({retirer: [...FE.sel]});
+const feEcarterBloc = (filtre) => feAppliquer({exclure_filtre: filtre});
+const feToutRetablir = () => feAppliquer({reinitialiser: true});
+
+function rendreFeatures(){
+  const d = FE.data; if(!d) return;
+  const enAttente = FE.sel.size;
+  const cellule = (l, i, c) => {
+    const v = l.valeurs[i], vide = l.vides.includes(c.slug), aber = l.aberrantes.includes(c.slug);
+    const cls = vide ? "fe-vide" : aber ? "fe-aber" : "";
+    return `<td class="${cls}">${vide ? escapeHtml(feT("cellule_vide")) : escapeHtml(v ?? "")}</td>`;
+  };
+  const lignes = d.lignes.map(l => `<tr class="${l.exclue ? "fe-exclue" : ""}">
+      <td><input type="checkbox" ${FE.sel.has(l.id) ? "checked" : ""} onchange="feBasculer(${l.id}, this.checked)"></td>
+      <td class="fe-id">${l.id}${l.exclue ? ` <small>${escapeHtml(feT("ecartee"))}</small>` : ""}</td>
+      ${d.colonnes.map((c, i) => cellule(l, i, c)).join("")}</tr>`).join("");
+  const entetes = d.colonnes.map(c => `<th title="${c.bornes ? escapeHtml(feT("bornes", {v1: +c.bornes[0].toFixed(4), v2: +c.bornes[1].toFixed(4)})) : ""}">${escapeHtml(c.nom)}</th>`).join("");
+  const toutCoche = d.lignes.length && d.lignes.every(l => FE.sel.has(l.id));
+  const choixTable = d.tables.length > 1
+    ? `<label>${escapeHtml(feT("table"))} <select onchange="feChoisirTable(this.value)">${d.tables.map(t => `<option value="${t.id}" ${t.id === d.table.id ? "selected" : ""}>${escapeHtml(t.nom)}</option>`).join("")}</select></label>` : "";
+  const filtres = ["toutes", "signalees", "vides", "aberrantes", "exclues"].map(f => `<option value="${f}" ${f === d.filtre ? "selected" : ""}>${escapeHtml(feT("f_" + f))}</option>`).join("");
+  $("fe-zone").innerHTML = `
+    <p class="fe-resume">${escapeHtml(feT("resume", {v1: d.total, v2: d.exclues, v3: d.restantes, v4: d.nb_vides, v5: d.nb_aberrantes}))}</p>
+    <div class="fe-barre">${choixTable}
+      <label>${escapeHtml(feT("filtre"))} <select onchange="feChoisirFiltre(this.value)">${filtres}</select></label></div>
+    <div class="fe-barre">
+      <button ${enAttente ? "" : "disabled"} onclick="feEcarterSelection()">${escapeHtml(feT("ecarter_sel", {v1: enAttente}))}</button>
+      <button ${enAttente ? "" : "disabled"} onclick="feRetablirSelection()">${escapeHtml(feT("retablir_sel", {v1: enAttente}))}</button>
+      <button ${d.nb_vides ? "" : "disabled"} onclick="feEcarterBloc('vides')">${escapeHtml(feT("ecarter_vides"))}</button>
+      <button ${d.nb_aberrantes ? "" : "disabled"} onclick="feEcarterBloc('aberrantes')">${escapeHtml(feT("ecarter_aberrantes"))}</button>
+      <button ${d.exclues ? "" : "disabled"} onclick="feToutRetablir()">${escapeHtml(feT("tout_retablir"))}</button>
+    </div>
+    ${d.lignes.length ? `<div class="fe-table-wrap"><table class="fe-table"><thead><tr>
+        <th><input type="checkbox" ${toutCoche ? "checked" : ""} onchange="feToutePage(this.checked)"></th><th>id</th>${entetes}</tr></thead>
+        <tbody>${lignes}</tbody></table></div>` : `<p class="aide">${escapeHtml(feT("aucune_ligne"))}</p>`}
+    <div class="fe-barre fe-pages">
+      <button ${d.page > 0 ? "" : "disabled"} onclick="fePage(-1)">${escapeHtml(feT("precedent"))}</button>
+      <span>${escapeHtml(feT("page", {v1: d.page + 1, v2: d.pages}))}</span>
+      <button ${d.page + 1 < d.pages ? "" : "disabled"} onclick="fePage(1)">${escapeHtml(feT("suivant"))}</button>
+    </div>`;
+}
+
+async function ouvrirHistorique(id, nom){
+  const modele = modeleParId(id);
+  nom = nom ?? (modele && modele.nom) ?? "";
+  const champs = modele ? colonnesEntreeModele(modele) : [];
+  const nomCible = modele ? nomCibleModele(modele) : tj("engine/templates/engine/ia.html:js:944:55");
+  document.getElementById("hist-titre").textContent = tj("engine/templates/engine/ia.html:js:lbl_historique", {v1: nom});
+  const zone = document.getElementById("hist-liste");
+  zone.innerHTML = `<span class="muted-txt">${tj("engine/templates/engine/ia.html:js:947:46")}</span>`;
+  document.getElementById("modal-historique").classList.add("ouvert");
+  try {
+    const data = await api(`/api/ia/modeles/${id}/inferences/`);
+    if(!data.inferences.length){ zone.innerHTML = `<span class="muted-txt">${tj("engine/templates/engine/ia.html:js:951:77")}</span>`; return; }
+    zone.innerHTML = data.inferences.map(h => {
+      const lignesEntree = lignesLisiblesEntree(h.entree, champs)
+        .map(l => `<div class="hist-ligne"><span class="hist-label">${escapeHtml(l.label)}</span><span>${escapeHtml(l.valeur)}</span></div>`)
+        .join("");
+      return `<div class="hist-item">
+        <div class="hist-date">${new Date(h.cree_le).toLocaleString((window.I18N_LOCALE||"fr-FR"))}</div>
+        ${lignesEntree}
+        ${h.erreur
+          ? `<div class="hist-ligne"><span class="hist-label">${tj("engine/templates/engine/ia.html:js:960:64")}</span><span class="err">${escapeHtml(h.erreur)}</span></div>`
+          : `<div class="hist-ligne"><span class="hist-label">${escapeHtml(nomCible)}</span><span class="hist-reponse">${escapeHtml(valeurLisibleReponse(h.sortie))}</span></div>`}
+      </div>`;
+    }).join("");
+  } catch(e){ zone.innerHTML = `<span class="muted-txt">${tj("engine/templates/engine/ia.html:js:964:58")}</span>`; }
+}
+
+function fermerHistorique(){
+  document.getElementById("modal-historique").classList.remove("ouvert");
+}
+
+async function predire(){
+  const modele = modeleParId(MODELE_INFERENCE);
+  if(!modele){ toast(tj("engine/templates/engine/ia.html:js:973:23"), true); return; }
+  let entree;
+  try { entree = valeursFormulaireInference(modele); }
+  catch(e){ toast(e.message || tj("engine/templates/engine/ia.html:js:976:33"), true); return; }
+  try {
+    const data = await api(`/api/ia/modeles/${MODELE_INFERENCE}/inferer/`, {
+      method:"POST", body: JSON.stringify({entree}),
+    });
+    ouvrirPopupReponse(data.inference.sortie, modele);
+  } catch(e){}
+}
+
+document.getElementById("btn-creer-modele").onclick = creerModele;
+$("btn-nouveau").onclick = nouveauModele;
+document.getElementById("btn-inf-annuler").onclick = fermerInference;
+document.getElementById("btn-inf-predire").onclick = predire;
+
+if($("btn-ajouter-algo")){
+  $("btn-ajouter-algo").onclick = ouvrirAjoutAlgo;
+  $("btn-algo-annuler").onclick = fermerAjoutAlgo;
+  $("btn-algo-generer").onclick = genererAlgo;
+  $("btn-algo-installer").onclick = installerAlgo;
+  $("btn-algo-copier").onclick = copierAlgo;
+  $("btn-algo-importer").onclick = importerAlgo;
+  $("btn-algo-restaurer").onclick = restaurerAlgo;
+}
+
+chargerTypes();
+chargerTables();
+chargerModeles();
+</script>
+<script src="{% static 'engine/js/icones.js' %}"></script>
+</body>
+</html>

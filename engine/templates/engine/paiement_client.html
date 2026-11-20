@@ -1,0 +1,249 @@
+{% load static %}<!DOCTYPE html>
+{% load i18n_extras %}
+<html lang="{{ langue_html|default:'fr' }}">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<link rel="stylesheet" href="{% static 'engine/css/app.css' %}"><link rel="stylesheet" href="{% url 'engine:marque_css' %}">{% i18n_js %}
+<script src="{% static 'engine/js/marque.js' %}" defer></script><script src="{% static 'engine/js/gestes_tactiles.js' %}" defer></script>
+<title>{% t "engine/templates/engine/paiement_client.html:6:8" %}</title>
+<style>
+/* Page « Mon wallet » : même identité que Recommandations (body.page-reco : variables, titres, boutons, champs, bande de synthèse) ;
+   ici seulement le propre au wallet client. */
+body.page-paiement_client [hidden]{display:none !important}
+body.page-paiement_client .layout{max-width:720px}
+body.page-paiement_client .pay-solde .pouls-risque b{font-size:clamp(44px,12vw,92px);overflow-wrap:anywhere}
+body.page-paiement_client .pay-solde .pouls-texte p{font-size:14px}
+body.page-paiement_client .pay-alerte{margin:18px 0 0;padding:10px 0 10px 14px;border-left:4px solid var(--decider);color:var(--decider);font-size:14px}
+
+/* Choix de la méthode */
+body.page-paiement_client .pay-seg{display:flex;gap:8px;margin-bottom:16px;flex-wrap:wrap}
+body.page-paiement_client .pay-seg button[aria-pressed="true"]{background:var(--text);color:var(--texte-noir,#080b0f);border-color:var(--text);font-weight:600}
+
+/* Champs */
+body.page-paiement_client .pay-champ{display:grid;gap:6px;margin-bottom:12px}
+body.page-paiement_client .pay-champ label{font-size:13px;color:var(--muted)}
+body.page-paiement_client .pay-in{width:100%;box-sizing:border-box;font-size:15px;padding:9px 10px}
+body.page-paiement_client button.pay-btn{width:100%;padding:11px 14px}
+body.page-paiement_client .pay-code{display:grid;grid-template-columns:1fr auto;gap:8px;margin-bottom:12px}
+body.page-paiement_client .pay-st{margin-top:10px;font-size:14px;color:var(--muted);min-height:1em}
+body.page-paiement_client .pay-st.ok{color:var(--surveiller)}
+body.page-paiement_client .pay-st.err{color:var(--agir)}
+
+/* Étapes du dépôt */
+body.page-paiement_client .pay-etape{display:flex;gap:12px;align-items:baseline;font-size:14px;margin-bottom:10px}
+body.page-paiement_client .pay-etape b{font-family:var(--serif);font-size:22px;font-weight:600;line-height:1;min-width:16px}
+body.page-paiement_client .pay-num{display:flex;align-items:center;justify-content:space-between;gap:10px;padding:12px 0;border-bottom:1px solid var(--border)}
+body.page-paiement_client .pay-num-op,body.page-paiement_client .pay-num-t{font-size:13px;color:var(--muted)}
+body.page-paiement_client .pay-num-n{font-family:var(--serif);font-size:22px;font-weight:600}
+
+/* Repliables : l'historique est une section, « autre numéro » un détail */
+body.page-paiement_client details.pay-det>summary{cursor:pointer;list-style:none;font-size:14px;color:var(--muted);padding:6px 0}
+body.page-paiement_client details.pay-det>summary::-webkit-details-marker{display:none}
+body.page-paiement_client details.pay-det>summary::after{content:"+";float:right;font-size:18px}
+body.page-paiement_client details.pay-det[open]>summary::after{content:"\2212"}
+body.page-paiement_client details.reco-section>summary{font-family:var(--serif);font-size:26px;font-weight:600;color:var(--text);padding:0}
+body.page-paiement_client details.reco-section[open]>summary{margin-bottom:14px}
+body.page-paiement_client details.reco-section>summary span{font-family:system-ui,sans-serif;font-size:13px;font-weight:400;color:var(--muted)}
+
+/* Lignes (services, historique) */
+body.page-paiement_client .pay-ligne{display:flex;align-items:center;justify-content:space-between;gap:12px;padding:14px 0;border-bottom:1px solid var(--border)}
+body.page-paiement_client .pay-ligne-nom{font-family:var(--serif);font-weight:600;font-size:17px}
+body.page-paiement_client .pay-ligne-sub{font-size:13px;color:var(--muted)}
+body.page-paiement_client .pay-ligne-droite{text-align:right;flex-shrink:0}
+body.page-paiement_client .pay-plus{font-family:var(--serif);font-size:18px;font-weight:600}
+body.page-paiement_client .pay-vide{color:var(--muted);font-size:14px;padding:6px 0}
+body.page-paiement_client button.pay-lien{border:0;background:none;color:var(--muted);padding:12px 0 0;font-size:13px;text-decoration:underline}
+
+/* Boîte de confirmation */
+body.page-paiement_client dialog.pay-dlg{margin:auto;max-width:min(420px,92vw);width:100%;padding:20px;border:1px solid var(--bordure-info,#33414f);border-radius:4px;background:var(--panel);color:var(--text)}
+body.page-paiement_client dialog.pay-dlg::backdrop{background:color-mix(in srgb,var(--voile,#000000) 70%,transparent)}
+body.page-paiement_client dialog.pay-dlg p{font-size:15px;margin:0 0 16px;line-height:1.5}
+body.page-paiement_client .pay-dlg-act{display:flex;gap:8px;justify-content:flex-end}
+</style>
+<script src="{% static 'engine/js/dialogues.js' %}"></script>
+</head>
+<body class="page-paiement_client page-notifications page-reco">
+<div class="header">{% include "engine/_marque_entete.html" %}</div>
+<div class="layout">
+
+  <!-- 1. Solde + identité (un seul bloc compact) -->
+  <header class="reco-pouls pay-solde">
+    <div class="pouls-tete">
+      <div class="pouls-risque" aria-live="polite"><b id="solde-val">—</b><span>{% t "engine/templates/engine/paiement_client.html:72:81" %}</span></div>
+      <div class="pouls-texte">
+        <h2>{% t "engine/templates/engine/paiement_client.html:83:34" %}</h2>
+        <p><strong>{{ membre.utilisateur.get_full_name|default:membre.utilisateur.username }}</strong>{% if membre.telephone %} · {{ membre.indicatif_pays }}{{ membre.telephone }}{% endif %}</p>
+      </div>
+    </div>
+  </header>
+
+  <div class="pay-alerte" id="pay-alerte" hidden></div>
+
+  <!-- 3. Services -->
+  <section class="reco-section" id="c-services">
+    <div class="section-tete"><h2>{% t "engine/templates/engine/paiement_client.html:146:9" %}</h2></div>
+    <div id="services-payants"><div class="pay-vide">{% t "engine/templates/engine/paiement_client.html:52:54" %}</div></div>
+  </section>
+
+</div>
+
+<dialog class="pay-dlg" id="dlg-confirm">
+  <p id="dlg-txt"></p>
+  <div class="pay-dlg-act">
+    <button type="button" id="dlg-non">{% t "engine/templates/engine/paiement_client.html:161:40" %}</button>
+    <button type="button" id="dlg-oui" class="principal">{% t "engine/templates/engine/paiement_client.html:162:58" %}</button>
+  </div>
+</dialog>
+<div id="toast"></div>
+
+<script>
+const clientData = {
+  nom: "{{ membre.utilisateur.get_full_name|default:membre.utilisateur.username|escapejs }}",
+  phone: "{{ membre.indicatif_pays|escapejs }}{{ membre.telephone|escapejs }}"
+};
+const TX = {
+  methodeUssd: "{% t 'engine/templates/engine/paiement_client.html:173:17' as v %}{{ v|escapejs }}",
+  aucunNumero: "{% t 'engine/templates/engine/paiement_client.html:174:17' as v %}{{ v|escapejs }}",
+  copier: "{% t 'engine/templates/engine/paiement_client.html:175:12' as v %}{{ v|escapejs }}",
+  copie: "{% t 'engine/templates/engine/paiement_client.html:176:11' as v %}{{ v|escapejs }}",
+  numerosIndispo: "{% t 'engine/templates/engine/paiement_client.html:177:20' as v %}{{ v|escapejs }}",
+  copieImpossible: "{% t 'engine/templates/engine/paiement_client.html:178:21' as v %}{{ v|escapejs }}",
+  envoiCode: "{% t 'engine/templates/engine/paiement_client.html:179:15' as v %}{{ v|escapejs }}",
+  erreurEnvoiCode: "{% t 'engine/templates/engine/paiement_client.html:180:21' as v %}{{ v|escapejs }}",
+  dejaVerifie: "{% t 'engine/templates/engine/paiement_client.html:181:17' as v %}{{ v|escapejs }}",
+  codeEnvoye: "{% t 'engine/templates/engine/paiement_client.html:182:16' as v %}{{ v|escapejs }}",
+  erreurReseauCode: "{% t 'engine/templates/engine/paiement_client.html:183:22' as v %}{{ v|escapejs }}",
+  verifEnCours: "{% t 'engine/templates/engine/paiement_client.html:68:54' as v %}{{ v|escapejs }}",
+  erreurVerif: "{% t 'engine/templates/engine/paiement_client.html:185:17' as v %}{{ v|escapejs }}",
+  depotRecu: "{% t 'engine/templates/engine/paiement_client.html:186:15' as v %}{{ v|escapejs }}",
+  aucunDepot: "{% t 'engine/templates/engine/paiement_client.html:187:16' as v %}{{ v|escapejs }}",
+  depotAmbigu: "{% t 'engine/templates/engine/paiement_client.html:ambigu' as v %}{{ v|escapejs }}",
+  paiementAVerifier: "{% t 'engine/templates/engine/paiement_client.html:verification_manuelle' as v %}{{ v|escapejs }}",
+  demandeEnCours: "{% t 'engine/templates/engine/paiement_client.html:188:20' as v %}{{ v|escapejs }}",
+  erreur: "{% t 'engine/templates/engine/paiement_client.html:189:12' as v %}{{ v|escapejs }}",
+  validerTel: "{% t 'engine/templates/engine/paiement_client.html:190:16' as v %}{{ v|escapejs }}",
+  paiementRecu: "{% t 'engine/templates/engine/paiement_client.html:191:18' as v %}{{ v|escapejs }}",
+  paiementEchec: "{% t 'engine/templates/engine/paiement_client.html:192:19' as v %}{{ v|escapejs }}",
+  paiementNonConfirme: "{% t 'engine/templates/engine/paiement_client.html:193:25' as v %}{{ v|escapejs }}",
+  erreurReseau: "{% t 'engine/templates/engine/paiement_client.html:194:18' as v %}{{ v|escapejs }}",
+  svc_tables: "{% t 'engine/templates/engine/paiement_client.html:195:16' as v %}{{ v|escapejs }}",
+  svc_media: "{% t 'engine/templates/engine/paiement_client.html:196:15' as v %}{{ v|escapejs }}",
+  svc_ia: "{% t 'engine/templates/engine/paiement_client.html:197:12' as v %}{{ v|escapejs }}",
+  svc_ontology: "{% t 'engine/templates/engine/paiement_client.html:198:18' as v %}{{ v|escapejs }}",
+  svc_recherche: "{% t 'engine/templates/engine/paiement_client.html:199:19' as v %}{{ v|escapejs }}",
+  svc_enregistrement: "{% t 'engine/templates/engine/paiement_client.html:200:24' as v %}{{ v|escapejs }}",
+  svc_dashboard_bi: "{% t 'engine/templates/engine/paiement_client.html:201:22' as v %}{{ v|escapejs }}",
+  svc_ontologie: "{% t 'engine/templates/engine/paiement_client.html:202:19' as v %}{{ v|escapejs }}",
+  svc_geolocalisation: "{% t 'engine/templates/engine/paiement_client.html:203:25' as v %}{{ v|escapejs }}",
+  svc_series_temporelles: "{% t 'engine/templates/engine/paiement_client.html:204:28' as v %}{{ v|escapejs }}",
+  svc_statistiques: "{% t 'engine/templates/engine/paiement_client.html:205:22' as v %}{{ v|escapejs }}",
+  svc_ia_long: "{% t 'engine/templates/engine/paiement_client.html:206:17' as v %}{{ v|escapejs }}",
+  prixTaux: "{% t 'engine/templates/engine/paiement_client.html:207:14' as v %}{{ v|escapejs }}",
+  jours30: "{% t 'engine/templates/engine/paiement_client.html:208:13' as v %}{{ v|escapejs }}",
+  aucunService: "{% t 'engine/templates/engine/paiement_client.html:209:18' as v %}{{ v|escapejs }}",
+  activer: "{% t 'engine/templates/engine/paiement_client.html:210:13' as v %}{{ v|escapejs }}",
+  confirmService: "{% t 'engine/templates/engine/paiement_client.html:211:20' as v %}{{ v|escapejs }}",
+  active: "{% t 'engine/templates/engine/paiement_client.html:212:12' as v %}{{ v|escapejs }}",
+  activeJusqua: "{% t 'engine/templates/engine/paiement_client.html:213:18' as v %}{{ v|escapejs }}",
+  soldeInsuffisant: "{% t 'engine/templates/engine/paiement_client.html:214:22' as v %}{{ v|escapejs }}",
+  aucunPaiement: "{% t 'engine/templates/engine/paiement_client.html:215:19' as v %}{{ v|escapejs }}",
+  ref: "{% t 'engine/templates/engine/paiement_client.html:216:9' as v %}{{ v|escapejs }}",
+  reduire: "{% t 'engine/templates/engine/paiement_client.html:217:13' as v %}{{ v|escapejs }}",
+  toutAfficher: "{% t 'engine/templates/engine/paiement_client.html:218:18' as v %}{{ v|escapejs }}",
+  abonnementRequis: "{% t 'engine/templates/engine/paiement_client.html:219:22' as v %}{{ v|escapejs }}",
+  retourOk: "{% t 'engine/templates/engine/paiement_client.html:retour_ok' as v %}{{ v|escapejs }}",
+  retourEchec: "{% t 'engine/templates/engine/paiement_client.html:retour_echec' as v %}{{ v|escapejs }}",
+};
+const fx = (s, o) => s.replace(/\{(\w+)\}/g, (_, k) => o[k]);
+
+/* ---------- Utilitaires ---------- */
+const $ = id => document.getElementById(id);
+const esc = s => String(s == null ? '' : s).replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+const fmt = n => Math.round(Number(n) || 0).toLocaleString((window.I18N_LOCALE||'fr-FR')) + ' ' + (window.DEVISE_LABEL||'FCFA');
+function getCookie(name) { return document.cookie.match(new RegExp(name + '=([^;]+)'))?.[1] || ''; }
+const post = (url, corps) => fetch(url, {method: 'POST', headers: {'Content-Type': 'application/json', 'X-CSRFToken': getCookie('gy_csrftoken')}, body: JSON.stringify(corps)})
+  .then(r => r.json().catch(() => ({})).then(d => ({ok: r.ok, status: r.status, d})));
+function statut(el, texte, type) { el.textContent = texte; el.className = 'pay-st' + (type ? ' ' + type : ''); }
+let _toastT;
+function toast(msg, err) {
+  const el = $('toast'); el.textContent = msg; el.className = err ? 'err' : ''; el.style.display = 'block';
+  clearTimeout(_toastT); _toastT = setTimeout(() => { el.style.display = 'none'; }, 5000);
+}
+function alerte(msg) { const el = $('pay-alerte'); el.textContent = msg; el.hidden = !msg; }
+function confirmer(texte) { return GY.confirmer(texte); }
+
+/* ---------- Solde ---------- */
+function majSolde(v) { if (typeof v === 'number' && isFinite(v)) $('solde-val').textContent = Math.round(v).toLocaleString((window.I18N_LOCALE||'fr-FR')); }
+let soldeCourant = null;
+async function chargerSolde() {
+  try {
+    const d = await fetch('/api/wallet/').then(r => r.json());
+    if (typeof d.solde === 'number') { soldeCourant = d.solde; majSolde(d.solde); }
+  } catch (e) { /* le solde reste affiché tel quel */ }
+}
+
+/* ---------- Services ---------- */
+const LABELS = {tables: TX.svc_tables, media: TX.svc_media, ia: TX.svc_ia, ontology: TX.svc_ontology, recherche: TX.svc_recherche, enregistrement: TX.svc_enregistrement,
+  dashboard_bi: TX.svc_dashboard_bi, ontologie: TX.svc_ontologie, geolocalisation: TX.svc_geolocalisation, series_temporelles: TX.svc_series_temporelles, statistiques: TX.svc_statistiques, anova: 'ANOVA', analyse_factorielle: tj("engine/templates/engine/paiement_client.html:js:425:228")};
+const SERVICES_MENSUEL = ['dashboard_bi', 'ontologie', 'ia', 'geolocalisation', 'series_temporelles', 'statistiques', 'anova', 'analyse_factorielle'];
+let servicesCache = {};
+
+// Prix d'un service : nombre = montant fixe (FCFA) ; {mode: 'taux', valeur} = pourcentage du wallet.
+function libellePrix(prix) {
+  if (prix && typeof prix === 'object') return prix.mode === 'taux' ? fx(TX.prixTaux, {valeur: prix.valeur}) : fmt(prix.valeur);
+  return fmt(prix);
+}
+
+async function chargerServices() {
+  const container = $('services-payants');
+  try { servicesCache = await fetch('/api/paiement/services').then(r => r.json()); } catch (e) { servicesCache = {}; }
+  const entries = Object.entries(servicesCache);
+  if (!entries.length) { container.innerHTML = '<div class="pay-vide">' + esc(TX.aucunService) + '</div>'; return; }
+  container.innerHTML = entries.map(([key, prix]) => `
+    <div class="pay-ligne">
+      <div>
+        <div class="pay-ligne-nom">${esc(LABELS[key] || key)}</div>
+        <div class="pay-ligne-sub">${esc(libellePrix(prix))}${SERVICES_MENSUEL.includes(key) ? ' · ' + esc(TX.jours30) : ''}</div>
+      </div>
+      <button type="button" class="petit" data-service="${esc(key)}">${esc(TX.activer)}</button>
+    </div>`).join('');
+}
+$('services-payants').addEventListener('click', e => {
+  const b = e.target.closest('[data-service]'); if (b) payerService(b.dataset.service, b);
+});
+
+async function payerService(service, bouton) {
+  const prix = servicesCache[service], mensuel = SERVICES_MENSUEL.includes(service), label = LABELS[service] || service;
+  if (!await confirmer(fx(TX.confirmService, {label, prix: libellePrix(prix), duree: mensuel ? ' (' + TX.jours30 + ')' : ''}))) return;
+  bouton.disabled = true;
+  try {
+    const {ok, status, d} = await post('/api/wallet/abonnement', {categorie: service});
+    if (ok) {
+      majSolde(d.solde); soldeCourant = d.solde; alerte('');
+      toast(mensuel && d.expire_le ? fx(TX.activeJusqua, {label, date: new Date(d.expire_le).toLocaleDateString('fr')}) : fx(TX.active, {label}));
+    } else {
+      toast(d.erreur || TX.erreur, true);
+      if (status === 402) alerte(d.erreur || TX.soldeInsuffisant);
+    }
+  } catch (e) { toast(TX.erreurReseau, true); }
+  bouton.disabled = false;
+}
+
+/* ---------- Accès refusé depuis une autre page (?service=...) ---------- */
+const _serviceParam = new URLSearchParams(location.search).get('service');
+if (_serviceParam) {
+  const noms = {dashboard_bi: TX.svc_dashboard_bi, ontologie: TX.svc_ontologie, ia: TX.svc_ia_long};
+  alerte(fx(TX.abonnementRequis, {nom: noms[_serviceParam] || LABELS[_serviceParam] || _serviceParam}));
+}
+
+/* ---------- Initialisation ---------- */
+document.addEventListener('DOMContentLoaded', () => {
+  chargerSolde();
+  chargerServices();
+});
+setInterval(chargerSolde, 30000);   // solde relu toutes les 30 s
+</script>
+<script src="{% static 'engine/js/icones.js' %}"></script>
+</body>
+</html>

@@ -1,0 +1,49 @@
+# Tout ce qu'il faut pour exécuter Agentgy (Django) sur PythonAnywhere. Aucune version : PythonAnywhere choisit.
+# Installation et préparation complètes (dépendances, migrations, statiques) : python3 installer_dependances.py
+
+Django
+whitenoise
+numpy
+pandas
+scipy
+matplotlib
+networkx
+reportlab
+requests
+cryptography
+Pillow
+openpyxl
+pyarrow
+qrcode
+python-pptx
+scikit-learn
+statsmodels
+python-calamine
+xlrd
+regex
+opencv-python-headless
+pydub
+soundfile
+polars
+folium
+cairosvg
+imageio-ffmpeg
+geoip2
+
+# Facultatif et lourd (quota disque d'un compte gratuit : 512 Mo) : retirer le « # » pour l'activer.
+# jax
+# jaxlib
+# flax
+# optax
+# h5py
+# librosa
+# PyWavelets
+# noisereduce
+# pillow-heif
+# svglib
+# trimesh
+# psycopg[binary]
+# psycopg2-binary
+# pymysql
+# pymongo
+# oracledb

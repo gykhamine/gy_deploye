@@ -1,0 +1,197 @@
+{% load i18n_extras %}
+<!DOCTYPE html>
+{% load static %}
+<html lang="{{ langue_html|default:'fr' }}">
+<head>
+<link rel="stylesheet" href="{% static 'engine/css/app.css' %}"><link rel="stylesheet" href="{% url 'engine:marque_css' %}"><script src="{% static 'engine/js/marque.js' %}" defer></script><script src="{% static 'engine/js/gestes_tactiles.js' %}" defer></script>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Blockchain — {{ entreprise.nom }}</title>
+<script src="{% static 'engine/js/dialogues.js' %}"></script>
+</head>
+<body class="page-blockchain">
+
+<div class="header">{% include "engine/_marque_entete.html" %}
+
+</div>
+
+<div class="barre">
+  <span class="statut-chaine {% if chaine_valide %}ok{% else %}rompue{% endif %}">
+    {% if chaine_valide %}{% t "engine/templates/engine/blockchain.html:21:27" %}{% else %}{% t "engine/templates/engine/blockchain.html:21:53" %}{% endif %}
+  </span>
+  <div class="sep-v"></div>
+  <span class="portee">
+    {% if portee == "portable" %}{% t "engine/templates/engine/blockchain.html:25:34" %} {% if table_id %}#{{ table_id }}{% else %}{% t "engine/templates/engine/blockchain.html:25:91" %}{% endif %}
+    {% elif portee == "agent" %}{% t "engine/templates/engine/blockchain.html:26:33" %} : {% if est_admin %}{% t "engine/templates/engine/blockchain.html:26:60" %} {% if agent_id %}#{{ agent_id }}{% else %}{% t "engine/templates/engine/blockchain.html:26:108" %}{% endif %}{% else %}{% t "engine/templates/engine/blockchain.html:26:149" %}{% if table_id %} · {% tf "engine/templates/engine/blockchain.html:26:196" v1=table_id %}{% endif %}{% endif %}
+    {% else %}{% t "engine/templates/engine/blockchain.html:27:15" %}{% endif %}
+  </span>
+</div>
+
+{% if est_admin %}
+<div class="barre nav-portee">
+  <a class="onglet {% if portee == 'globale' %}actif{% endif %}" href="?portee=globale">{% t "engine/templates/engine/blockchain.html:32:89" %}</a>
+  <a class="onglet {% if portee == 'portable' %}actif{% endif %}" href="?portee=portable{% if table_id %}&table={{ table_id }}{% endif %}">{% t "engine/templates/engine/blockchain.html:33:140" %}</a>
+  <a class="onglet {% if portee == 'agent' %}actif{% endif %}" href="?portee=agent{% if agent_id %}&agent={{ agent_id }}{% endif %}">{% t "engine/templates/engine/blockchain.html:34:134" %}</a>
+
+  {% if portee == "portable" %}
+  <form method="get" class="selecteur">
+    <input type="hidden" name="portee" value="portable">
+    <select name="table" onchange="this.form.submit()">
+      <option value="">{% t "engine/templates/engine/blockchain.html:40:24" %}</option>
+      {% for t in tables_nav %}
+      <option value="{{ t.id }}" {% if table_id == t.id|stringformat:"s" %}selected{% endif %}>{{ t.nom }}</option>
+      {% endfor %}
+    </select>
+  </form>
+  {% elif portee == "agent" %}
+  <form method="get" class="selecteur">
+    <input type="hidden" name="portee" value="agent">
+    <select name="agent" onchange="this.form.submit()">
+      <option value="">{% t "engine/templates/engine/blockchain.html:50:24" %}</option>
+      {% for m in agents_nav %}
+      <option value="{{ m.utilisateur.id }}" {% if agent_id == m.utilisateur.id|stringformat:"s" %}selected{% endif %}>{{ m.utilisateur.username }}</option>
+      {% endfor %}
+    </select>
+  </form>
+  {% endif %}
+</div>
+{% endif %}
+
+{% if est_admin and types_dispo %}
+<div class="barre coul-types">
+  <span class="portee">{% t "engine/templates/engine/blockchain.html:62:24" %}</span>
+  <select id="coul-type">{% for ty in types_dispo %}<option value="{{ ty }}" data-couleur="{% for k, v in couleurs_types.items %}{% if k == ty %}{{ v }}{% endif %}{% endfor %}">{{ ty }}</option>{% endfor %}</select>
+  <button type="button" id="coul-type-btn" class="btn-couleur-bloc" title="{% t 'engine/templates/engine/blockchain.html:64:76' %}">🎨</button>
+</div>
+{% endif %}
+
+{% if not attente_selection %}
+<details class="recherche" {% if recherche_active %}open{% endif %}>
+  <summary>{% t "engine/templates/engine/blockchain.html:rech:titre" %}{% if recherche_active %} — {% tf "engine/templates/engine/blockchain.html:rech:resultat" v1=nb_tx v2=nb_blocs %}{% endif %}</summary>
+  <form method="get" class="rech-form">
+    <input type="hidden" name="portee" value="{{ portee }}">
+    {% if table_id %}<input type="hidden" name="table" value="{{ table_id }}">{% endif %}
+    {% if agent_id %}<input type="hidden" name="agent" value="{{ agent_id }}">{% endif %}
+    <label>{% t "engine/templates/engine/blockchain.html:rech:texte" %}<input type="search" id="rech-q" name="q" value="{{ rech.q }}" placeholder="{% t "engine/templates/engine/blockchain.html:rech:texte_ph" %}" data-applique="{{ rech.q }}" autocomplete="off"></label>
+    <label>{% t "engine/templates/engine/blockchain.html:rech:types" %}<select name="types" multiple size="4">{% for ty in types_dispo %}<option value="{{ ty }}" {% if ty in types_sel %}selected{% endif %}>{{ ty }}</option>{% endfor %}</select></label>
+    <label>{% t "engine/templates/engine/blockchain.html:rech:champ" %}<input type="text" name="champ" value="{{ rech.champ }}" placeholder="{% t "engine/templates/engine/blockchain.html:rech:champ_ph" %}"></label>
+    <label>{% t "engine/templates/engine/blockchain.html:rech:valeur" %}<input type="text" name="valeur" value="{{ rech.valeur }}" placeholder="{% t "engine/templates/engine/blockchain.html:rech:valeur_ph" %}"></label>
+    <label>{% t "engine/templates/engine/blockchain.html:rech:table" %}<input type="text" name="table_rech" value="{{ rech.table_rech }}" placeholder="{% t "engine/templates/engine/blockchain.html:rech:table_ph" %}"></label>
+    <label>{% t "engine/templates/engine/blockchain.html:rech:bloc_min" %}<input type="number" min="0" name="bloc_min" value="{{ rech.bloc_min }}"></label>
+    <label>{% t "engine/templates/engine/blockchain.html:rech:bloc_max" %}<input type="number" min="0" name="bloc_max" value="{{ rech.bloc_max }}"></label>
+    <label>{% t "engine/templates/engine/blockchain.html:rech:du" %}<input type="date" name="du" value="{{ rech.du }}"></label>
+    <label>{% t "engine/templates/engine/blockchain.html:rech:au" %}<input type="date" name="au" value="{{ rech.au }}"></label>
+    <div class="rech-actions">
+      <button type="submit">{% t "engine/templates/engine/blockchain.html:rech:chercher" %}</button>
+      <a class="btn petit" href="?{{ qs_portee }}">{% t "engine/templates/engine/blockchain.html:rech:reinit" %}</a>
+      <span class="rech-nav" hidden><button type="button" data-nav="-1" title="{% t "engine/templates/engine/blockchain.html:rech:precedent" %}">▲</button><span class="rech-compteur"></span><button type="button" data-nav="1" title="{% t "engine/templates/engine/blockchain.html:rech:suivant" %}">▼</button></span>
+    </div>
+  </form>
+</details>
+{% endif %}
+
+<main data-mots='{{ mots_surlignes }}'>
+  {% if not blocs %}
+  <div class="vide">
+    {% if portee == "portable" and not table_id %}{% t "engine/templates/engine/blockchain.html:64:51" %}
+    {% elif portee == "agent" and est_admin and not agent_id %}{% t "engine/templates/engine/blockchain.html:65:64" %}
+    {% elif recherche_active %}{% t "engine/templates/engine/blockchain.html:rech:aucun" %}
+    {% else %}{% t "engine/templates/engine/blockchain.html:66:15" %}{% endif %}
+  </div>
+  {% endif %}
+  {% for b in blocs %}
+  <div class="bloc" data-bloc="{{ b.index }}"{% if b.couleur %} style="--bloc-couleur:{{ b.couleur }}"{% endif %}>
+    <div class="bloc-entete">
+      <span class="num">{% t "engine/templates/engine/blockchain.html:lbl_bloc" %} #{{ b.index }}</span>
+      <button type="button" class="btn-couleur-bloc" data-bloc="{{ b.index }}" data-couleur="{{ b.couleur_propre }}" title="{% t 'engine/templates/engine/blockchain.html:106:125' %}">🎨</button>
+      <span class="date">{{ b.cree_le|date:"d/m/Y H:i:s" }}</span>
+    </div>
+    <div class="bloc-hash"><b>hash</b> {{ b.hash }}</div>
+    <div class="bloc-hash"><b>{% t "engine/templates/engine/blockchain.html:75:31" %}</b> {{ b.previous_hash }}</div>
+    <div class="transactions">
+      {% for tx in b.transactions %}
+      <div class="tx-bloc">
+        <div class="tx">
+          <span class="type {{ tx.type }}">{{ tx.type }}</span>
+          <span class="detail">
+            {% if tx.table %}{% tf "engine/templates/engine/blockchain.html:83:30" v1=tx.table %}{% elif tx.table_id %}{% tf "engine/templates/engine/blockchain.html:83:76" v1=tx.table_id %}{% endif %}
+            {% if tx.enregistrement_id %}· {% tf "engine/templates/engine/blockchain.html:84:44" v1=tx.enregistrement_id %}{% endif %}
+            {% if tx.type == "transformation_colonne" %}· {% tf "engine/templates/engine/blockchain.html:85:59" v1=tx.champ v2=tx.nb_modifiees %}{% endif %}
+            {% if tx.date_origine %}· {% tf "engine/templates/engine/blockchain.html:86:39" v1=tx.date_origine %}{% endif %}
+          </span>
+        </div>
+
+        {# ── Création / rattrapage / import : contenu réel de la ligne ── #}
+        {% if tx.donnees and tx.type != "suppression_ligne" %}
+        <div class="tx-donnees">
+          {% for cle, val in tx.donnees.items %}
+          <div class="champ-ligne"><span class="champ-nom">{{ cle }}</span><span class="champ-val">{{ val }}</span></div>
+          {% endfor %}
+        </div>
+        {% endif %}
+
+        {# ── Modification : avant → après pour chaque champ qui a changé ── #}
+        {% if tx.type == "modification_ligne" or tx.type == "transformation_colonne" %}{% if tx.modifications %}
+        <div class="tx-donnees">
+          {% for m in tx.modifications %}
+          <div class="champ-ligne">
+            <span class="champ-nom">{{ m.champ }}</span>
+            <span class="champ-val avant">{{ m.avant|default:"—" }}</span>
+            <span class="fleche-maj">→</span>
+            <span class="champ-val apres">{{ m.apres|default:"—" }}</span>
+          </div>
+          {% endfor %}
+        </div>
+        {% endif %}{% endif %}
+
+        {# ── Suppression : dernier état connu de la ligne, avant effacement ── #}
+        {% if tx.type == "suppression_ligne" and tx.donnees %}
+        <div class="tx-donnees">
+          {% for cle, val in tx.donnees.items %}
+          <div class="champ-ligne"><span class="champ-nom">{{ cle }}</span><span class="champ-val avant">{{ val }}</span></div>
+          {% endfor %}
+        </div>
+        {% endif %}
+      </div>
+      {% endfor %}
+    </div>
+  </div>
+  {% if not forloop.last %}<div class="chaine-liaison">⛓︎</div>{% endif %}
+  {% endfor %}
+</main>
+
+{% if page.paginator.num_pages > 1 %}
+<div class="pager">
+  {% if page.has_previous %}
+    <a class="btn petit" href="?{{ qs_pager }}&page={{ page.previous_page_number }}">{% t "engine/templates/engine/blockchain.html:130:68" %}</a>
+  {% else %}
+    <span class="desactive">{% t "engine/templates/engine/blockchain.html:132:29" %}</span>
+  {% endif %}
+
+  <span class="info">{% tf "engine/templates/engine/blockchain.html:171:22" v1=page.start_index v2=page.end_index v3=page.number v4=page.paginator.num_pages %}</span>
+
+  <form method="get" onsubmit="if(!this.page.value) return false;">
+    <input type="hidden" name="portee" value="{{ portee }}">
+    {% if table_id %}<input type="hidden" name="table" value="{{ table_id }}">{% endif %}
+    {% if agent_id %}<input type="hidden" name="agent" value="{{ agent_id }}">{% endif %}
+    {% for k, v in recherche_cachee %}<input type="hidden" name="{{ k }}" value="{{ v }}">{% endfor %}
+    <input type="number" name="page" min="1" max="{{ page.paginator.num_pages }}" placeholder="{{ page.number }}">
+    <button type="submit">{% t "engine/templates/engine/blockchain.html:142:27" %}</button>
+  </form>
+
+  {% if page.has_next %}
+    <a class="btn petit" href="?{{ qs_pager }}&page={{ page.next_page_number }}">{% t "engine/templates/engine/blockchain.html:146:64" %}</a>
+  {% else %}
+    <span class="desactive">{% t "engine/templates/engine/blockchain.html:148:29" %}</span>
+  {% endif %}
+</div>
+{% endif %}
+
+{% i18n_js %}
+<script src="{% static 'engine/js/gy_couleur.js' %}"></script>
+<script src="{% static 'engine/js/icones.js' %}"></script>
+<script src="{% static 'engine/js/selecteur_couleur.js' %}"></script>
+<script src="{% static 'engine/js/blockchain_couleurs.js' %}"></script>
+<script src="{% static 'engine/js/blockchain_recherche.js' %}"></script>
+</body>
+</html>

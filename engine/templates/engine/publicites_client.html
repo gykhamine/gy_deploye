@@ -1,0 +1,97 @@
+{% extends "engine/page_simple.html" %}
+{% load static %}{% load i18n_extras %}
+{% block classe_page %}{% t "engine/templates/engine/publicites_client.html:2:24" %}{% endblock %}
+{% block titre %}{% t "engine/templates/engine/publicites_client.html:3:18" %}{% endblock %}
+{% block contenu %}
+<nav id="pc-nav"><a href="/espace-client/">{% t "engine/templates/engine/publicites_client.html:5:44" %}</a> <a href="/messagerie/">{% t "engine/templates/engine/publicites_client.html:6:133" %}</a> <a href="/agenda/">{% t "engine/templates/engine/publicites_client.html:6:172" %}</a></nav>
+<div class="carte" id="pc-notifs" hidden><b id="pc-notifs-titre"></b><div id="pc-notifs-liste"></div>
+  <button class="petit" onclick="lireNotifs()">{% t "engine/templates/engine/publicites_client.html:8:48" %}</button> <a class="btn petit" href="/messagerie/">{% t "engine/templates/engine/publicites_client.html:7:98" %}</a></div>
+<div class="carte" id="pc-scene">
+  <div id="pc-vide" hidden><p>{% t "engine/templates/engine/publicites_client.html:9:31" %}</p><small>{% t "engine/templates/engine/publicites_client.html:9:74" %}</small></div>
+  <div id="pc-pub" hidden>
+    <h2 id="pc-titre"></h2>
+    <div id="pc-media"></div>
+    <p id="pc-contexte"></p>
+    <div id="pc-actions"><button class="petit principal" id="pc-formulaire" onclick="ouvrirFormulaire()" hidden>📝 <span id="pc-formulaire-nom"></span></button> <button class="petit" id="pc-conversation" onclick="ouvrirConversation()">{% t "engine/templates/engine/publicites_client.html:15:235" %}</button></div>
+    <div id="pc-reactions"><button class="petit" id="pc-like" onclick="reagir(1)">{% t "engine/templates/engine/publicites_client.html:14:83" %} <span id="pc-nb-like"></span></button> <button class="petit" id="pc-dislike" onclick="reagir(-1)">{% t "engine/templates/engine/publicites_client.html:14:188" %} <span id="pc-nb-dislike"></span></button> <small id="pc-nb-com"></small></div>
+    <div id="pc-commentaires"></div>
+    <div id="pc-com-form"><textarea id="pc-com-texte" rows="2" maxlength="1000" placeholder="{% t 'engine/templates/engine/publicites_client.html:a:17:93' %}"></textarea> <button class="petit" onclick="commenter()">{% t "engine/templates/engine/publicites_client.html:18:216" %}</button></div>
+    <div id="pc-barre"><button class="petit" onclick="aller(-1)">{% t "engine/templates/engine/publicites_client.html:17:66" %}</button><span id="pc-compteur"></span><button class="petit" onclick="aller(1)">{% t "engine/templates/engine/publicites_client.html:19:208" %}</button></div>
+  </div>
+</div>
+{% endblock %}
+{% block script %}{% i18n_js %}<script src="{% static 'engine/js/agenda_alerte.js' %}" defer></script><script>window.APERCU_PDFJS={lib:"{% static 'engine/vendor/pdfjs/pdf.min.js' %}",worker:"{% static 'engine/vendor/pdfjs/pdf.worker.min.js' %}",base:"{% static 'engine/vendor/pdfjs/' %}"};</script><script src="{% static 'engine/js/apercu_fichier.js' %}"></script><script>
+const S = {liste: [], i: 0, signature: ""};
+function media(p){
+  if (!p.url) return "";
+  if (p.type === "image") return `<img src="${p.url}" alt="${esc(p.titre)}">`;
+  if (p.type === "audio") return `<audio controls src="${p.url}"></audio>`;
+  if (p.type === "video") return `<video controls preload="metadata" src="${p.url}"></video>`;
+  // PDF / fichier texte : lu directement dans la page (cadre d'aperçu, comme les documents administratifs), avec le lien de téléchargement dessous.
+  const lisible = ApercuFichier.genre(p.nom_fichier || p.url) ? `<div id="pc-lisible" style="width:100%;margin-bottom:8px;border:1px solid var(--border);border-radius:8px;overflow:hidden"></div>` : "";
+  return lisible + `<a class="fichier" href="${p.url}" download="${esc(p.nom_fichier)}">📥 ${esc(p.nom_fichier || tj("engine/templates/engine/publicites_client.html:js:28:105"))}</a>`;
+}
+function afficher(){
+  const vide = !S.liste.length;
+  $("pc-vide").hidden = !vide; $("pc-pub").hidden = vide;
+  if (vide) return;
+  S.i = Math.min(Math.max(S.i, 0), S.liste.length - 1);
+  const p = S.liste[S.i];
+  $("pc-titre").textContent = p.titre; $("pc-contexte").textContent = p.contexte;
+  // Le média n'est redessiné que si la publicité change : un « j'aime » ou un commentaire ne relance ni la vidéo ni le PDF.
+  const cleMedia = p.id + "|" + (p.url || "");
+  if (S.cleMedia !== cleMedia) {
+    S.cleMedia = cleMedia; $("pc-media").innerHTML = media(p);
+    if ($("pc-lisible")) ApercuFichier.monter($("pc-lisible"), p.url);
+  }
+  $("pc-compteur").textContent = (S.i + 1) + " / " + S.liste.length;
+  // Trois suites possibles, au choix du client : remplir le formulaire lié (si l'agent l'a mis à sa disposition), ouvrir la discussion avec son agent, ou réagir (j'aime / commentaire).
+  $("pc-formulaire").hidden = !p.formulaire;
+  if (p.formulaire) $("pc-formulaire-nom").textContent = tj("engine/templates/engine/publicites_client.html:js:50:59") + p.formulaire.nom;
+  const r = p.reactions || {likes: 0, dislikes: 0, commentaires: 0, mon_avis: 0};
+  $("pc-nb-like").textContent = r.likes; $("pc-nb-dislike").textContent = r.dislikes;
+  $("pc-like").classList.toggle("principal", r.mon_avis === 1); $("pc-dislike").classList.toggle("principal", r.mon_avis === -1);
+  $("pc-nb-com").textContent = r.commentaires + (r.commentaires > 1 ? " commentaires" : " commentaire");
+  if (S.comId !== p.id || S.comNb !== r.commentaires) { S.comId = p.id; S.comNb = r.commentaires; commentaires(p.id); }
+}
+// Réaction : le même avis une seconde fois le retire. Le champ de commentaire n'est jamais redessiné (rien ne s'efface pendant la frappe).
+async function reagir(v){
+  const p = S.liste[S.i]; if (!p) return;
+  try { const d = await api("/api/publicites/" + p.id + "/reagir/", {valeur: v}); p.reactions = d.resume; afficher(); } catch(e){ /* erreur déjà affichée */ }
+}
+async function commenter(){
+  const p = S.liste[S.i], zone = $("pc-com-texte"); if (!p || !zone.value.trim()) return;
+  try { const d = await api("/api/publicites/" + p.id + "/reagir/", {valeur: 0, texte: zone.value}); zone.value = ""; p.reactions = d.resume; afficher(); } catch(e){ /* erreur déjà affichée */ }
+}
+async function commentaires(id){
+  try { const d = await api("/api/publicites/" + id + "/commentaires/"); if (S.comId === id) $("pc-commentaires").innerHTML = d.commentaires.map(c => `<p><small>${esc(c.texte)}</small></p>`).join(""); } catch(e){ /* erreur déjà affichée */ }
+}
+function ouvrirFormulaire(){
+  const p = S.liste[S.i]; if (!p || !p.formulaire) return;
+  location.href = "/espace-client/?table=" + encodeURIComponent(p.formulaire.id);
+}
+function ouvrirConversation(){
+  const p = S.liste[S.i]; if (!p) return;
+  location.href = "/messagerie/?avec=" + encodeURIComponent(p.agent_id);
+}
+function aller(pas){ if (S.liste.length) { S.i = (S.i + pas + S.liste.length) % S.liste.length; afficher(); } }
+// Mise à jour automatique : on ne redessine que si l'agent a publié, modifié ou retiré quelque chose.
+async function charger(){
+  const d = await api("/api/publicites/client/"), signature = JSON.stringify(d.publicites);
+  if (signature === S.signature) return;
+  const courante = S.liste[S.i] ? S.liste[S.i].id : null;
+  S.signature = signature; S.liste = d.publicites;
+  const garde = S.liste.findIndex(p => p.id === courante);
+  S.i = garde >= 0 ? garde : 0; afficher();
+}
+document.addEventListener("keydown", e => { if (e.key === "ArrowLeft") aller(-1); if (e.key === "ArrowRight") aller(1); });
+// Messages reçus pendant l'absence du client : annoncés ici, retirés dès qu'il ouvre la discussion ou les marque comme lus.
+async function notifs(){
+  const d = await api("/api/messagerie/notifications/");
+  $("pc-notifs").hidden = !d.non_lues;
+  $("pc-notifs-titre").textContent = d.non_lues > 1 ? d.non_lues + tj("engine/templates/engine/publicites_client.html:js:71:69") : tj("engine/templates/engine/publicites_client.html:js:71:112");
+  $("pc-notifs-liste").innerHTML = d.notifications.map(n => `<p><b>${esc(n.titre)}</b><br><small>${esc(n.message)}</small></p>`).join("");
+}
+async function lireNotifs(){ try { await api("/api/messagerie/notifications/lire/", {}); notifs(); } catch(e){} }
+charger(); notifs(); setInterval(charger, 20000); setInterval(notifs, 30000);
+</script>{% endblock %}

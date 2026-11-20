@@ -1,0 +1,103 @@
+{% extends "engine/page_simple.html" %}
+{% load static %}{% load i18n_extras %}
+{% block classe_page %}page-publicites{% endblock %}
+{% block titre %}{% t "engine/templates/engine/publicites.html:3:18" %}{% endblock %}
+{% block contenu %}
+<div class="carte">
+  <h2 id="pub-titre-form">{% t "engine/templates/engine/publicites.html:6:27" %}</h2>
+  <p class="guide-hint">{% t "engine/templates/engine/publicites.html:7:25" %}</p>
+  <form id="pub-form" onsubmit="return publier(event)">
+    <input name="titre" id="pub-titre" maxlength="200" placeholder="{% t 'engine/templates/engine/publicites.html:9:69' %}" required>
+    <textarea name="contexte" id="pub-contexte" rows="4" maxlength="5000" placeholder="{% t 'engine/templates/engine/publicites.html:a:11:87' %}"></textarea>
+    <label class="pub-fichier">{% t "engine/templates/engine/publicites.html:11:32" %} <input type="file" name="fichier" id="pub-fichier"></label>
+    <label class="pub-fichier">{% t "engine/templates/engine/publicites.html:13:32" %}
+      <select name="table_id" id="pub-table"><option value="">{% t "engine/templates/engine/publicites.html:14:63" %}</option></select></label>
+    <div><button class="principal" type="submit" id="pub-envoi">{% t "engine/templates/engine/publicites.html:15:65" %}</button> <button type="button" id="pub-annuler" hidden onclick="annuler()">{% t "engine/templates/engine/publicites.html:12:148" %}</button></div>
+  </form>
+</div>
+<div class="carte"><h2>{% t "engine/templates/engine/publicites.html:15:24" %}</h2><div id="pub-liste"></div></div>
+<div class="carte" id="pub-admin-carte" hidden>
+  <h2>{% t "engine/templates/engine/publicites.html:admin_titre" %}</h2>
+  <p class="guide-hint">{% t "engine/templates/engine/publicites.html:admin_aide" %}</p>
+  <div id="pub-admin-liste"></div>
+</div>
+{% endblock %}
+{% block script %}{% i18n_js %}<script>window.APERCU_PDFJS={lib:"{% static 'engine/vendor/pdfjs/pdf.min.js' %}",worker:"{% static 'engine/vendor/pdfjs/pdf.worker.min.js' %}",base:"{% static 'engine/vendor/pdfjs/' %}"};</script><script src="{% static 'engine/js/apercu_fichier.js' %}"></script><script>
+const S = {liste: [], edition: null};
+const NOMS = {texte: tj("engine/templates/engine/publicites.html:js:19:23"), image: "Image", audio: "Son", video: tj("engine/templates/engine/publicites.html:js:19:69"), fichier: tj("engine/templates/engine/publicites.html:js:19:87")};
+// Formulaires que l'agent met à disposition de ses clients (tables « formulaire visible ») : la valeur choisie est conservée d'un rechargement à l'autre.
+function remplirTables(tables, courant){
+  const sel = $("pub-table"), garde = courant !== undefined ? String(courant || "") : sel.value;
+  sel.innerHTML = `<option value="">${tj("engine/templates/engine/publicites.html:js:26:37")}</option>` + tables.map(x => `<option value="${x.id}">${esc(x.nom)}</option>`).join("");
+  if (garde && !tables.some(x => String(x.id) === garde)) sel.insertAdjacentHTML("beforeend", `<option value="${esc(garde)}">${tj("engine/templates/engine/publicites.html:js:27:126")}</option>`);
+  sel.value = garde;
+}
+async function charger(){
+  const d = await api("/api/publicites/"); S.liste = d.publicites; S.tables = d.tables || []; S.admin = d.administration || [];
+  // Agent : publicités de l'administrateur (ou de qui il a délégué ce droit), en consultation seule ; l'administrateur n'a pas cette carte.
+  $("pub-admin-carte").hidden = d.administration === undefined;
+  $("pub-admin-liste").innerHTML = S.admin.map(p => `<div class="pub-ligne">
+    <div><b>${esc(p.titre)}</b> <small>${NOMS[p.type]}${p.nom_fichier ? " · " + esc(p.nom_fichier) : ""} · ${esc(p.agent)} · ${esc(p.date.slice(0, 10))}</small>
+    ${p.contexte ? `<p>${esc(p.contexte.slice(0, 400))}${p.contexte.length > 400 ? "…" : ""}</p>` : ""}
+    ${apercuPossible(p) ? `<div id="pub-apercu-${p.id}" style="margin-top:8px;max-width:100%"></div>` : ""}</div>
+    <div class="pub-actions">${apercuPossible(p) ? `<button class="petit" onclick="apercu(${p.id})">${tj("engine/templates/engine/publicites.html:js:apercu")}</button>` : ""}</div></div>`).join("")
+    || tj("engine/templates/engine/publicites.html:js:admin_vide");
+  remplirTables(S.tables);
+  $("pub-liste").innerHTML = d.publicites.map(p => `<div class="pub-ligne ${p.publiee ? "" : "retiree"}">
+    <div><b>${esc(p.titre)}</b> <small>${NOMS[p.type]}${p.nom_fichier ? " · " + esc(p.nom_fichier) : ""} · ${esc(p.agent)}</small>
+    ${p.contexte ? `<p>${esc(p.contexte.slice(0, 160))}${p.contexte.length > 160 ? "…" : ""}</p>` : ""}
+    ${p.table_id ? `<small>${tj("engine/templates/engine/publicites.html:js:36:28")} <b>${esc(p.table_nom)}</b>${p.table_ouverte ? "" : tj("engine/templates/engine/publicites.html:js:36:138")}</small>` : ""}
+    ${apercuPossible(p) ? `<div id="pub-apercu-${p.id}" style="margin-top:8px;max-width:100%"></div>` : ""}
+    <small>${p.reactions.likes} ${tj("engine/templates/engine/publicites.html:js:25:34")} ${p.reactions.dislikes} ${tj("engine/templates/engine/publicites.html:js:25:67")} <a href="#" class="btn petit" onclick="return commentaires(${p.id})">${tj("engine/templates/engine/publicites.html:js:38:242", {v1: p.reactions.commentaires})}</a></small><div id="pub-com-${p.id}"></div></div>
+    <div class="pub-actions"><label><input type="checkbox" ${p.publiee ? "checked" : ""} onchange="basculer(${p.id}, this.checked)"> ${tj("engine/templates/engine/publicites.html:js:26:135")}</label>
+    ${apercuPossible(p) ? `<button class="petit" onclick="apercu(${p.id})">${tj("engine/templates/engine/publicites.html:js:apercu")}</button> ` : ""}<button class="petit" onclick="modifier(${p.id})">${tj("engine/templates/engine/publicites.html:js:27:56")}</button> <button class="petit" onclick="supprimer(${p.id})">🗑</button></div></div>`).join("")
+    || tj("engine/templates/engine/publicites.html:js:28:9");
+}
+// Aperçu d'une publicité sous sa ligne : image, son, vidéo, et maintenant PDF / fichier texte (même cadre que les documents administratifs).
+function apercuPossible(p){ return !!p.url && (["image", "audio", "video"].includes(p.type) || !!ApercuFichier.genre(p.nom_fichier || p.url)); }
+function apercu(id){
+  const p = S.liste.concat(S.admin || []).find(x => x.id === id), zone = $("pub-apercu-" + id); if (!p || !zone) return;
+  if (zone.firstChild) { ApercuFichier.vider(zone); return; }     // second clic : on referme
+  const u = esc(p.url);
+  if (p.type === "image") zone.innerHTML = `<img src="${u}" alt="${esc(p.titre)}" style="max-width:100%;max-height:60vh;border-radius:6px">`;
+  else if (p.type === "audio") zone.innerHTML = `<audio controls src="${u}"></audio>`;
+  else if (p.type === "video") zone.innerHTML = `<video controls preload="metadata" src="${u}" style="max-width:100%;max-height:60vh;border-radius:6px"></video>`;
+  else ApercuFichier.monter(zone, p.url);
+}
+async function commentaires(id){
+  const d = await api("/api/publicites/" + id + "/commentaires/");
+  $("pub-com-" + id).innerHTML = d.commentaires.map(c => `<p><b>${esc(c.client)}</b> <small>${esc(c.date.slice(0, 10))}</small><br>${esc(c.texte)}</p>`).join("") || tj("engine/templates/engine/publicites.html:js:32:167");
+  return false;
+}
+async function publier(e){
+  e.preventDefault();
+  try {
+    if (S.edition) {
+      await api("/api/publicites/" + S.edition + "/modifier/", {titre: $("pub-titre").value, contexte: $("pub-contexte").value, table_id: $("pub-table").value || null});
+      toast(tj("engine/templates/engine/publicites.html:js:40:14")); annuler();
+    } else {
+      await api("/api/publicites/", new FormData($("pub-form")));
+      toast(tj("engine/templates/engine/publicites.html:js:43:14")); $("pub-form").reset();
+    }
+    charger();
+  } catch(err){ /* api() a déjà affiché l'erreur */ }
+  return false;
+}
+function modifier(id){
+  const p = S.liste.find(x => x.id === id); if (!p) return;
+  S.edition = id; $("pub-titre").value = p.titre; $("pub-contexte").value = p.contexte; remplirTables(S.tables, p.table_id);
+  $("pub-fichier").disabled = true; $("pub-envoi").textContent = tj("engine/templates/engine/publicites.html:js:52:67"); $("pub-annuler").hidden = false;
+  $("pub-titre-form").textContent = tj("engine/templates/engine/publicites.html:js:53:38");
+  window.scrollTo({top: 0, behavior: "smooth"});
+}
+function annuler(){
+  S.edition = null; $("pub-form").reset(); $("pub-fichier").disabled = false; $("pub-envoi").textContent = tj("engine/templates/engine/publicites.html:js:lbl_publier");
+  $("pub-annuler").hidden = true; $("pub-titre-form").textContent = tj("engine/templates/engine/publicites.html:js:58:70");
+}
+async function basculer(id, publiee){ try { await api("/api/publicites/" + id + "/modifier/", {publiee}); charger(); } catch(e){ charger(); } }
+async function supprimer(id){
+  if (!await GY.confirmer(tj("engine/templates/engine/publicites.html:js:62:17"))) return;
+  try { await api("/api/publicites/" + id + "/supprimer/", {}); charger(); } catch(e){ /* erreur déjà affichée */ }
+}
+charger();
+</script>{% endblock %}

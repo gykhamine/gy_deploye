@@ -1,0 +1,239 @@
+{% load static %}<!DOCTYPE html>
+{% load i18n_extras %}
+<html lang="{{ langue_html|default:'fr' }}">
+<head>
+<link rel="stylesheet" href="{% static 'engine/css/app.css' %}"><link rel="stylesheet" href="{% url 'engine:marque_css' %}"><script src="{% static 'engine/js/marque.js' %}" defer></script><script src="{% static 'engine/js/gestes_tactiles.js' %}" defer></script>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>{{ L.titre }} — {{ table.nom }}</title>
+<script src="{% static 'engine/js/dialogues.js' %}"></script>
+<style>
+.m-noeud{border-left:3px solid var(--border);padding:6px 0 2px 10px;margin:0 0 10px}
+.m-si{border-left-color:var(--accent)}.m-rep{border-left-color:#e67e22}
+.m-tete{display:flex;align-items:flex-end;flex-wrap:wrap;gap:8px;margin:2px 0 6px}
+.m-outils{margin-left:auto;display:flex;gap:4px}
+.m-ligne{display:flex;flex-wrap:wrap;gap:6px;align-items:flex-end;margin-bottom:6px}
+.m-sous{margin:2px 0 6px 6px}.m-lib{font-size:12px;color:var(--muted);margin:2px 0}
+.m-manque{outline:2px solid #e74c3c;outline-offset:1px}
+.m-doc summary{cursor:pointer;font-size:12px;color:var(--muted)}
+</style>
+</head>
+<body class="page-analyse_media page-statistiques page-series_temporelles page-dashboard_bi{% if lecture_seule %} lecture-seule-partage{% endif %}">
+<div id="sidebar-overlay"></div>
+<div id="app">
+<div id="sidebar">
+  <div id="marque"><img class="logo-gy" src="{% static 'engine/img/logo_agent_gy.png' %}" alt="{% t 'engine/templates/engine/analyse_media.html:25:96' %}"> {% t "engine/templates/engine/analyse_media.html:25:107" %}</div>
+  <div class="geo-section">{{ L.colonne }}</div>
+  <div class="geo-bloc">
+    <label class="geo-champ">{{ L.colonne }}<select id="m-col"></select></label>
+    <label class="geo-champ">{{ L.ligne }}<input type="number" id="m-ligne" min="1"></label>
+    <div class="geo-note" id="m-vide" hidden>{{ L.vide }}</div>
+  </div>
+  <div class="geo-bloc">
+    <div id="m-video" hidden>
+      <div class="geo-section">{{ L.video }}</div>
+      <label class="geo-champ">{{ L.pas }}<input type="number" id="m-pas" min="1" value="1"></label>
+      <label class="geo-champ">{{ L.maxi }}<input type="number" id="m-maxi" min="1" max="500" value="50"></label>
+      <label class="geo-case"><input type="checkbox" id="m-son"> {{ L.son_extrait }}</label>
+    </div>
+  </div>
+  <div style="border-top:1px solid var(--border);padding:8px 10px 4px;font-size:11px;color:var(--muted)">
+    <a class="retour" href="/tables/{{ table.slug }}/?retour=1" style="font-size:12px">{% tf "engine/templates/engine/statistiques.html:46:79" v1=table.nom %}</a>
+  </div>
+</div>
+<div id="principal">
+  <div id="entete">
+    <div class="entete-rangee-titre"><div class="entete-gauche">
+      <button id="btn-toggle-sidebar" aria-label="{% t 'engine/templates/engine/statistiques.html:53:53' %}">☰</button>
+</div></div>
+    <div class="onglets-vue sx-onglets" id="m-onglets">
+      <button class="onglet-vue actif" data-t="son">{{ L.son }}</button>
+      <button class="onglet-vue" data-t="image">{{ L.image }}</button>
+      <button class="onglet-vue" data-t="video">{{ L.video }}</button>
+    </div>
+  </div>
+  <div id="zone-series">
+    <div class="geo-section">{{ L.prets }}</div>
+    <div class="sx-barre" id="m-prets" style="flex-wrap:wrap"></div>
+    <details style="margin:10px 0"><summary style="cursor:pointer">{{ L.avance }}</summary>
+      <div class="geo-note" style="margin:8px 0">{{ L.aide }}</div>
+      <div id="m-etapes"></div>
+      <div class="sx-barre">
+        <button class="geo-btn" id="m-undo" title="{{ L.arriere }}" style="max-width:60px">↶</button>
+        <button class="geo-btn" id="m-redo" title="{{ L.avant }}" style="max-width:60px">↷</button>
+      </div>
+    </details>
+    <div class="sx-barre">
+      <button class="geo-btn" id="m-export" style="max-width:240px">{{ L.exporter }}</button>
+      <button class="geo-btn principal" id="m-go" style="max-width:200px">{{ L.lancer }}</button>
+    </div>
+    <div id="m-synth" class="geo-note"></div>
+    <div id="m-graph"></div>
+    <div id="m-res"></div>
+  </div>
+</div>
+</div>
+<div id="toast"></div>
+{{ colonnes|json_script:"m-colonnes" }}{{ sources|json_script:"m-sources" }}{{ L|json_script:"m-textes" }}{{ prets|json_script:"m-prets-d" }}
+<script src="{% static 'engine/js/analyse_media_saisie.js' %}"></script>
+<script>
+const T={{ table.id }},$=i=>document.getElementById(i),J=(u,o)=>fetch(u,o).then(r=>r.json()),U="/api/tables/"+T+"/analyse-media/",
+  D=i=>JSON.parse($(i).textContent),COLS=D("m-colonnes"),SRC=D("m-sources"),L=D("m-textes"),PR=D("m-prets-d");
+let typ="son",METH={};   // METH : méthodes des résultats r1, r2… (renvoyées par le serveur après chaque analyse)
+const opts=(e,a,f)=>e.innerHTML=a.map(f).join(""),esc=s=>String(s).replace(/[&<>"]/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c]));
+const eff=()=>typ=="video"&&$("m-son").checked?"son":typ;
+const ok=c=>eff()=="son"?["son","video"].includes(c.type):c.type==typ;   // une colonne vidéo donne aussi son son (clone volatil)
+// ── Éditeur guidé : un ARBRE d'étapes (action | si… alors… sinon | répéter) tenu en mémoire et redessiné à chaque modification ──
+// Un champ par argument (signature lue sur le serveur) ; les conversions « ce que la personne tape » <-> texte d'appel sont dans analyse_media_saisie.js (testé sous node).
+const PU=window.GyMediaSaisie,CAT={},PEND={},UID={n:0},MAXP=3;let MODEL=[];
+const VAR_BASE={son:["seg","mono","data","sr"],image:["img","gris"],video:["img","gris","prev","pgris"]},
+  MES=[["","mes_val"],["mean","mes_mean"],["max","mes_max"],["min","mes_min"],["sum","mes_sum"],["len","mes_len"],["std","mes_std"],["median","mes_median"]],
+  OPR=[[">","op_gt"],["<","op_lt"],[">=","op_ge"],["<=","op_le"],["==","op_eq"],["!=","op_ne"]],MODES=[["fois","mode_fois"],["chaque","mode_chaque"],["tant","mode_tant"]],
+  opt=(v,l,s)=>`<option value="${esc(v)}"${v==s?" selected":""}>${esc(l)}</option>`,
+  libVar=c=>["seg","mono","data","sr","img","gris","prev","pgris","i","x"].includes(c)?L["var_"+c]:/^r\d+$/.test(c)?L.var_res+" "+c.slice(1):/^b\d+$/.test(c)?L.var_bloc+" "+c.slice(1):c,
+  nid=()=>++UID.n,nouvCond=()=>({l:[{a:"",mes:"",op:">",b:""}],lien:"and"}),
+  nouvelle=e=>({k:"a",id:nid(),m:e&&e.m||SRC[eff()][0],f:e&&e.f||"",q:"",v:{},t:e&&e.a||"",conv:!!(e&&e.a),libre:false}),   // conv : texte d'arguments à répartir dans les champs
+  fabrique={a:()=>nouvelle(),s:()=>({k:"s",id:nid(),c:nouvCond(),alors:[],sinon:[]}),r:()=>({k:"r",id:nid(),mode:"fois",n:"3",l:"",max:"50",c:nouvCond(),corps:[]})},
+  catDe=n=>n.m[0]=="@"?METH[n.m.slice(1)]||[]:CAT[n.m],fiche=n=>{const c=catDe(n);return c&&c.find(f=>f.n==n.f)},   // @rK = méthodes du résultat de l'étape K
+  chargerP=src=>src[0]=="@"||CAT[src]?Promise.resolve():(PEND[src]=PEND[src]||J(U+"catalogue/?source="+src).catch(()=>[]).then(c=>{CAT[src]=c;delete PEND[src]}));
+function trouver(id,liste=MODEL){for(let i=0;i<liste.length;i++){const n=liste[i];if(n.id==id)return{liste,i,n};
+  for(const k of["alors","sinon","corps"])if(n[k]){const r=trouver(id,n[k]);if(r)return r}}return null}
+const listeDe=ref=>{if(ref=="root")return MODEL;const[id,k]=ref.split(".");return trouver(+id).n[k]},
+  poser=(o,chemin,val)=>{const p=chemin.split("."),d=p.pop();let c=o;for(const k of p)c=c[k];c[d]=val};
+function normaliser(n,cat){if(!cat.some(f=>f.n==n.f))n.f=cat[0].n;   // fonction par défaut = la première ; analyse prête à l'emploi : texte -> champs
+  if(n.conv){n.conv=false;const PA=PU.sigParams((cat.find(f=>f.n==n.f)||{}).sig),v=PA&&PU.valeursDepuisTexte(PA,n.t);if(v)n.v=v;else n.libre=true}}
+// ── dessin ──
+const btn=(a,id,txt,extra="")=>`<button class="geo-btn" data-a="${a}" data-id="${id}" ${extra} style="width:auto">${txt}</button>`,
+  dl=(id,V)=>`<datalist id="v${id}">${V.map(x=>`<option value="${esc(x.v)}" label="${esc(x.l)}"></option>`).join("")}</datalist>`,
+  outils=n=>`<span class="m-outils">${btn("up",n.id,"↑",`title="${esc(L.monter)}"`)}${btn("down",n.id,"↓",`title="${esc(L.descendre)}"`)}${btn("del",n.id,"×",`title="${esc(L.supprimer)}"`)}</span>`;
+function rendre(){const c={r:0,b:0},base=VAR_BASE[eff()].map(v=>({v,l:libVar(v)}));$("m-etapes").innerHTML=rListe(MODEL,"root",base,[],[],c,0);barres()}
+const rListe=(liste,ref,base,vars,loc,c,prof)=>liste.map(n=>rNoeud(n,base,vars,loc,c,prof)).join("")+   // vars : résultats déjà définis (dans l'ordre d'écriture), loc : variables de la boucle
+  `<div class="sx-barre">${btn("add","",esc(L.ajouter),`data-t="a" data-l="${ref}"`)}${prof<MAXP?btn("add","",esc(L.ajouter_si),`data-t="s" data-l="${ref}"`)+btn("add","",esc(L.ajouter_rep),`data-t="r" data-l="${ref}"`):""}</div>`;
+function rNoeud(n,base,vars,loc,c,prof){const V=base.concat(loc,vars);
+  if(n.k=="a"){const h=rAction(n,++c.r,V);vars.push({v:"r"+c.r,l:libVar("r"+c.r)});return h}
+  if(n.k=="s")return `<div class="m-noeud m-si"><div class="m-tete"><b>${esc(L.si)}</b>${outils(n)}</div>${rCond(n)}${dl(n.id,V)}
+    <div class="m-tete"><b>${esc(L.alors)}</b></div><div class="m-sous">${rListe(n.alors,n.id+".alors",base,vars,loc,c,prof+1)}</div>
+    <div class="m-tete"><b>${esc(L.sinon)}</b></div><div class="m-sous">${rListe(n.sinon,n.id+".sinon",base,vars,loc,c,prof+1)}</div></div>`;
+  const b=++c.b,corps=rListe(n.corps,n.id+".corps",base,vars,loc.concat([{v:"i",l:libVar("i")},{v:"x",l:libVar("x")}]),c,prof+1),at=`data-id="${n.id}"`;vars.push({v:"b"+b,l:libVar("b"+b)});
+  return `<div class="m-noeud m-rep"><div class="m-tete"><b>${esc(L.repeter)}</b><label class="geo-champ" style="min-width:230px"><select ${at} data-c="mode" data-re="1">${MODES.map(m=>opt(m[0],L[m[1]],n.mode)).join("")}</select></label>${outils(n)}</div>${dl(n.id,V)}
+    ${n.mode=="fois"?`<div class="m-ligne"><label class="geo-champ">${esc(L.nb_fois)}<input list="v${n.id}" ${at} data-c="n" value="${esc(n.n)}"></label></div>`:
+      n.mode=="chaque"?`<div class="m-ligne"><label class="geo-champ">${esc(L.la_liste)}<input list="v${n.id}" ${at} data-c="l" value="${esc(n.l)}"></label></div>`:
+      rCond(n)+`<div class="m-ligne"><label class="geo-champ">${esc(L.max_tours)}<input type="number" min="1" max="200" ${at} data-c="max" value="${esc(n.max)}"></label></div>`}
+    <div class="m-lib">${esc(L.aide_boucle)}</div><div class="m-sous">${corps}</div></div>`}
+function rCond(n){const at=`data-id="${n.id}"`,k=n.c.l.length;
+  return `<div>${n.c.l.map((x,j)=>`<div class="m-ligne"><label class="geo-champ">${esc(L.valeur_a)}<input list="v${n.id}" ${at} data-c="c.l.${j}.a" value="${esc(x.a)}"></label>
+    <label class="geo-champ">${esc(L.mesure)}<select ${at} data-c="c.l.${j}.mes">${MES.map(m=>opt(m[0],L[m[1]],x.mes)).join("")}</select></label>
+    <label class="geo-champ">${esc(L.operateur)}<select ${at} data-c="c.l.${j}.op">${OPR.map(o=>opt(o[0],L[o[1]],x.op)).join("")}</select></label>
+    <label class="geo-champ">${esc(L.valeur_b)}<input list="v${n.id}" ${at} data-c="c.l.${j}.b" value="${esc(x.b)}"></label>${k>1?btn("delcond",n.id,"×",`data-j="${j}" title="${esc(L.retirer_cond)}"`):""}</div>`).join("")}
+    <div class="m-ligne">${btn("addcond",n.id,esc(L.ajouter_cond))}${k>1?`<label class="geo-champ"><select ${at} data-c="c.lien">${opt("and",L.lien_et,n.c.lien)}${opt("or",L.lien_ou,n.c.lien)}</select></label>`:""}</div></div>`}
+function rAction(n,num,V){if(n.m[0]!="@"&&!CAT[n.m])chargerP(n.m).then(rendre);   // catalogue chargé à la demande, puis nouveau dessin
+  const cat=catDe(n),F=cat&&cat.length?(normaliser(n,cat),fiche(n)):null,PA=F&&PU.sigParams(F.sig),qq=n.q.toLowerCase(),at=`data-id="${n.id}"`,
+    mods=SRC[eff()].concat(Object.keys(METH).filter(k=>+k.slice(1)<num).map(k=>"@"+k)),fns=(cat||[]).filter(f=>f.n==n.f||f.n.toLowerCase().includes(qq));
+  const champs=!F?"":n.libre||!PA?`<label class="geo-champ" style="flex:1;min-width:220px">${esc(L.args)}<input ${at} data-c="t" value="${esc(n.t)}"></label>`+(PA?"":`<div class="m-lib">${esc(L.sans_signature)}</div>`):PA.map(p=>rChamp(n,p,F)).join("");
+  return `<div class="m-noeud"><div class="m-tete"><b>${esc(L.etape)} ${num}</b>${outils(n)}</div>
+    <div class="m-ligne"><label class="geo-champ" style="min-width:150px">${esc(L.module)}<select ${at} data-c="m" data-re="1">${mods.map(x=>opt(x,x[0]=="@"?L.resultat+" "+x.slice(2):x,n.m)).join("")}</select></label>
+      <label class="geo-champ" style="min-width:130px">${esc(L.chercher)}<input ${at} data-c="q" value="${esc(n.q)}"></label>
+      <label class="geo-champ" style="min-width:170px">${esc(L.fonction)}<select ${at} data-c="f" data-re="1">${fns.map(f=>opt(f.n,f.n,n.f)).join("")}</select></label></div>
+    ${F&&F.doc?`<details class="m-doc"><summary>?</summary><div class="geo-note" style="white-space:pre-wrap">${esc(F.n+F.sig+"\n"+F.doc)}</div></details>`:""}
+    <div class="m-ligne">${champs}</div>
+    <div class="m-ligne">${btn("run",n.id,"▶",`title="${esc(L.jusqu_ici)}"`)}${PA?btn("libre",n.id,esc(n.libre?L.guide:L.libre)):""}</div>${dl(n.id,V)}</div>`}
+function rChamp(n,p,F){const v=n.v[p.n]==null?"":n.v[p.n],req=p.def===undefined&&p.kind!="var",aide=PU.aideParam(F.doc,p.n),at=`data-id="${n.id}" data-c="v.${p.n}"`,
+    info=req?"":p.kind=="var"||p.def=="..."?L.facultatif:L.defaut.replace("{d}",p.def);
+  return `<label class="geo-champ" style="min-width:150px;flex:1" title="${esc(aide)}">${esc(p.n)}${req?" *":""}`+(p.def=="True"||p.def=="False"?
+    `<select ${at}>${opt("",L.bool_defaut+" "+(p.def=="True"?L.bool_oui:L.bool_non),v)}${opt("True",L.bool_oui,v)}${opt("False",L.bool_non,v)}</select>`:
+    `<input list="v${n.id}" ${at} value="${esc(v)}" placeholder="${esc(info)}">`)+(aide?`<span class="m-lib">${esc(aide)}</span>`:"")+`</label>`}
+// ── saisie : le modèle suit les champs (« input »), le dessin n'est refait que pour les changements de structure ──
+const E=$("m-etapes"),cible=t=>t.dataset&&t.dataset.id&&trouver(+t.dataset.id);
+E.addEventListener("input",ev=>{const t=ev.target,r=cible(t);if(!r||!t.dataset.c)return;t.classList.remove("m-manque");poser(r.n,t.dataset.c,t.value);
+  if(t.dataset.c=="q"){const s=E.querySelector(`select[data-id="${r.n.id}"][data-c="f"]`),n=r.n;s.innerHTML=(catDe(n)||[]).filter(f=>f.n==n.f||f.n.toLowerCase().includes(n.q.toLowerCase())).map(f=>opt(f.n,f.n,n.f)).join("")}});
+E.addEventListener("change",ev=>{const t=ev.target,r=cible(t);if(!r||!t.dataset.c)return;const n=r.n,c=t.dataset.c;poser(n,c,t.value);
+  if(c=="m"||c=="f"){n.v={};n.t="";n.libre=false;if(c=="m")n.f="";}
+  if(t.dataset.re)rendre();snap()});
+E.addEventListener("click",ev=>{const b=ev.target.closest("[data-a]");if(!b)return;const a=b.dataset.a,r=+b.dataset.id?trouver(+b.dataset.id):null,n=r&&r.n;
+  if(a=="run")return void lancer(n.id);
+  if(a=="add")listeDe(b.dataset.l).push(fabrique[b.dataset.t]());
+  else if(a=="del"){if(r.liste===MODEL&&MODEL.length<2)return;r.liste.splice(r.i,1)}
+  else if(a=="up"||a=="down"){const j=r.i+(a=="up"?-1:1);if(j<0||j>=r.liste.length)return;[r.liste[r.i],r.liste[j]]=[r.liste[j],r.liste[r.i]]}
+  else if(a=="libre"){if(n.libre){n.libre=false;n.conv=true}else{n.t=argsDe(n);n.libre=true}}   // guidé -> libre : le texte d'appel ; libre -> guidé : retour aux champs si le texte s'y prête
+  else if(a=="addcond")n.c.l.push({a:"",mes:"",op:">",b:""});
+  else if(a=="delcond")n.c.l.splice(+b.dataset.j,1);
+  rendre();snap()});
+// ── vers l'API : l'arbre devient une liste d'étapes {type: action|si|repeter} ; stop = {id, fait} pour n'analyser que jusqu'à une étape ──
+const argsDe=n=>{const F=fiche(n),PA=F&&PU.sigParams(F.sig);return n.libre||!PA?n.t||"":PU.argsTexte(PA,n.v)},
+  condLib=c=>c.l.map(x=>{const a=libVar((x.a||"").trim()),m=x.mes?L["mes_"+x.mes]:"";return(m?m+" ("+a+")":a)+" "+L[OPR.find(o=>o[0]==x.op)[1]]+" "+(x.b||"0")}).join(" "+(c.lien=="or"?L.ou:L.et)+" ");
+function serie(liste,stop){const o=[];for(const n of liste){if(stop&&stop.fait)break;
+  if(n.k=="a"){o.push({type:"action",source:n.m,fonction:n.f,args:argsDe(n)});if(stop&&n.id==stop.id)stop.fait=true}
+  else if(n.k=="s")o.push({type:"si",cond:PU.condTexte(n.c),lib:condLib(n.c),alors:serie(n.alors,stop),sinon:serie(n.sinon,stop)});
+  else o.push({type:"repeter",mode:n.mode,n:PU.py(n.n),liste:PU.py(n.l),cond:n.mode=="tant"?PU.condTexte(n.c):"",lib:n.mode=="tant"?condLib(n.c):libVar(PU.py(n.l)),max:String(n.max||50),corps:serie(n.corps,stop)})}
+  return o}
+function verifier(){let c=0,e=null;const vide=s=>!String(s==null?"":s).trim(),cond=(n,o)=>{if(!e&&n.c.l.some(x=>vide(x.a)))e={n,p:L.valeur_a,o,champ:"c.l.0.a"}},
+  dans=liste=>{for(const n of liste){if(e)return;
+    if(n.k=="a"){c++;const F=fiche(n),PA=F&&PU.sigParams(F.sig),o=L.etape+" "+c;if(!n.f||!F){e={n,p:L.fonction,o,champ:"f"};return}
+      if(!n.libre&&PA)for(const p of PA)if(p.def===undefined&&p.kind!="var"&&vide(n.v[p.n])){e={n,p:p.n,o,champ:"v."+p.n};return}}
+    else if(n.k=="s"){cond(n,L.si);dans(n.alors);dans(n.sinon)}
+    else{if(n.mode=="tant")cond(n,L.repeter);else if(vide(n.mode=="fois"?n.n:n.l))e={n,p:n.mode=="fois"?L.nb_fois:L.la_liste,o:L.repeter,champ:n.mode=="fois"?"n":"l"};dans(n.corps)}}};
+  dans(MODEL);return e}
+function controle(){E.querySelectorAll(".m-manque").forEach(x=>x.classList.remove("m-manque"));const e=verifier();if(!e)return true;
+  $("m-synth").textContent=L.manque.replace("{p}",e.p).replace("{o}",e.o);const el=E.querySelector(`[data-id="${e.n.id}"][data-c="${e.champ}"]`);if(el){el.classList.add("m-manque");el.scrollIntoView({block:"center"})}return false}
+// Historique des chaînes : ↶ revenir en arrière / ↷ revenir en avant (état = tout l'arbre)
+let H=[],P=-1;
+const etat=()=>JSON.stringify(MODEL);
+function snap(){const e=etat();if(H[P]!==e){H=H.slice(0,P+1);H.push(e);P=H.length-1}barres()}
+const barres=()=>{$("m-undo").disabled=P<=0;$("m-redo").disabled=P>=H.length-1};
+function aller(i){if(i<0||i>=H.length)return;P=i;MODEL=JSON.parse(H[i]);rendre()}
+document.addEventListener("keydown",e=>{if(!(e.ctrlKey||e.metaKey)||/INPUT|TEXTAREA|SELECT/.test(e.target.tagName))return;
+  if(e.key=="z"){e.preventDefault();aller(P-1)}else if(e.key=="y"){e.preventDefault();aller(P+1)}});
+function onglet(k){typ=k;METH={};H=[];P=-1;$("m-video").hidden=k!="video";
+  document.querySelectorAll("#m-onglets button").forEach(b=>b.classList.toggle("actif",b.dataset.t==k));refresh()}
+async function pret(e){MODEL=e.map(s=>nouvelle({m:s.m,f:s.f,a:s.a}));await Promise.all([...new Set(e.map(s=>s.m))].map(chargerP));rendre();snap();lancer()}   // analyse prête à l'emploi : remplit les étapes puis lance
+function prets(){opts($("m-prets"),PR[eff()]||[],(x,i)=>`<button class="geo-btn" data-i="${i}" style="width:auto">${esc(L[x.k])}</button>`);
+  $("m-prets").querySelectorAll("button").forEach(b=>b.onclick=()=>pret(PR[eff()][+b.dataset.i].e))}
+function refresh(){prets();const c=COLS.filter(ok);opts($("m-col"),c,x=>`<option value="${x.slug}">${esc(x.nom)}</option>`);$("m-vide").hidden=c.length>0;
+  MODEL=[nouvelle()];rendre();snap()}
+const COUL=["var(--accent)","#e67e22","#2ecc71","#e74c3c","#9b59b6","#1abc9c","#f1c40f","#95a5a6"];
+const fm=x=>x==null?"":Math.abs(x)>=1e4||x&&Math.abs(x)<.01?x.toExponential(1):+x.toFixed(2),tx=(x,y,a,t)=>`<text x="${x}" y="${y}" text-anchor="${a}" font-size="10" fill="currentColor">${esc(t)}</text>`;
+function courbes(S,X,U,N,Z){const v=S.flat().filter(x=>x!=null),lo=Z?0:Math.min(...v),h=(Math.max(...v)-lo)||1,P=gyPaletteSuite(Math.max(S.length,N?N.length:0));   // une couleur hexadécimale par courbe, différente de celle des autres graphiques   // X=[min,max] de l'axe horizontal, U=son unité, N=noms (légende)
+  return `<svg viewBox="0 0 640 150" style="width:100%;max-height:190px">`+[0,.5,1].map(f=>`<line x1="50" x2="635" y1="${115-f*110}" y2="${115-f*110}" stroke="currentColor" opacity=".15"/>`+tx(46,119-f*110,"end",fm(lo+f*h))).join("")+
+  S.map((s,k)=>gyLigneDegradeMarkup(s.map((y,i)=>y==null?null:[50+i*585/Math.max(s.length-1,1),115-(y-lo)/h*110]),P[k],{"stroke-width":1.5})).join("")+   // courbe = évolution : dégradé de sa couleur, du plus sombre (début) au plus clair (fin)
+  (X?tx(50,131,"start",fm(X[0]))+tx(635,131,"end",fm(X[1]))+tx(342,146,"middle",U||""):"")+"</svg>"+(N?`<div class="geo-note">${N.map((n,k)=>`<span><span style="display:inline-block;width:14px;height:9px;border-radius:4px;background:${gyFondDegrade(P[k])}"></span> ${esc(n)}</span>`).join(" &nbsp; ")}</div>`:"")}
+const carte=(t,c)=>`<div style="border:1px solid var(--border);border-radius:6px;padding:6px 8px;margin:6px 0"><b>${esc(t)}</b>${c}</div>`,
+  stats=x=>`<div class="geo-note">${esc(["shape","dtype","min","max","mean","echelle"].filter(k=>x[k]!=null).map(k=>k+" : "+JSON.stringify(x[k])).join(" · "))}</div>`;
+const pic=x=>x.spectre.indexOf(Math.max(...x.spectre))/(x.spectre.length-1)*x.fmax,niv=d=>d==null?L.faible:d>-12?L.fort:d>-30?L.moyen:L.faible,sons=x=>Array.isArray(x)?x.flatMap(sons):x&&x.spectre?[x]:[],
+  resume=x=>L.resume_son.replace("{d}",fm(x.duree_ms/1000)).replace("{n}",niv(x.dBFS)).replace("{db}",fm(x.dBFS)).replace("{f}",fm(pic(x)));
+function show(x,i,n){   // i,n : rang et nombre de résultats frères (sons séparés, canaux…) -> une carte nommée chacun
+  if(Array.isArray(x)){const [f,t,z]=x,stft=x.length==3&&f&&t&&z&&f.series&&t.series&&z.png&&f.shape[0]==z.shape[0]&&t.shape[0]==z.shape[1];
+    if(stft)return carte(L.spectre_db,`<div style="position:relative;padding:0 0 18px 52px"><img style="width:100%;transform:scaleY(-1)" src="data:image/png;base64,${z.png}">   
+      <span class="geo-note" style="position:absolute;left:0;top:0">${fm(f.max)}</span><span class="geo-note" style="position:absolute;left:0;bottom:18px">${fm(f.min)}</span>
+      <span class="geo-note" style="position:absolute;left:52px;bottom:0">${fm(t.min)} → ${fm(t.max)} ${esc(L.temps_s)}</span></div>${stats(z)}${z.echelle?`<div class="geo-note">${esc(L.echelle_db)}</div>`:""}`);
+    return x.map((e,k)=>show(e,k,x.length)).join("")}
+  if(x&&x.spectre)return carte(n>1?L.composante+" "+(i+1)+"/"+n:L.composante,`<div class="geo-note">${esc(L.onde)}</div>${courbes([x.onde],[0,x.duree_ms/1000],L.temps_s,null,1)}${x.wav?`<audio controls preload="none" style="width:100%" src="data:audio/wav;base64,${x.wav}"></audio>`:""}<div class="geo-note">${esc(L.spectre_db)}</div>${courbes([x.spectre],[0,x.fmax],L.freq_hz)}`+
+    `<div class="geo-note">${esc(resume(x))}</div>`);
+  if(x&&typeof x=="object"&&(x.png||x.series)){const S=x.series||[],sep=S.length>1&&eff()=="son";   // son : chaque ligne/canal séparé = son à part (un graphe chacun)
+    return (n>1?carte(L.composante+" "+(i+1)+"/"+n,""):"")+(x.png?`<img style="max-width:100%" src="data:image/png;base64,${x.png}">`:"")+
+      (sep?S.map((s,k)=>carte(L.composante+" "+(k+1)+"/"+S.length,courbes([s]))).join(""):S.length?courbes(S,null,null,S.length>1?S.map((_,k)=>"#"+(k+1)):null):"")+stats(x)}
+  return `<pre style="white-space:pre-wrap;max-height:220px;overflow:auto">${esc(JSON.stringify(x,null,1))}</pre>`}
+const ENT={get "X-CSRFToken"(){return(document.cookie.match(/gy_csrftoken=([^;]+)/)||[])[1]||""}},   // en-têtes des requêtes POST
+  corps=n=>({type:eff(),etapes:serie(MODEL,n?{id:n,fait:false}:null),
+    colonne:$("m-col").value,ligne:$("m-ligne").value||null,pas:$("m-pas").value,maxi:$("m-maxi").value});
+async function lancer(n){if(!controle())return;snap();
+  const r=await J(U+"executer/",{method:"POST",body:JSON.stringify(corps(n)),headers:ENT});
+  const R=r.resultats||[];METH=r.methodes||{};rendre();
+  $("m-res").innerHTML=R.map(x=>`<h4>#${x.id}</h4>`+(x.erreur?`<pre>${esc(x.erreur)}</pre>`:x.frames?x.frames.map(f=>`<div>#${f.i} ${show(f.r)}</div>`).join(""):show(x.r))).join("")||esc(r.erreur||"");
+  const s=((R.find(x=>x.frames)||{frames:[]}).frames).map(f=>f.s).filter(v=>v!=null);const V=R.find(x=>x.frames),S=R.flatMap(r=>sons(r.r)),mx=f=>S.indexOf(S.reduce((a,b)=>f(b)>f(a)?b:a))+1;   // synthèse en clair
+  $("m-synth").innerHTML=(S.length?`<b>${esc(L.synthese)}</b> ${esc(L.synthese_sons.replace("{n}",S.length).replace("{k}",mx(x=>x.dBFS??-999)).replace("{j}",mx(pic)))}`:"")+
+    (s.length>1?` ${esc(L.pic_variation.replace("{i}",V.frames.filter(f=>f.s!=null)[s.indexOf(Math.max(...s))].i))}`:"");
+  $("m-graph").innerHTML=s.length>1?courbes([s],[V.frames[0].i,V.frames.slice(-1)[0].i],"#"):""}
+$("m-export").onclick=async()=>{if(!controle())return;const r=await fetch(U+"pdf/",{method:"POST",body:JSON.stringify(corps()),headers:ENT});   // PDF du serveur, comme les autres pages
+  if(!r.ok)return void($("m-synth").textContent=(await r.json()).erreur||"");
+  const a=document.createElement("a");a.href=URL.createObjectURL(await r.blob());a.download="analyse_media_"+T+".pdf";a.click()};
+document.querySelectorAll("#m-onglets button").forEach(x=>x.onclick=()=>onglet(x.dataset.t));
+$("m-son").onchange=refresh;$("m-go").onclick=()=>lancer();$("m-undo").onclick=()=>aller(P-1);$("m-redo").onclick=()=>aller(P+1);
+onglet("son");
+</script>
+<script src="{% static 'engine/js/contexte_page.js' %}"></script>
+<script src="{% static 'engine/js/gy_couleur.js' %}"></script>
+<script src="{% static 'engine/js/sidebar_toggle.js' %}"></script>
+{% i18n_js %}
+<script src="{% static 'engine/js/selecteur_table_page.js' %}" defer></script>
+</body>
+</html>
