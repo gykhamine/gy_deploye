@@ -1,0 +1,11 @@
+# NIVEAU 2 — SECONDAIRE : s'ajoute au niveau primaire. Sans lui, la fonctionnalité concernée affiche le pop-up « fonctionnalité bloquée ».
+scikit-learn     # apprentissage automatique classique
+statsmodels      # statistiques avancées, séries temporelles
+polars           # tables volumineuses plus rapides (sinon pandas)
+folium           # cartes interactives (sinon repli matplotlib)
+cairosvg         # SVG -> image
+python-calamine  # lecture Excel plus rapide
+regex
+geoip2           # pays des IP (SIEM)
+pydub            # son MP3/OGG
+soundfile        # lecture audio

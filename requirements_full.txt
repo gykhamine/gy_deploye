@@ -1,0 +1,19 @@
+# NIVEAU 3 — FULL : s'ajoute aux niveaux primaire et secondaire. Lourd : prévu pour un compte payant.
+opencv-python-headless   # vision, caméra
+imageio-ffmpeg           # aperçu vidéo des PPTX, contrôle des médias
+jax
+jaxlib
+flax
+optax                    # moteur d'intelligence artificielle
+h5py
+librosa
+PyWavelets
+noisereduce              # traitement du son avancé
+pillow-heif
+svglib
+trimesh
+psycopg[binary]
+psycopg2-binary
+pymysql
+pymongo
+oracledb                 # connexions aux bases externes

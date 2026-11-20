@@ -3,21 +3,40 @@
 Rien dans ce projet ne dépend plus d'un service à part (Spark, Redis, WebSocket, modem SMS, USSD, ffmpeg, LibreOffice).
 Ce qui reste : Django + SQLite (mode WAL) + fichiers sous `media/`.
 
-## 1. Installation
+## 1. Installation et mise à jour
 
-Une seule commande prépare le virtualenv (`~/venv-agentgy`), installe `requirements.txt` (sans versions : PythonAnywhere choisit), applique les migrations, crée les tables de cache et rassemble les fichiers statiques :
+Une seule commande, avec un menu :
 
 ```bash
 cd ~/agentgy_groupe_une_table
-python3 installer_dependances.py
+python3 installer_dependances.py          # ou : 1 | 2 | 3 | 4
 ```
+
+| Choix | Contenu | Pour |
+|---|---|---|
+| 1 Primaire | `requirements_primaire.txt` : lancer et utiliser sans trop charger | compte gratuit (512 Mo) |
+| 2 Secondaire | primaire + `requirements_secondaire.txt` : statistiques avancées, apprentissage automatique, cartes, son, formats | |
+| 3 Full | + `requirements_full.txt` : IA (JAX), vision, vidéo, bases externes | compte payant |
+| 4 Mettre à jour | récupère GitHub et ne remplace que les fichiers modifiés | |
+
+Le virtualenv réutilise les paquets déjà installés par PythonAnywhere, le cache pip est désactivé, et un paquet qui échoue n'arrête pas les autres
+(il est listé à la fin ; la fonctionnalité concernée affiche « fonctionnalité bloquée »).
+
+**Mise à jour depuis GitHub** : poussez vos modifications sur GitHub, puis lancez `python3 installer_dependances.py 4`. Seuls les fichiers qui
+diffèrent du dépôt sont remplacés (les anciennes versions sont copiées dans `../agentgy_sauvegardes_maj/`, trois sauvegardes gardées), les paquets sont réinstallés
+si `requirements_*.txt` a changé, puis migrations, fichiers statiques et rechargement du site. Les données (`media/`, bases, clés, `logs/`) ne sont jamais touchées.
+Sans projet à l'endroit prévu, le dépôt est cloné puis installé.
+
+Tout est dans `installer.conf` (créé au premier lancement par des questions ; droits 600 ; ignoré par git) : adresse du dépôt, branche, jeton d'accès
+(dépôt privé : jeton à lecture seule du contenu), niveau, dossier, virtualenv, fichiers à conserver, rechargement du site. Le jeton ne passe que par un en-tête
+git : il n'est écrit ni dans `.git/config` ni dans une adresse.
 
 Puis `~/venv-agentgy/bin/python manage.py createsuperuser` (une seule fois), l'onglet Web et Reload. Équivalent à la main :
 
 ```bash
 cd ~/agentgy_groupe_une_table
-python3.12 -m venv ~/venv-agentgy && source ~/venv-agentgy/bin/activate   # Python >= 3.12
-pip install -r requirements.txt
+python3.12 -m venv --system-site-packages ~/venv-agentgy && source ~/venv-agentgy/bin/activate   # Python >= 3.12
+pip install --no-cache-dir -r requirements_primaire.txt
 python manage.py migrate
 python manage.py createcachetable          # tables de cache (limitation de débit, SIEM)
 python manage.py collectstatic --noinput
@@ -75,8 +94,14 @@ IA sur IP libre exige un compte payant.
 | Aperçu des fichiers Office en PDF | LibreOffice absent → téléchargement proposé |
 | Contrôle d'intégrité des médias | ffmpeg absent → décodage sauté, autres contrôles et antivirus maintenus |
 | Mixage audio+vidéo des flux | ffmpeg absent → deux fichiers séparés |
-| Son MP3/OGG, vision, caméra | `pydub`, `opencv-python-headless` à installer |
+| Son MP3/OGG, vision, caméra | `pydub`, `opencv-python-headless` à installer (voir `requirements.txt`) |
+| Aperçu vidéo des PPTX | `imageio-ffmpeg` à installer |
+| Polars, cartes folium, SVG, GeoIP | facultatifs, repli automatique (voir `requirements.txt`) |
 | Temps réel (WebSocket) | désactivé : cloche et statuts se rafraîchissent par requêtes HTTP |
+
+Module facultatif non installé : le démarrage n'est jamais bloqué. Quand une fonctionnalité en a besoin, un pop-up traduit annonce qu'elle est
+bloquée et propose de contacter l'administrateur par WhatsApp et/ou e-mail. Les deux contacts se règlent dans la page « Entreprises » du
+super-administrateur (numéro WhatsApp, adresse e-mail ; un canal vide n'est pas proposé). Code : `engine/modules_manquants.py`.
 
 ## 6. Retiré dans cette version
 

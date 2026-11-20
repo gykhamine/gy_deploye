@@ -34,6 +34,8 @@
   <legend>{{ textes.reglages_titre }}</legend>
   <label for="numero">{{ textes.numero }}</label>
   <input id="numero" inputmode="tel" autocomplete="off">
+  <label for="email">{{ textes.email }}</label>
+  <input id="email" type="email" autocomplete="off">
   <label for="message">{{ textes.message }}</label>
   <textarea id="message" rows="4" maxlength="1000"></textarea>
   <label for="essai">{{ textes.essai_jours }}</label>
@@ -86,14 +88,14 @@ async function charger() {
   prolongation = d.reglage.prolongation_jours;
   const corps = document.getElementById("lignes"); corps.replaceChildren(...d.entreprises.map(ligne));
   document.getElementById("vide").hidden = d.entreprises.length > 0;
-  numero.value = d.reglage.whatsapp_numero; message.value = d.reglage.whatsapp_message;
+  numero.value = d.reglage.whatsapp_numero; email.value = d.reglage.email_contact; message.value = d.reglage.whatsapp_message;
   essai.value = d.reglage.essai_jours; prol_.value = d.reglage.prolongation_jours;
 }
-const numero = document.getElementById("numero"), message = document.getElementById("message"),
+const numero = document.getElementById("numero"), email = document.getElementById("email"), message = document.getElementById("message"),
       essai = document.getElementById("essai"), prol_ = document.getElementById("prolongation");
 document.getElementById("enregistrer").addEventListener("click", async () => {
   try {
-    const d = await appel("/api/plateforme/reglages/", {whatsapp_numero: numero.value, whatsapp_message: message.value,
+    const d = await appel("/api/plateforme/reglages/", {whatsapp_numero: numero.value, email_contact: email.value, whatsapp_message: message.value,
                                                       essai_jours: Number(essai.value), prolongation_jours: Number(prol_.value)});
     retour.textContent = d.message; charger();
   } catch (err) { retour.textContent = err.message; }

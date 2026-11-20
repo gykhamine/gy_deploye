@@ -126,6 +126,7 @@ class ReglagePlateforme(models.Model):
     """Réglages de la plateforme, contrôlés par le super-administrateur Django (une seule ligne, pk=1) : contact WhatsApp
     affiché à une entreprise bloquée, durée de l'essai et durée d'un déblocage. Base système, jamais par entreprise."""
     whatsapp_numero = models.CharField(max_length=30, blank=True, default="")
+    email_contact = models.CharField(max_length=254, blank=True, default="")   # contact par e-mail (pop-up « fonctionnalité bloquée »)
     whatsapp_message = models.TextField(blank=True, default="")   # vide = message par défaut traduit ; {entreprise} et {fin} sont remplacés
     essai_jours = models.PositiveIntegerField(default=7)
     prolongation_jours = models.PositiveIntegerField(default=30)

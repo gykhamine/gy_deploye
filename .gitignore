@@ -34,3 +34,6 @@ venv-agentgy/
 .idea/
 .DS_Store
 Thumbs.db
+
+# Configuration de l'installateur : contient le jeton GitHub, jamais sur GitHub.
+installer.conf

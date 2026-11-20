@@ -1,0 +1,18 @@
+# NIVEAU 1 — PRIMAIRE : de quoi lancer Agentgy et l'utiliser sans trop charger (compte gratuit PythonAnywhere : 512 Mo).
+# Aucune version : PythonAnywhere choisit. Les paquets déjà fournis par PythonAnywhere ne sont pas réinstallés (venv --system-site-packages).
+Django
+whitenoise
+numpy
+pandas
+scipy
+matplotlib
+networkx
+reportlab
+requests
+cryptography
+Pillow
+openpyxl
+pyarrow
+qrcode
+python-pptx
+xlrd

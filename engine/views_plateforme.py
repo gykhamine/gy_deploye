@@ -1,6 +1,7 @@
 """Page « Sauvegarde et restauration » de la plateforme — super-administrateur uniquement (mêmes contrôles que le SIEM :
 superuser, jamais par clé API, IP autorisée) + mot de passe redemandé pour chaque action."""
 import json
+import re
 import tempfile
 from pathlib import Path
 
@@ -75,7 +76,7 @@ def api_sauvegarde_restaurer(request):
 # ── Essai, blocage et déblocage des entreprises (super-administrateur) ─────────────────────────────────────────────────────
 
 _CLES_ENTREPRISES = ("titre", "intro", "col_nom", "col_etat", "col_fin", "col_actions", "etat_illimite", "etat_essai", "etat_actif",
-                     "etat_echu", "etat_bloquee", "exemptee", "debloquer", "bloquer", "prolonger", "jours", "reglages_titre", "numero",
+                     "etat_echu", "etat_bloquee", "exemptee", "debloquer", "bloquer", "prolonger", "jours", "reglages_titre", "numero", "email",
                      "message", "essai_jours", "prolongation_jours", "enregistrer", "enregistre", "aucune", "erreur", "confirmer_bloquer")
 
 
@@ -97,7 +98,7 @@ def _entreprise_json(e):
 
 
 def _reglage_json(r):
-    return {"whatsapp_numero": r.whatsapp_numero, "whatsapp_message": r.whatsapp_message, "essai_jours": r.essai_jours,
+    return {"whatsapp_numero": r.whatsapp_numero, "email_contact": r.email_contact, "whatsapp_message": r.whatsapp_message, "essai_jours": r.essai_jours,
             "prolongation_jours": r.prolongation_jours}
 
 
@@ -151,13 +152,16 @@ def api_reglage_plateforme(request):
     numero = str(corps.get("whatsapp_numero", "")).strip()
     if numero and not acces.numero_whatsapp(numero):
         return JsonResponse({"erreur": t("plateforme.entreprises.erreur")}, status=400)
+    email = str(corps.get("email_contact", "")).strip()
+    if email and not re.fullmatch(r"[^@\s]+@[^@\s]+\.[^@\s]+", email):
+        return JsonResponse({"erreur": t("plateforme.entreprises.erreur")}, status=400)
     try:
         essai, prolongation = int(corps.get("essai_jours", reglage.essai_jours)), int(corps.get("prolongation_jours", reglage.prolongation_jours))
     except (TypeError, ValueError):
         return JsonResponse({"erreur": t("plateforme.entreprises.erreur")}, status=400)
     if not (0 <= essai <= 3650 and 1 <= prolongation <= 3650):
         return JsonResponse({"erreur": t("plateforme.entreprises.erreur")}, status=400)
-    reglage.whatsapp_numero, reglage.whatsapp_message = numero, str(corps.get("whatsapp_message", ""))[:1000]
+    reglage.whatsapp_numero, reglage.email_contact, reglage.whatsapp_message = numero, email[:254], str(corps.get("whatsapp_message", ""))[:1000]
     reglage.essai_jours, reglage.prolongation_jours = essai, prolongation
     reglage.save()
     siem._bloc_systeme(request.user, "reglage_plateforme", {"ip": siem.adresse_ip(request)})

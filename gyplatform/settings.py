@@ -191,6 +191,9 @@ MIDDLEWARE = [
     'engine.middleware.ChargementMiddleware',
     # Messagerie : son enregistré visible + caméra directe — engine/middleware.py (CaptureMediaMiddleware).
     'engine.middleware.CaptureMediaMiddleware',
+    # Module facultatif non installé : pop-up « fonctionnalité bloquée, contactez l'administrateur » (WhatsApp / e-mail) — engine/modules_manquants.py.
+    # EN DERNIER : ses process_exception passent avant ceux de ApiErrorMiddleware (qui transformerait l'erreur en 500).
+    'engine.modules_manquants.ModuleManquantMiddleware',
 ]
 
 ROOT_URLCONF = 'gyplatform.urls'
