@@ -32,9 +32,9 @@ from .ontologie_requetes import _noeud_dict, explorer
 # (jamais une requête supplémentaire sur toute la table), et strictement
 # additive : sans enrichir=True (assembler_liste_objets) ou pour tout type non
 # listé ci-dessous, comportement inchangé (seuls les attrs du graphe).
-def _enrichir_membres(id_bruts: list[str]) -> dict[str, dict]:
+def _enrichir_membres(id_bruts: list[str], entreprise) -> dict[str, dict]:
     membres = (
-        MembreEntreprise.objects.filter(id__in=id_bruts)
+        MembreEntreprise.objects.filter(id__in=id_bruts, entreprise=entreprise)   # ISOLATION : jamais le membre d'une autre entreprise
         .select_related("utilisateur")
     )
     return {
@@ -49,9 +49,9 @@ def _enrichir_membres(id_bruts: list[str]) -> dict[str, dict]:
     }
 
 
-def _enrichir_kpis(id_bruts: list[str]) -> dict[str, dict]:
+def _enrichir_kpis(id_bruts: list[str], entreprise) -> dict[str, dict]:
     from .models import IndicateurKPI
-    kpis = IndicateurKPI.objects.filter(id__in=id_bruts).select_related("table_source")
+    kpis = IndicateurKPI.objects.filter(id__in=id_bruts, entreprise=entreprise).select_related("table_source")
     return {
         str(k.id): {
             "description": k.description, "sens": k.sens_objectif, "statut": k.statut,
@@ -61,9 +61,9 @@ def _enrichir_kpis(id_bruts: list[str]) -> dict[str, dict]:
     }
 
 
-def _enrichir_dashboards(id_bruts: list[str]) -> dict[str, dict]:
+def _enrichir_dashboards(id_bruts: list[str], entreprise) -> dict[str, dict]:
     from .models import TableauBordBI
-    tbs = TableauBordBI.objects.filter(id__in=id_bruts).select_related("table_source")
+    tbs = TableauBordBI.objects.filter(id__in=id_bruts, entreprise=entreprise).select_related("table_source")
     return {
         str(tb.id): {
             "description": tb.description,
@@ -79,7 +79,7 @@ _ENRICHISSEURS = {
 }
 
 
-def _enrichir_objets(type_noeud: str, objets: list[dict]) -> list[dict]:
+def _enrichir_objets(type_noeud: str, objets: list[dict], entreprise) -> list[dict]:
     """Complète en place chaque dict de `objets` (déjà produits par
     _noeud_dict) avec les champs réels du modèle sous-jacent, un seul appel
     groupé par type — jamais un aller-retour DB par objet. Type non couvert
@@ -90,7 +90,7 @@ def _enrichir_objets(type_noeud: str, objets: list[dict]) -> list[dict]:
     id_bruts = [o["id"].partition(":")[2] for o in objets if o["id"].partition(":")[2].isdigit()]
     if not id_bruts:
         return objets
-    par_id = enrichisseur(id_bruts)
+    par_id = enrichisseur(id_bruts, entreprise)
     for o in objets:
         supplement = par_id.get(o["id"].partition(":")[2])
         if supplement:
@@ -191,7 +191,7 @@ def assembler_fiche_objet(entreprise, noeud_id: str, membre=None, page_id=None) 
     objet = _noeud_dict(noeud_id, dict(graphe.nodes[noeud_id]))
     relations = explorer(graphe, noeud_id, {"mode": "voisins", "profondeur": 1})
     type_noeud, _, id_brut = noeud_id.partition(":")
-    _enrichir_objets(type_noeud, [objet])
+    _enrichir_objets(type_noeud, [objet], entreprise)
     actions_disponibles = (
         actions.catalogue_pour_agent(membre, list(actions._REGISTRE), type_objet=type_noeud)
         if membre else []
@@ -318,7 +318,7 @@ def assembler_liste_objets(entreprise, type_noeud, membre=None, page_id=None,
         # contenir plusieurs types voulus (ex. agent+admin) mais chaque appel
         # DB reste filtré à un seul type, comme _enrichir_objets l'exige.
         for t in types_voulus:
-            _enrichir_objets(t, [o for o in page if o.get("type") == t])
+            _enrichir_objets(t, [o for o in page if o.get("type") == t], entreprise)
     return {
         "type": type_noeud if isinstance(type_noeud, str) else sorted(types_voulus),
         "total": total, "objets": page,

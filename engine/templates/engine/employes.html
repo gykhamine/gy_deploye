@@ -1017,6 +1017,7 @@ chargerEtatInscription();
   const p = new URLSearchParams(window.location.search);
   if(p.get('ok')==='renommer') toast(tj("engine/templates/engine/employes.html:js:923:39"));
   else if(p.get('ok')==='coordonnees') toast(tj("engine/templates/engine/employes.html:js:924:47"));
+  else if(p.get('err')==='limite') toast(tj("engine/templates/engine/employes.html:js:limite"), true);
   else if(p.get('err')==='nom_existe') toast(tj("engine/templates/engine/employes.html:js:925:47"), true);
 })();
 </script>

@@ -6,3 +6,4 @@ from ._part_004 import *  # noqa
 from ._part_005 import *  # noqa
 from ._part_006 import *  # noqa
 from ._part_007 import *  # noqa
+from ._part_008 import *  # noqa

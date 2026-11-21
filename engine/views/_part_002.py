@@ -841,6 +841,9 @@ def api_lignes(request, table_id):
         # un seul tout-ou-rien — si quoi que ce soit échoue, rien n'est
         # committé (le wallet n'est pas débité).
         from django.db import transaction as _tx, IntegrityError
+        from .. import acces_entreprise as _acces
+        if table.a_identifiants_connexion and not _acces.place_disponible(entreprise):   # plafond de trafic de l'entreprise (page super-admin)
+            return JsonResponse({"erreur": _acces.message_limite(entreprise)}, status=402)
         try:
             with _tx.atomic():
                 _membre_post = MembreEntreprise.objects.filter(

@@ -27,9 +27,13 @@ from engine.i18n import tfr as _gtfr  # noqa: E402
 
 logger = logging.getLogger(__name__)
 
-VERSION = 2   # à incrémenter quand REGISTRE change : les colonnes des tables existantes sont alors resynchronisées une fois par processus
+VERSION = 3   # à incrémenter quand REGISTRE change : les colonnes des tables existantes sont alors resynchronisées une fois par processus
 PREFIXE_SLUG = "systeme_"
 PREFIXE_NOM = _gtfr("engine/tables_systeme.py:31:15")
+# Sources retirées pour cause d'ISOLATION DES ENTREPRISES (modèles sans lien vers une entreprise : voir _source_generique). Leurs tables, créées
+# dans chaque entreprise par une version précédente, sont supprimées au prochain passage de `assurer` (liste fermée : jamais de suppression
+# déduite du registre, qui peut être incomplet si un modèle échoue à la génération).
+SOURCES_RETIREES = ("blocsysteme", "langueutilisateur", "reglageplateforme")
 
 
 # ── Description d'une colonne ───────────────────────────────────────────────────────────────────────────────────
@@ -235,6 +239,11 @@ def _source_generique(modele):
     from django.db import models as dm
     from .models import MembreEntreprise
     chemin = _chemin_entreprise(modele)
+    if chemin is None:
+        # ISOLATION DES ENTREPRISES : un modèle sans aucun lien (direct ou indirect) vers une entreprise (journal système de la plateforme,
+        # réglages de la plateforme, langue de TOUS les utilisateurs...) n'a pas de filtre possible. Il n'était auparavant lu qu'avec
+        # `.all()`, donc visible de CHAQUE entreprise dans son ontologie et dans ce que le modèle fantôme apprend. Il n'est plus exposé.
+        return None
     colonnes, liees = [_id()], []
     for f in modele._meta.concrete_fields:
         if f.primary_key or isinstance(f, (dm.FileField, dm.BinaryField, dm.JSONField)) or _SECRET.search(f.name):
@@ -256,8 +265,7 @@ def _source_generique(modele):
         pluriel = modele.__name__
     return {"cle": modele._meta.model_name, "nom": f"{pluriel[:1].upper()}{pluriel[1:]} ({modele.__name__})", "modele": modele,
             "filtre": (lambda e, m=modele: m._default_manager.filter(pk=e.pk)) if chemin == "" else
-                      (lambda e, m=modele, ch=chemin: m._default_manager.filter(**{ch: e})) if chemin else
-                      (lambda e, m=modele: m._default_manager.all()),
+                      (lambda e, m=modele, ch=chemin: m._default_manager.filter(**{ch: e})),
             "liees": liees, "colonnes": colonnes}
 
 
@@ -412,6 +420,11 @@ def assurer(entreprise) -> int:
     from django.db import transaction
     from .models import ChampDynamique, TableDynamique
     modifiees = 0
+    with transaction.atomic():
+        retirees = TableDynamique.objects.filter(entreprise=entreprise, source_systeme__in=SOURCES_RETIREES)
+        if retirees.exists():
+            retirees.delete()   # tables système sans ligne propre : rien à perdre, seulement la structure d'une source qui n'est plus exposée
+            modifiees += 1
     existantes = {t.source_systeme: t for t in TableDynamique.objects.filter(entreprise=entreprise).exclude(source_systeme="")}
     with transaction.atomic():
         for src in registre():

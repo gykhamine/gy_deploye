@@ -7,6 +7,8 @@
         types=<id>:<slug>:<genre>,...    genre forcé (quanti_continue, quanti_discrete, quali_nominale, quali_ordinale) ; sinon reconnu automatiquement
         par=<id>:<slug>                  découpage par les modalités d'une colonne qualitative
         echantillon=aleatoire|systematique|stratifie|premieres, taille=<n>, graine=<n>, remise=0|1, strate=<id>:<slug>
+  GET  /api/tables/<id>/statistiques/ensembles/               analyses GROUPÉES : mode=continues|qualitatives|continues_par_quali, colonnes=, par=<id>:<slug> (mode
+        continues_par_quali : la variable qualitative qui définit les groupes) + tables/types/échantillon comme ci-dessus
   GET  /api/tables/<id>/statistiques/test/                     un test d'inférence (test=auto|t1|t2|anova|…, voir statistiques.CATALOGUE_TESTS) :
         a=, b=, groupe=, groupe2=, explicatives= (références <id>:<slug>) + les paramètres du test (alpha, alt, mu0…) + tables/types/échantillon comme ci-dessus
   GET  /api/tables/<id>/statistiques/probabilites/             type=loi|evenements|bayes|combinatoire|ajustement
@@ -112,6 +114,12 @@ def calculer_descriptives(tables, refs, forces=None, echantillon=None, par=None)
     return donnees.descriptives(memo, refs, forces, par)
 
 
+def calculer_ensembles(tables, mode, refs, forces=None, echantillon=None, par=None):
+    """Analyses groupées de la page Statistiques (onglet « Groupes de variables ») : UNE seule implémentation, reprise telle quelle par le rapport général."""
+    memo = donnees.memoire(tables, echantillon, colonnes=list(refs) + ([par] if par else []))
+    return donnees.ensembles(memo, mode, list(refs), forces, par)
+
+
 @login_required
 @ensure_csrf_cookie
 def vue_statistiques(request, table_id):
@@ -143,6 +151,23 @@ def api_stat_descriptives(request, table_id):
         if not refs:
             raise ValueError(_i18n_t("engine/views_statistiques.py:g:135:30"))
         return calculer_descriptives(tables, refs, _forces(q.get("types")), _echantillon(q), q.get("par") or None)
+    return _reponse(_faire, refusees)
+
+
+@login_required
+@require_http_methods(["GET"])
+def api_stat_ensembles(request, table_id):
+    table, _lecture_seule, _entreprise, refus = _acces(request, table_id, api=True, vue=VUE)
+    if refus:
+        return refus
+    q = request.GET
+    tables, refusees = _tables(request, table, q)
+
+    def _faire():
+        refs = _liste(q.get("colonnes"))
+        if not refs:
+            raise ValueError(_i18n_t("engine/views_statistiques.py:g:135:30"))
+        return calculer_ensembles(tables, q.get("mode") or "", refs, _forces(q.get("types")), _echantillon(q), q.get("par") or None)
     return _reponse(_faire, refusees)
 
 

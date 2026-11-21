@@ -64,6 +64,29 @@ def exemptee(entreprise) -> bool:
     return MembreEntreprise.objects.filter(entreprise=entreprise, utilisateur__is_superuser=True).exists()
 
 
+def connexions_utilisees(entreprise) -> int:
+    """Somme des personnes inscrites de l'entreprise : comptes agents + lignes de ses tables agents et clients (chaque ligne = une personne,
+    connectée ou non, produits exclus) + clients inscrits d'eux-mêmes (compte lecteur sans ligne). L'administrateur et la caisse ne comptent pas."""
+    from . import base_par_entreprise as bpe
+    from .models import Enregistrement, MembreEntreprise
+    membres = MembreEntreprise.objects.filter(entreprise=entreprise, actif=True)
+    total = membres.filter(role="agent").count() + membres.filter(role="lecteur", enregistrement_client__isnull=True).count()
+    if not bpe.actif() or bpe.chemin(entreprise.id).exists():   # base par entreprise : pas de fichier = aucune ligne (et on n'en crée pas ici)
+        with bpe.dans_entreprise(entreprise.id):
+            total += Enregistrement.objects.filter(table__entreprise=entreprise, table__est_table_membres=True, table__est_table_produits=False).count()
+    return total
+
+
+def place_disponible(entreprise) -> bool:
+    """True si une personne de plus peut être inscrite. Le plafond ne bloque que les NOUVELLES inscriptions (les comptes existants
+    continuent de fonctionner) ; les entreprises du super-administrateur n'ont pas de plafond."""
+    return connexions_utilisees(entreprise) < entreprise.max_connexions or exemptee(entreprise)
+
+
+def message_limite(entreprise) -> str:
+    return tf("plateforme.acces.limite_atteinte", limite=entreprise.max_connexions)
+
+
 def debloquer(entreprise, jours=None):
     """Lève le blocage et fixe l'échéance à jours (défaut : durée d'un déblocage, 30) après la fin actuelle, ou après maintenant si elle est passée."""
     jours = int(jours) if jours else _reglage().prolongation_jours

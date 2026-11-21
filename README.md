@@ -17,15 +17,27 @@ python3 installer_dependances.py          # ou : 1 | 2 | 3 | 4
 | 1 Primaire | `requirements_primaire.txt` : lancer et utiliser sans trop charger | compte gratuit (512 Mo) |
 | 2 Secondaire | primaire + `requirements_secondaire.txt` : statistiques avancées, apprentissage automatique, cartes, son, formats | |
 | 3 Full | + `requirements_full.txt` : IA (JAX), vision, vidéo, bases externes | compte payant |
-| 4 Mettre à jour | récupère GitHub et ne remplace que les fichiers modifiés | |
+| 4 Mettre à jour | GitHub, dossier ou zip (au choix) : ne remplace que les fichiers modifiés ; migrations protégées | |
 
 Le virtualenv réutilise les paquets déjà installés par PythonAnywhere, le cache pip est désactivé, et un paquet qui échoue n'arrête pas les autres
 (il est listé à la fin ; la fonctionnalité concernée affiche « fonctionnalité bloquée »).
 
-**Mise à jour depuis GitHub** : poussez vos modifications sur GitHub, puis lancez `python3 installer_dependances.py 4`. Seuls les fichiers qui
-diffèrent du dépôt sont remplacés (les anciennes versions sont copiées dans `../agentgy_sauvegardes_maj/`, trois sauvegardes gardées), les paquets sont réinstallés
-si `requirements_*.txt` a changé, puis migrations, fichiers statiques et rechargement du site. Les données (`media/`, bases, clés, `logs/`) ne sont jamais touchées.
+**Mise à jour** : `python3 installer_dependances.py 4` demande la source (GitHub, dossier ou zip) et la portée (projet complet, ou seulement les deux scripts).
+Sans question : `--source github|dossier|zip --chemin <dossier ou zip> --portee tout|scripts`. Seuls les fichiers qui diffèrent sont remplacés
+(les anciennes versions sont copiées dans `../agentgy_sauvegardes_maj/`, trois jeux gardés) ; depuis un dossier ou un zip, rien n'est supprimé. Depuis GitHub, seule l'arborescence est lue d'abord (le dépôt n'est jamais rapatrié en entier) : les empreintes des fichiers locaux sont comparées à celles du dépôt,
+et seuls les fichiers qui diffèrent sont téléchargés (`.git` reste de l'ordre du Mo). Depuis un zip, rien n'est extrait en entier : seuls les fichiers qui diffèrent sont écrits.
+Les paquets sont
+réinstallés si `requirements_*.txt` a changé, puis migrations, fichiers statiques et rechargement du site. Les données (`media/`, bases, clés, `logs/`) ne sont jamais écrasées.
 Sans projet à l'endroit prévu, le dépôt est cloné puis installé.
+
+**Migrations protégées** (`migrations_sures.py`, appelé à chaque mise à jour ; utilisable seul, `--plan` pour voir sans rien faire) : analyse d'abord les migrations en attente, sur la base
+principale et sur chaque fichier d'entreprise. Suppression de colonne ou de table, SQL brut, code Python sans annulation, colonne rétrécie ou NULL interdit sont **bloqués** :
+aucune donnée n'est touchée et le site n'est pas rechargé ; après relecture, `--autoriser-destructif`. Sinon : copie « avant_migration » des bases seules (dossier `sauvegardes/`, une seule copie gardée), migration,
+puis contrôle du nombre de lignes de chaque table avant/après (alerte si une table en perd). Une base neuve n'est pas bloquée.
+
+**Quota disque (compte gratuit PythonAnywhere : 512 Mo)** : `[mise_a_jour] quota_mo = 512` dans `installer.conf` (0 = aucun contrôle). Avant d'écrire quoi que ce soit, la mise à jour et les migrations
+vérifient qu'il reste la place (fichiers à remplacer + leurs anciennes versions, ou copie des bases + reconstruction de table par SQLite + marge) ; sinon elles s'arrêtent sans rien modifier.
+Deux jeux d'anciennes versions gardés (`../agentgy_sauvegardes_maj/`), une copie de base (`sauvegardes/`), `.git` nettoyé après chaque mise à jour, chaque fichier écrit sous un nom temporaire puis renommé.
 
 Tout est dans `installer.conf` (créé au premier lancement par des questions ; droits 600 ; ignoré par git) : adresse du dépôt, branche, jeton d'accès
 (dépôt privé : jeton à lecture seule du contenu), niveau, dossier, virtualenv, fichiers à conserver, rechargement du site. Le jeton ne passe que par un en-tête

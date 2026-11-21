@@ -111,9 +111,9 @@ class Fantome:
 
     # ── Naissance ──
     @classmethod
-    def nouveau(cls, graine: int = 4242, maintenant: float | None = None) -> "Fantome":
+    def nouveau(cls, graine: int = 4242, maintenant: float | None = None, proprietaire: str | None = None) -> "Fantome":
         maintenant = time.time() if maintenant is None else maintenant
-        f = cls(rn.Reseau.nouveau(D, LARGEUR, 1, graine=graine), _meta_defaut(maintenant))
+        f = cls(rn.Reseau.nouveau(D, LARGEUR, 1, graine=graine), {**_meta_defaut(maintenant), "proprietaire": proprietaire})
         f.sale = True
         return f
 
@@ -231,7 +231,7 @@ class Fantome:
 
 def _meta_defaut(maintenant: float = 0.0) -> dict:
     return {"cree_ts": maintenant, "maj_ts": maintenant, "episodes": 0, "phase": PHASE_OBSERVATION, "perte": None, "historique": [],
-            "visites": {}, "types": {}, "transitions": {}, "derniere": {}, "termes": {}}
+            "visites": {}, "types": {}, "transitions": {}, "derniere": {}, "termes": {}, "proprietaire": None}
 
 
 # ── Fichier signé ──
@@ -248,14 +248,19 @@ def serialiser(f: Fantome, cle: bytes) -> bytes:
     return _MAGIE + bytes([_VERSION]) + _signer(cle, corps) + corps
 
 
-def deserialiser(octets: bytes, cle: bytes) -> Fantome:
-    """ValueError si l'en-tête, la signature, le contenu ou les dimensions sont invalides."""
+def deserialiser(octets: bytes, cle: bytes, proprietaire: str | None = None, cles_anciennes: tuple = ()) -> Fantome:
+    """ValueError si l'en-tête, la signature, le contenu ou les dimensions sont invalides.
+    ISOLATION DES ENTREPRISES : `proprietaire` (ex. « entreprise:7 ») est inscrit dans le fichier ; un fichier qui déclare un AUTRE propriétaire
+    est refusé. `cles_anciennes` : clés d'avant la clé par entreprise ; un fichier ainsi signé est accepté une fois puis réécrit avec la bonne."""
     tete = len(_MAGIE) + 1
     if len(octets) < tete + 32 or octets[:len(_MAGIE)] != _MAGIE or octets[len(_MAGIE)] != _VERSION:
         raise ValueError(_gt("rg5.msg.037"))
     signature, corps = octets[tete:tete + 32], octets[tete + 32:]
+    ancienne_cle = False
     if not hmac.compare_digest(signature, _signer(cle, corps)):
-        raise ValueError(_gt("rg5.msg.038"))
+        if not any(hmac.compare_digest(signature, _signer(k, corps)) for k in cles_anciennes):
+            raise ValueError(_gt("rg5.msg.038"))
+        ancienne_cle = True
     z = rn.depuis_octets(corps)
     try:
         meta = json.loads(np.array(z["meta"], dtype=np.uint8).tobytes().decode("utf-8"))
@@ -274,6 +279,13 @@ def deserialiser(octets: bytes, cle: bytes) -> Fantome:
     except ValueError as exc:
         raise ValueError(_gt("rg5.msg.039")) from exc
     f = Fantome(reseau, {**_meta_defaut(), **{k: v for k, v in meta.items() if k in _meta_defaut()}}, X, Y, W)
+    if proprietaire is not None:
+        declare = f.meta.get("proprietaire")
+        if declare is not None and declare != proprietaire:
+            raise ValueError(_gt("rg8.msg.040"))   # fichier d'une AUTRE entreprise : refusé, jamais chargé
+        if declare is None or ancienne_cle:
+            migre = True   # fichier d'avant l'isolation : réécrit avec son propriétaire et la clé de son entreprise
+        f.meta["proprietaire"] = proprietaire
     f.sale = migre
     return f
 
@@ -297,16 +309,17 @@ def ecrire(chemin: str, f: Fantome, cle: bytes) -> None:
     f.sale = False
 
 
-def charger(chemin: str, cle: bytes) -> Fantome:
-    """Modèle lu depuis son fichier ; modèle neuf (qui ne comprend rien) s'il n'existe pas. Un fichier altéré est mis de côté (`.invalide`)."""
+def charger(chemin: str, cle: bytes, proprietaire: str | None = None, cles_anciennes: tuple = ()) -> Fantome:
+    """Modèle lu depuis son fichier ; modèle neuf (qui ne comprend rien) s'il n'existe pas. Un fichier altéré, ou qui n'est pas celui de
+    cette entreprise, est mis de côté (`.invalide`) et jamais chargé."""
     try:
         with open(chemin, "rb") as fichier:
-            return deserialiser(fichier.read(), cle)
+            return deserialiser(fichier.read(), cle, proprietaire, cles_anciennes)
     except FileNotFoundError:
-        return Fantome.nouveau()
+        return Fantome.nouveau(proprietaire=proprietaire)
     except (ValueError, OSError):
         try:
             os.replace(chemin, chemin + ".invalide")
         except OSError:
             pass
-        return Fantome.nouveau()
+        return Fantome.nouveau(proprietaire=proprietaire)

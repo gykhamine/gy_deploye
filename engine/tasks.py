@@ -673,8 +673,10 @@ def entretenir_modele_fantome(entreprise_id):
 
     try:
         entreprise = Entreprise.objects.get(id=entreprise_id)
-        etat = fusionner_etat(entreprise, forcer=True)
-        memoire_decision.entretenir(entreprise, etat, portail.graphe_dependances(entreprise, forcer=True), evaluer(etat))
+        from . import base_par_entreprise as _bpe
+        with _bpe.dans_entreprise(entreprise.id):   # ISOLATION : l'état fusionné et le graphe sont lus dans la base de cette entreprise seulement
+            etat = fusionner_etat(entreprise, forcer=True)
+            memoire_decision.entretenir(entreprise, etat, portail.graphe_dependances(entreprise, forcer=True), evaluer(etat))
     except Entreprise.DoesNotExist:
         return
     except Exception:

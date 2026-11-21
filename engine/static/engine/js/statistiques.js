@@ -109,6 +109,10 @@ function majMemoire() {
   par.append(el("option", {value: ""}, tj("engine/static/engine/js/statistiques.js:100:41")));
   for (const c of toutesColonnes().filter(c => c.famille !== "quanti")) par.append(el("option", {value: c.ref}, c.nom));
   par.value = pc;
+  const gp = $("g-par"), gpc = gp.value;      // groupes des analyses groupées : colonnes non quantitatives
+  gp.textContent = "";
+  for (const c of toutesColonnes().filter(c => c.famille !== "quanti")) gp.append(el("option", {value: c.ref}, c.nom));
+  gp.value = gpc;
   if (S.roles) majRoles();
 }
 function parametresCommuns() {
@@ -711,19 +715,104 @@ function afficherProbabilites(zone, t, r) {
 }
 
 // ── Onglets de la page et démarrage ──────────────────────────────────────────
+// ── Analyses groupées : plusieurs variables ensemble ─────────────────────────
+function matriceRect(lignes, colonnes, valeurs, echelle) {   // matrice lignes × colonnes, cellule teintée selon |valeur| / échelle
+  const t = el("table", {class: "sx-table sx-matrice"});
+  t.append(el("thead", {}, el("tr", {}, el("th", {}), ...colonnes.map(n => el("th", {}, n)))));
+  const tb = el("tbody", {});
+  valeurs.forEach((lig, i) => tb.append(el("tr", {}, el("th", {}, lignes[i]), ...lig.map(v => {
+    const td = el("td", {}, v == null ? "—" : v.toFixed(2).replace(".", ","));
+    if (v != null) td.style.background = v >= 0 ? gyCouleur("--ok", "#2ecc71", clamp(Math.abs(v) / echelle, 0, 1) * .55) : gyCouleur("--danger", "#e74c3c", clamp(Math.abs(v) / echelle, 0, 1) * .55);
+    return td;
+  }))));
+  t.append(tb);
+  return el("div", {class: "sx-defil"}, t);
+}
+const sousTitre = txt => el("div", {class: "sx-sous"}, txt);
+function enTete(a, cle) {
+  const c = carte(tj(cle, {v1: a.groupe || "", v2: a.table}));
+  const l = liste(a.lecture); if (l) c.append(l);
+  for (const m of a.avertissements || []) c.append(el("div", {class: "sx-avert"}, m));
+  return c;
+}
+function detailsLiens(c, liste_, mesureTitre) {   // un graphique par lien marqué (même rendu que « liens entre variables »)
+  const avecGraphe = liste_.filter(p => p.graphique);
+  if (avecGraphe.length) c.append(el("details", {}, el("summary", {class: "sx-note"}, tj("engine/static/engine/js/statistiques.js:466:104", {v1: avecGraphe.length})),
+    ...avecGraphe.map(p => el("div", {class: "sx-graphe"}, sousTitre(tj("engine/static/engine/js/statistiques.js:lien_mesure", {v1: p.a, v2: p.b, v3: p.mesure, v4: fmt(Math.round(p.valeur * 1000) / 1000), v5: p.force})), grapheLien(p.graphique)))));
+}
+function carteContinues(a) {
+  const c = enTete(a, "sg.titre.continues"), g = a.global;
+  c.append(paires([[tj("sg.col.n"), a.n], ["KMO", g.kmo], [tj("sg.col.bartlett"), g.bartlett ? fmtP(g.bartlett.p) : null], [tj("sg.col.alpha"), g.alpha_standardise], [tj("sg.col.dimensions"), g.kaiser]]));
+  c.append(sousTitre(tj("sg.titre.variables")), tableau([tj("sg.col.variable"), tj("sg.col.moyenne"), tj("sg.col.ecart_type"), "VIF", "MSA"],
+    a.variables.map(v => [v.nom, v.moyenne, v.ecart_type, (v.redondante ? "⚠ " : "") + fmt(v.vif), v.msa])));
+  c.append(sousTitre(tj("engine/static/engine/js/statistiques.js:468:62")), matriceCorr(a.matrice, "pearson"), sousTitre(tj("engine/static/engine/js/statistiques.js:468:155")), matriceCorr(a.matrice, "spearman"));
+  c.append(sousTitre(tj("sg.titre.paires")), tableau([tj("engine/static/engine/js/statistiques.js:lbl_var1"), tj("engine/static/engine/js/statistiques.js:lbl_var2"), "Pearson r", "Spearman", tj("sg.col.p"), tj("sg.col.force")],
+    a.paires.map(p => [p.a, p.b, p.valeur, p.spearman, fmtP(p.p), p.force])));
+  detailsLiens(c, a.paires);
+  c.append(sousTitre(tj("sg.titre.valeurs_propres")), tableau([tj("sg.col.composante"), tj("sg.col.valeur_propre"), tj("sg.col.pct"), tj("sg.col.cumul")],
+    g.valeurs_propres.map((v, i) => [i + 1, v.valeur, fmtPct(v.pct), fmtPct(v.cumul)])));
+  if (a.aberrantes.n) c.append(sousTitre(tj("sg.titre.aberrantes", {v1: a.aberrantes.n})), tableau([tj("sg.col.ligne"), tj("sg.col.d2")], a.aberrantes.lignes.map(l => [l.ligne, l.d2])));
+  return c;
+}
+function carteQualitatives(a) {
+  const c = enTete(a, "sg.titre.qualitatives");
+  c.append(sousTitre(tj("sg.titre.variables")), tableau([tj("sg.col.variable"), tj("sg.col.modalites"), tj("sg.col.diversite"), tj("sg.col.v_moyen"), tj("sg.col.plus_lie")],
+    a.variables.map(v => [v.nom, v.modalites, v.diversite, v.v_moyen, v.plus_lie])));
+  c.append(sousTitre(tj("sg.titre.matrice_v")), matriceCorr(a.matrice, "cramer"), sousTitre(tj("sg.titre.matrice_theil")), matriceCorr(a.matrice, "theil"));
+  c.append(sousTitre(tj("sg.titre.paires")), tableau([tj("engine/static/engine/js/statistiques.js:lbl_var1"), tj("engine/static/engine/js/statistiques.js:lbl_var2"), tj("sg.col.v"), tj("sg.col.v_corrige"), "χ²", tj("sg.col.ddl"), tj("sg.col.p"), tj("sg.col.p_ajuste"), tj("sg.col.force")],
+    a.paires.map(p => [p.a, p.b, p.valeur, p.v_corrige, p.khi2, p.ddl, fmtP(p.p), fmtP(p.p_ajuste), p.force])));
+  detailsLiens(c, a.paires);
+  if (a.profils.length) c.append(sousTitre(tj("sg.titre.profils", {v1: a.n_profils})), tableau([tj("sg.col.profil"), tj("sg.col.effectif"), tj("sg.col.frequence")],
+    a.profils.map(p => [Object.entries(p.modalites).map(([k, v]) => k + " = " + v).join(" · "), p.effectif, fmtPct(p.frequence)])));
+  return c;
+}
+function carteParQuali(a) {
+  const c = enTete(a, "sg.titre.par_quali"), m = a.multivarie;
+  if (m) c.append(sousTitre(tj("sg.titre.manova")), tableau([tj("sg.col.test"), tj("sg.col.statistique"), "F", tj("sg.col.ddl"), tj("sg.col.p")], [
+    ["Wilks Λ", m.wilks.lambda, m.wilks.f, fmt(m.wilks.ddl1) + " ; " + fmt(m.wilks.ddl2), fmtP(m.wilks.p)],
+    ["Pillai V", m.pillai.trace, m.pillai.f, fmt(m.pillai.ddl1) + " ; " + fmt(m.pillai.ddl2), fmtP(m.pillai.p)]]), paires([["η² (" + tj("sg.col.multivarie") + ")", m.eta2]]));
+  c.append(sousTitre(tj("sg.titre.tests_variable")), tableau([tj("sg.col.variable"), "F", tj("sg.col.p"), tj("sg.col.p_ajuste"), "η²", "Kruskal-Wallis p", tj("sg.col.levene"), tj("sg.col.plus_haut"), tj("sg.col.plus_bas")],
+    a.variables.map(v => [v.nom, v.f, fmtP(v.p), fmtP(v.p_ajuste), v.eta2, fmtP(v.kruskal_p), fmtP(v.levene_p), v.plus_haut, v.plus_bas])));
+  c.append(sousTitre(tj("sg.titre.profil_groupes")), el("div", {class: "sx-note"}, tj("sg.aide.profil")), matriceRect(a.profil.groupes, a.profil.variables, a.profil.z, 1.5));
+  if (a.distances) c.append(sousTitre(tj("sg.titre.distances")), el("div", {class: "sx-note"}, tj("sg.aide.distances")), matriceRect(a.distances.groupes, a.distances.groupes, a.distances.d2, 4));
+  c.append(el("details", {}, el("summary", {class: "sx-note"}, tj("sg.titre.detail_groupes")), ...a.variables.map(v => el("div", {class: "sx-graphe"}, sousTitre(v.nom),
+    tableau([tj("sg.col.groupe"), tj("sg.col.n"), tj("sg.col.moyenne"), tj("sg.col.ecart_type"), tj("sg.col.mediane")], v.groupes.map(q => [q.nom, q.n, q.moyenne, q.ecart_type, q.mediane])),
+    v.graphique ? grapheLien(v.graphique) : null))));
+  return c;
+}
+function majGroupes() {
+  const mode = $("g-mode").value;
+  $("g-par-zone").style.display = mode === "continues_par_quali" ? "" : "none";
+  $("g-aide").textContent = tj("sg.aide." + mode);
+}
+async function lancerGroupes() {
+  const zone = $("g-res"), cols = colonnesCochees(), mode = $("g-mode").value;
+  if (!cols.length) { toast(tj("engine/static/engine/js/statistiques.js:454:30"), true); return; }
+  chargement(zone); _curseur = 0;
+  try {
+    const d = await api("ensembles", {...parametresCommuns(), mode, colonnes: cols.join(","), par: mode === "continues_par_quali" ? $("g-par").value : ""});
+    zone.textContent = "";
+    zone.append(...resumeMemoire(d));
+    for (const a of d.analyses) zone.append(mode === "continues" ? carteContinues(a) : mode === "qualitatives" ? carteQualitatives(a) : carteParQuali(a));
+  } catch (e) { erreur(zone, e); }
+}
+
 function montrer(partie) {
   ctx.noter({partie});
   document.querySelectorAll(".sx-onglets .onglet-vue").forEach(b => b.classList.toggle("actif", b.getAttribute("data-partie") === partie));
-  for (const p of ["desc", "inf", "prob"]) $("sx-" + p).style.display = p === partie ? "" : "none";
+  for (const p of ["desc", "inf", "grp", "prob"]) $("sx-" + p).style.display = p === partie ? "" : "none";
   if (partie === "prob" && $("p-type").value === "ajustement") majProbabilites();
 }
 document.querySelectorAll(".sx-onglets .onglet-vue").forEach(b => { b.onclick = () => montrer(b.getAttribute("data-partie")); });
 $("d-lancer").onclick = () => { ctx.noter({dernier: "desc"}); return lancerDescriptives(); };
 $("i-lancer").onclick = () => { ctx.noter({dernier: "inf"}); return lancerTest(); };
+$("g-lancer").onclick = () => { ctx.noter({dernier: "grp"}); return lancerGroupes(); };
+$("g-mode").onchange = majGroupes;
 $("p-lancer").onclick = () => { ctx.noter({dernier: "prob"}); return lancerProbabilites(); };
 $("p-type").onchange = majProbabilites;
 initEchantillon();
 dessinerTables();
+majGroupes();
 dessinerListeTests();
 majProbabilites();
 // Retour sur la page : onglet, tables et colonnes cochées, test choisi, paramètres remis ; la dernière analyse est relancée.
@@ -731,6 +820,7 @@ const sauve = ctx.restaurer();
 if (sauve.partie) montrer(sauve.partie);
 if (sauve.dernier === "desc") lancerDescriptives();
 else if (sauve.dernier === "inf") lancerTest();
+else if (sauve.dernier === "grp") lancerGroupes();
 else if (sauve.dernier === "prob") lancerProbabilites();
 if (!C.tableCompatible) $("d-res").append(el("div", {class: "sx-vide"}, tj("engine/static/engine/js/statistiques.js:690:74")));
 })();

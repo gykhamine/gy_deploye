@@ -3227,3 +3227,15 @@ body.page-spark{--bg:#000000;--panel:#0a0a0a;--panel2:#0f1a22;--border:#2a2a2a;-
   body.page-spark .diag .ok{border-left-color:var(--ok)} body.page-spark .diag .warn{border-left-color:var(--warn)} body.page-spark .diag .ko{border-left-color:var(--danger)}
   body.page-spark .recap{display:grid;grid-template-columns:minmax(120px,200px) 1fr;gap:6px 18px;font-size:14px}
   body.page-spark .recap dt{color:var(--muted)} body.page-spark .recap dd{overflow-wrap:anywhere}
+
+/* Page super-administrateur « Entreprises » : états d'accès (même base visuelle que la page Employés) */
+body.page-employes .badge.essai{background:var(--fond-releve,#0a0a1a);color:var(--accent)}
+body.page-employes .badge.actif,body.page-employes .badge.illimite{background:var(--fond-succes,#001a10);color:var(--ok)}
+body.page-employes .badge.echu,body.page-employes .badge.bloquee{background:var(--fond-danger,#1a0808);color:var(--danger)}
+body.page-employes textarea{width:100%;background:var(--fond-noir,#000000);color:var(--text);border:1px solid var(--border);border-radius:6px;padding:8px 10px;font:inherit;font-size:13px}
+body.page-employes .actions-cell input{background:var(--fond-noir,#000000);color:var(--text);border:1px solid var(--border);border-radius:6px;padding:4px 8px;font:inherit;font-size:12px}
+
+/* Page de connexion : choix de la langue (coin supérieur de la carte) */
+body.page-login .choix-langue{display:flex;justify-content:flex-end;margin-bottom:8px}
+body.page-login .choix-langue select{background:var(--bg);color:var(--text);border:1px solid var(--border);border-radius:6px;padding:4px 8px;font:inherit;font-size:12px;cursor:pointer}
+body.page-login .choix-langue select:focus{outline:none;border-color:var(--accent)}

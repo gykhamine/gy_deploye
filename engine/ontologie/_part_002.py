@@ -955,6 +955,16 @@ def _calculer_metriques(graphe):
 
 
 def _calculer_et_ecrire(cle, entreprise, page, membre, force=False, bloquant=True, avec_metriques=True, prioritaire=False):
+    """ISOLATION DES ENTREPRISES : toute construction d'état se fait sur la base de L'entreprise dont c'est l'état, jamais sur celle que le fil ou la
+    requête appelant se trouvait avoir en contexte (en mode « une base par entreprise », le fil de synchronisation hérite de l'entreprise de la
+    requête qui l'a lancé : sans ceci, l'ontologie d'une entreprise pouvait être construite avec les données d'une autre)."""
+    from .. import base_par_entreprise as _bpe
+    with _bpe.dans_entreprise(entreprise.id):
+        return _calculer_et_ecrire_dans_entreprise(cle, entreprise, page, membre, force=force, bloquant=bloquant,
+                                                   avec_metriques=avec_metriques, prioritaire=prioritaire)
+
+
+def _calculer_et_ecrire_dans_entreprise(cle, entreprise, page, membre, force=False, bloquant=True, avec_metriques=True, prioritaire=False):
     """Construit le graphe, l'écrit dans le fichier d'état et le met en mémoire. Rend le nouvel état, ou None si un autre processus construit déjà
     (mode non bloquant). `force=False` : si une construction vient d'aboutir pendant l'attente, son résultat est repris au lieu de refaire le travail.
     L'état est écrit AVANT les métriques topologiques (lentes) : la page est consultable dès que le graphe existe, les métriques suivent."""
@@ -1029,6 +1039,8 @@ def _passe_synchro(prioritaire=False):
         if maintenant - vu_le > OUBLI_CLE_S:
             with _VERROU_CACHE_GRAPHE: _DEMANDES.pop(cle, None)
             continue
+        from .. import base_par_entreprise as _bpe
+        _bpe.definir(e_id)   # contexte PROPRE au fil : les empreintes et le calcul lisent la base de l'entreprise de cet état, pas celle d'une autre
         entreprise = Entreprise.objects.filter(id=e_id).first()
         if entreprise is None:
             with _VERROU_CACHE_GRAPHE: _DEMANDES.pop(cle, None)
@@ -1052,7 +1064,7 @@ def _passe_synchro(prioritaire=False):
                 if age < duree_max and empreintes[e_id] is not None and empreintes[e_id] == etat.get("empreinte"):
                     continue   # rien n'a changé et l'état est encore jeune
         page = PageOntologie.objects.filter(id=p_id, entreprise_id=e_id).first() if p_id else None
-        membre = MembreEntreprise.objects.filter(id=m_id).first() if m_id else None
+        membre = MembreEntreprise.objects.filter(id=m_id, entreprise_id=e_id).first() if m_id else None
         if (p_id and page is None) or (m_id and membre is None):
             with _VERROU_CACHE_GRAPHE: _DEMANDES.pop(cle, None)
             continue
@@ -1238,7 +1250,7 @@ def metriques_etat(entreprise, page, membre, graphe):
     l'ouverture : un grand graphe dont les métriques n'arrivent pas encore (le constructeur les calcule après l'état) affiche seulement ses
     effectifs, les autres valeurs suivent à la prochaine ouverture. Un petit graphe (vue client restreinte) est calculé sur place, instantanément."""
     cle = _cle_cache_graphe(entreprise, page, membre)
-    etat = _etat_courant(cle)
+    etat = _etat_courant(cle, _identite(entreprise))
     m = etat.get("metriques") if etat is not None else None
     if m is not None and m.get("noeuds") == graphe.number_of_nodes() and m.get("aretes") == graphe.number_of_edges():
         return dict(m)

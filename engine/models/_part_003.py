@@ -1051,6 +1051,71 @@ class ReglageEmission(models.Model):
     validation_obligatoire = models.BooleanField(default=False)
 
 
+class SyntheseRedigee(models.Model):
+    """Synthèse / analyse RÉDIGÉE à la main sur UNE table, sur le modèle des documents administratifs : un titre et un corps de blocs ordonnés
+    (voir reports/_part_008.py : texte, commentaire, explication, à retenir, et blocs « analyse » qui reprennent une carte, un tableau ou un graphique
+    DÉJÀ calculé par le moteur — aucune formule n'est réécrite). L'entête officiel, le cachet et les signatures ne sont pas stockés ici : ils viennent des
+    réglages du contexte « courrier », comme pour les documents administratifs.
+
+    Cycle de vie : BROUILLON (modifiable, PDF filigrané) -> FINALISÉE (PDF généré une seule fois, figé avec son empreinte SHA-256 : les chiffres ne
+    bougent plus quand les données de la table changent). Une synthèse finalisée se rouvre (retour en brouillon) ou s'archive ; elle ne se modifie pas."""
+    STATUT_BROUILLON, STATUT_FINALISEE = "brouillon", "finalisee"
+    STATUT_CHOICES = [(STATUT_BROUILLON, "Brouillon"), (STATUT_FINALISEE, "Finalisée")]
+    CHAMPS_POST_FINALISATION = frozenset({"archive", "archive_le", "modifie_le"})
+
+    entreprise = models.ForeignKey(Entreprise, on_delete=models.CASCADE, related_name="syntheses_redigees")
+    table = models.ForeignKey("TableDynamique", on_delete=models.CASCADE, related_name="syntheses_redigees")
+    auteur = models.ForeignKey("MembreEntreprise", on_delete=models.SET_NULL, null=True, blank=True, related_name="syntheses_redigees")
+    titre = models.CharField(max_length=200, blank=True, default="")
+    corps = models.JSONField(default=list, blank=True)
+    # Entête : modèle nommé choisi dans l'éditeur (brouillon seulement). Vide = modèle par défaut de l'entreprise.
+    modele_entete = models.ForeignKey("ModeleEntete", on_delete=models.SET_NULL, null=True, blank=True, related_name="syntheses")
+    statut = models.CharField(max_length=10, choices=STATUT_CHOICES, default=STATUT_BROUILLON, db_index=True)
+    finalisee_le = models.DateTimeField(null=True, blank=True)
+    finalisee_par = models.ForeignKey("MembreEntreprise", on_delete=models.SET_NULL, null=True, blank=True, related_name="syntheses_finalisees")
+    pdf_fige = models.FileField(upload_to="documents/syntheses/%Y/", null=True, blank=True)
+    empreinte_sha256 = models.CharField(max_length=64, blank=True, default="")
+    archive = models.BooleanField(default=False, db_index=True)
+    archive_le = models.DateTimeField(null=True, blank=True)
+    cree_le = models.DateTimeField(auto_now_add=True)
+    modifie_le = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        ordering = ["-modifie_le", "-id"]
+
+    def __str__(self):
+        return self.titre or _gtf("engine/models/_part_003.py:synthese_sans_titre", v1=(self.pk))
+
+    @property
+    def est_figee(self):
+        return self.statut == self.STATUT_FINALISEE
+
+    def save(self, *args, **kwargs):
+        """Une synthèse finalisée n'est plus modifiable : seul l'archivage (champs CHAMPS_POST_FINALISATION, avec update_fields explicite) est permis.
+        Garde-fou de dernier recours, valable pour toute vue ou commande ; la réouverture passe par engine/syntheses.rouvrir (UPDATE direct)."""
+        if self.pk:
+            ancien = type(self).objects.filter(pk=self.pk).values_list("statut", flat=True).first()
+            champs = kwargs.get("update_fields")
+            if ancien == self.STATUT_FINALISEE and (champs is None or not set(champs) <= self.CHAMPS_POST_FINALISATION):
+                raise DocumentFigeError(_gt("engine/models/_part_003.py:synthese_figee"))
+        super().save(*args, **kwargs)
+
+    def delete(self, *args, **kwargs):
+        nom_pdf, stockage = (self.pdf_fige.name, self.pdf_fige.storage) if self.pdf_fige else (None, None)
+        resultat = super().delete(*args, **kwargs)
+        if nom_pdf:      # Django n'efface jamais le fichier d'un FileField : sans ceci, le PDF figé resterait orphelin
+            from django.db import transaction
+
+            def _effacer_pdf():
+                try:
+                    stockage.delete(nom_pdf)
+                except Exception:
+                    import logging
+                    logging.getLogger(__name__).exception(_gt("rg5.msg.071"), nom_pdf)
+            transaction.on_commit(_effacer_pdf)
+        return resultat
+
+
 import contextvars as _contextvars
 
 # Utilisateur qui génère le document : posé à chaque requête par VuesAutoriseesMiddleware. Sans requête (tâche planifiée,

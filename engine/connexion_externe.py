@@ -420,7 +420,7 @@ def importer_table_distante_vers_table(
             lignes_total = len(premier)
         else:
             infos = _colonnes_avec_types(colonnes, premier.head(5000))   # types déduits de la 1re tranche, valables pour toutes
-            absolu = taille >= TableDynamique.PLAFOND_ABSOLU_LIGNES   # plafond absolu (100 000) : tables INDÉPENDANTES (pas de groupe), renommables
+            absolu = taille >= TableDynamique.plafond_absolu_lignes(entreprise)   # plafond absolu de l'entreprise (100 000 par défaut) : tables INDÉPENDANTES (pas de groupe), renommables
             groupe = None if absolu else GroupeTables.objects.create(
                 entreprise=entreprise, nom=nom_base, cree_automatiquement=True,
                 description=_i18n_tf("rg2.connexion_externe.2", v1=description_base, v2=taille),

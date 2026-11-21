@@ -69,7 +69,7 @@ _DOMAINE_PAR_CLE = {
     "documentgenere": "documents", "signaturedocument": "documents", "enteteofficiel": "documents", "modeleentete": "documents",
     "reglageentete": "documents", "documentadministratif": "documents", "modeledocument": "documents", "compteurreference": "documents",
     "reglageemission": "documents", "personnalisationdocumentmembre": "documents", "configurationdocumentcontexte": "documents",
-    "rapportgenere": "documents",
+    "rapportgenere": "documents", "syntheseredigee": "documents",
 }
 # Modèle ajouté plus tard et inconnu de la table ci-dessus : le nom de la clé le range (premier mot-clé trouvé).
 _MOTS_CLES = (

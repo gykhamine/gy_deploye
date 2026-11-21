@@ -37,7 +37,7 @@ from . import donnees_entrainement as dn
 from . import modele_fantome as mf
 from . import reglages_criteres as _rc
 from . import strategie
-from .stockage import dossier_systeme
+from .stockage import cle_entreprise, dossier_systeme
 
 logger = logging.getLogger(__name__)
 
@@ -241,8 +241,19 @@ def _chemin(entreprise) -> str:
     return mf.chemin_coeur(_base(entreprise), 0)
 
 
-def _cle() -> bytes:
+def _cle(entreprise) -> bytes:
+    """Clé de signature des fichiers du modèle de CETTE entreprise (dérivée de SECRET_KEY et de son identifiant) : le fichier d'une autre
+    entreprise ne s'accorde pas avec elle et n'est jamais chargé."""
+    return cle_entreprise(entreprise.id, "decision")
+
+
+def _cle_ancienne() -> bytes:
+    """Clé unique d'AVANT l'isolation (SECRET_KEY seule) : sert uniquement à relire, une fois, les fichiers déjà appris, qui sont alors réécrits."""
     return str(settings.SECRET_KEY).encode("utf-8")
+
+
+def _proprietaire(entreprise) -> str:
+    return f"entreprise:{entreprise.id}"
 
 
 def reglages_criteres(entreprise) -> dict:
@@ -255,7 +266,8 @@ def reglages_criteres(entreprise) -> dict:
 def charger_modele(entreprise) -> mf.Modele:
     """Modèle de l'entreprise : ses réseaux lus depuis les fichiers .agentgy ; un noyau neuf s'il n'existe pas ; un fichier
     altéré est mis de côté (renommé .invalide, avec les réseaux qui en dépendent), jamais chargé."""
-    return mf.charger(_base(entreprise), _cle(), time.time(), _rc.parametres_modele(reglages_criteres(entreprise)))
+    return mf.charger(_base(entreprise), _cle(entreprise), time.time(), _rc.parametres_modele(reglages_criteres(entreprise)),
+                      proprietaire=_proprietaire(entreprise), cles_anciennes=(_cle_ancienne(),))
 
 
 def planifier_entretien(entreprise_id) -> None:
@@ -320,6 +332,14 @@ class _Verrou:
 
 
 def entretenir(entreprise, etat: dict, graphe: dict, resultat_reco: dict) -> dict:
+    """ISOLATION DES ENTREPRISES : tout le passage (mesures, construction, entraînement) lit et écrit la base de CETTE entreprise (mode « une base
+    par entreprise ») et ses seuls fichiers de modèle, quel que soit le contexte de l'appelant (tâche Celery, commande de maintenance, requête)."""
+    from . import base_par_entreprise as _bpe
+    with _bpe.dans_entreprise(entreprise.id):
+        return _entretenir_dans_entreprise(entreprise, etat, graphe, resultat_reco)
+
+
+def _entretenir_dans_entreprise(entreprise, etat: dict, graphe: dict, resultat_reco: dict) -> dict:
     """Passage automatique : mesure les conséquences dues, construit les jeux d'entraînement depuis toute la structure
     (tables, KPI, ontologie, modèles IA, décisions), puis UN pas de fine-tuning paresseux du réseau. Jamais bloquant (les
     erreurs sont journalisées) et jamais visible de l'interface. Rend un petit bilan (pour la commande de maintenance)."""
@@ -346,7 +366,7 @@ def entretenir(entreprise, etat: dict, graphe: dict, resultat_reco: dict) -> dic
             a_apprendre = _observations(entreprise)
             utiles = [o for o in a_apprendre if not o.get("orpheline")]
             absorbees = mf.entrainer_pas(modele, a_apprendre, dn.Vue(etat, graphe, _rc.echelles(reglages_criteres(entreprise))), maintenant)
-            mf.sauvegarder(modele, _base(entreprise), _cle())
+            mf.sauvegarder(modele, _base(entreprise), _cle(entreprise))
             if absorbees:
                 _, champs = _tables(entreprise)["mesure"]
                 for o in absorbees:

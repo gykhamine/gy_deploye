@@ -1,0 +1,848 @@
+{% load i18n_extras %}
+<!DOCTYPE html>
+{% load static %}
+<html lang="{{ langue_html|default:'fr' }}">
+<head>
+<link rel="stylesheet" href="{% static 'engine/css/app.css' %}"><link rel="stylesheet" href="{% url 'engine:marque_css' %}"><script src="{% static 'engine/js/marque.js' %}" defer></script><script src="{% static 'engine/js/gestes_tactiles.js' %}" defer></script>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>{% t "engine/templates/engine/syntheses.html:titre_page" %}</title>
+<style>
+  /* Extras propres à cette page (le reste vient de la feuille « page-configuration_documents », partagée). */
+  body.page-configuration_documents textarea{width:100%;background:var(--fond-noir,#000);color:var(--text);border:1px solid var(--border);border-radius:6px;padding:8px 10px;font:inherit;font-size:13px;line-height:1.5;resize:vertical;min-height:70px}
+  body.page-configuration_documents textarea:focus, body.page-configuration_documents input.titre-doc:focus{outline:none;border-color:var(--accent)}
+  body.page-configuration_documents input.titre-doc{width:100%;background:var(--fond-noir,#000);color:var(--text);border:1px solid var(--border);border-radius:6px;padding:10px 12px;font:inherit;font-size:15px;font-weight:600}
+  .da-liste{list-style:none;display:flex;flex-direction:column;gap:6px;margin-bottom:12px}
+  .da-liste li{display:flex;align-items:center;gap:8px;padding:8px 10px;border:1px solid var(--border);border-radius:8px;cursor:pointer}
+  .da-liste li.actif{border-color:var(--accent)}
+  .da-liste .da-titre{flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font-size:13px}
+  .da-liste .da-meta{font-size:11px;color:var(--muted);white-space:nowrap}
+  .da-bloc{border:1px solid var(--border);border-radius:8px;padding:10px;margin-bottom:10px;background:var(--fond-sombre,#0a0d10)}
+  .da-bloc-barre{display:flex;align-items:center;gap:6px;margin-bottom:6px;flex-wrap:wrap}
+  .da-bloc-barre select{background:var(--fond-noir,#000);color:var(--text);border:1px solid var(--border);border-radius:6px;padding:4px 6px;font:inherit;font-size:12px}
+  .da-bloc-barre .espace{flex:1}
+  .da-bloc-barre .mise-forme{display:flex;gap:4px}
+  .da-saut{font-size:12px;color:var(--muted);text-align:center;border-top:1px dashed var(--border);padding-top:6px}
+  .da-actions{display:flex;gap:8px;flex-wrap:wrap;margin-top:14px}
+  .da-ajout{display:flex;gap:8px;flex-wrap:wrap;margin:4px 0 6px}
+  .da-badge{font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.04em;padding:2px 7px;border-radius:999px;white-space:nowrap}
+  .da-badge.brouillon{background:color-mix(in srgb,var(--badge-brouillon,#a0a0a0) 20%,transparent);color:var(--muted)}
+  .da-badge.emis{background:color-mix(in srgb,var(--ok,#22c55e) 18%,transparent);color:var(--ok,#22c55e)}
+  .da-badge.annule{background:color-mix(in srgb,var(--danger,#ef4444) 18%,transparent);color:var(--danger,#ef4444)}
+  .da-badge.soumis{background:color-mix(in srgb,var(--warn,#eab308) 20%,transparent);color:var(--warn,#eab308)}
+  .da-filtres{display:flex;gap:6px;flex-wrap:wrap;margin-bottom:10px}
+  .da-filtres input,.da-filtres select,.da-ligne-champs select{background:var(--fond-noir,#000);color:var(--text);border:1px solid var(--border);border-radius:6px;padding:6px 8px;font:inherit;font-size:12px}
+  .da-filtres input[type=search]{flex:1;min-width:140px}
+  .da-pied-liste{display:flex;align-items:center;gap:10px;flex-wrap:wrap;margin-bottom:10px;font-size:12px;color:var(--muted)}
+  .da-ligne-champs{display:flex;gap:12px;flex-wrap:wrap;margin-bottom:16px}
+  .da-ligne-champs .champ{flex:1;min-width:180px}
+  .da-ligne-champs select{width:100%}
+  .da-bandeau{padding:10px 12px;border-radius:8px;border:1px solid var(--border);margin-bottom:14px;font-size:13px}
+  body.page-configuration_documents input.champ-texte{width:100%;background:var(--fond-noir,#000);color:var(--text);border:1px solid var(--border);border-radius:6px;padding:8px 10px;font:inherit;font-size:13px}
+  body.page-configuration_documents input:disabled,body.page-configuration_documents textarea:disabled{opacity:.7;cursor:not-allowed}
+  .da-sous-titre{font-size:12px;text-transform:uppercase;letter-spacing:.05em;color:var(--muted);margin:6px 0 6px}
+  .da-liste .da-etoile{color:var(--accent);font-size:13px}
+  .da-liste li .da-ordre{display:flex;gap:2px}
+  .da-liste li .da-ordre button{padding:1px 7px !important;font-size:11px !important}
+  .da-grille-defil{overflow-x:auto;margin-bottom:6px}
+  table.da-grille{border-collapse:collapse;width:100%}
+  table.da-grille th,table.da-grille td{border:1px solid var(--border);padding:0}
+  table.da-grille th{background:color-mix(in srgb,var(--accent) 14%,var(--panel))}
+  table.da-grille input{width:100%;min-width:90px;background:transparent;color:var(--text);border:0;padding:8px 10px;font:inherit;font-size:13px}
+  table.da-grille th input{font-weight:700}
+  table.da-grille input:focus{outline:2px solid var(--accent);outline-offset:-2px}
+  table.da-grille td:last-child:has(button){width:1%;padding:2px 4px;border:0}
+  .da-grille-barre{display:flex;gap:6px;flex-wrap:wrap}
+  .da-modele-editeur{border:1px solid var(--border);border-radius:8px;padding:12px;margin:12px 0 4px;background:var(--fond-sombre,#0a0d10)}
+  .da-nouveau-modele{display:flex;gap:8px;flex-wrap:wrap;align-items:center;margin-top:12px;padding-top:12px;border-top:1px dashed var(--border)}
+  .da-nouveau-modele select,.da-nouveau-modele input{background:var(--fond-noir,#000);color:var(--text);border:1px solid var(--border);border-radius:6px;padding:6px 8px;font:inherit;font-size:12px}
+  .da-nouveau-modele input{flex:1;min-width:120px}
+  .da-modele-editeur input.champ-texte,.da-modele-editeur select{width:100%}
+  .da-modele-editeur select{background:var(--fond-noir,#000);color:var(--text);border:1px solid var(--border);border-radius:6px;padding:6px 8px;font:inherit;font-size:12px}
+
+  /* ═════ Refonte « décideur » : lisible, aérée, sans jargon (classe da-page ; les règles ci-dessus restent valables) ═════ */
+  body.da-page{font-family:system-ui,-apple-system,"Segoe UI",Roboto,Helvetica,Arial,sans-serif;font-size:15px;line-height:1.55;--muted:color-mix(in srgb,var(--text) 62%,var(--bg));--da-rayon:14px;--da-surface:color-mix(in srgb,var(--panel) 90%,var(--text));--da-ombre:0 6px 24px color-mix(in srgb,#000 30%,transparent)}
+  body.da-page .header{padding:14px 28px;position:sticky;top:0;z-index:20}
+  body.da-page .header h1{font-size:17px;font-weight:700}
+  body.da-page .layout.da-layout{max-width:1240px;margin:28px auto 60px;padding:0 24px}
+  .da-ico{font-size:18px;line-height:1}
+  .da-hero{display:flex;align-items:center;justify-content:space-between;gap:24px;flex-wrap:wrap;padding:30px 34px;margin-bottom:24px;border-radius:var(--da-rayon);border:1px solid var(--border);background:linear-gradient(135deg,color-mix(in srgb,var(--accent) 24%,var(--panel)),var(--panel) 72%);box-shadow:var(--da-ombre)}
+  .da-hero h2{font-size:27px;font-weight:800;letter-spacing:-.01em;line-height:1.25;color:var(--text);margin-bottom:8px}
+  .da-hero p{font-size:15px;color:var(--muted);max-width:640px}
+  body.da-page button.da-hero-cta{font-size:16px;font-weight:700;padding:15px 30px;border-radius:12px;box-shadow:0 6px 18px color-mix(in srgb,var(--accent) 38%,transparent)}
+  .da-reglages{margin-bottom:24px;border:1px dashed var(--border);border-radius:var(--da-rayon);background:var(--panel)}
+  .da-reglages>summary,.da-entete>summary,.da-plus>summary,.da-filtres-plus>summary{list-style:none;cursor:pointer}
+  .da-reglages>summary::-webkit-details-marker,.da-entete>summary::-webkit-details-marker,.da-plus>summary::-webkit-details-marker,.da-filtres-plus>summary::-webkit-details-marker{display:none}
+  .da-reglages>summary{display:flex;align-items:center;gap:12px;flex-wrap:wrap;padding:16px 22px}
+  .da-reglages-titre{font-weight:700;font-size:15px}
+  .da-reglages-aide{color:var(--muted);font-size:13px;flex:1;min-width:220px}
+  .da-reglages>summary::after,.da-entete>summary::after{content:"▾";color:var(--muted);transition:transform .2s}
+  .da-reglages[open]>summary::after,.da-entete[open]>summary::after{transform:rotate(180deg)}
+  .da-reglages-contenu{padding:6px 22px 10px}
+  .da-espace{display:grid;grid-template-columns:minmax(min(300px,100%),390px) minmax(0,1fr);gap:24px;align-items:start}
+  .da-colonne-liste{position:sticky;top:76px;max-height:calc(100vh - 96px);overflow:auto}
+  body.da-page .carte{border-radius:var(--da-rayon);padding:22px;box-shadow:var(--da-ombre);margin-bottom:20px}
+  body.da-page .carte h2{font-size:13px;letter-spacing:.05em;margin-bottom:16px}
+  .da-entete>summary{display:flex;align-items:center;gap:10px;font-weight:700;font-size:14px;color:var(--accent)}
+  .da-entete[open]>summary{margin-bottom:6px}
+  body.da-page .da-filtres input,body.da-page .da-filtres select{padding:10px 12px;border-radius:10px;font-size:13px}
+  .da-filtres-plus{flex-basis:100%}
+  .da-filtres-plus>summary{font-size:13px;color:var(--muted);padding:2px 0}
+  .da-filtres-plus>summary::before{content:"＋ "}
+  .da-filtres-plus[open]>summary::before{content:"－ "}
+  .da-filtres-2{margin:8px 0 0}
+  body.da-page .da-liste{gap:8px}
+  body.da-page .da-liste li{gap:12px;padding:12px 14px;border-radius:12px;background:var(--da-surface);transition:transform .12s,border-color .12s}
+  body.da-page .da-liste li:hover{border-color:var(--accent);transform:translateY(-1px)}
+  body.da-page .da-liste li.actif{border-color:var(--accent);box-shadow:0 0 0 2px color-mix(in srgb,var(--accent) 35%,transparent)}
+  .da-icone{font-size:22px;width:42px;height:42px;display:grid;place-items:center;border-radius:10px;background:color-mix(in srgb,var(--accent) 16%,transparent);flex:none}
+  .da-carte-doc{flex:1;min-width:0;display:flex;flex-direction:column;gap:1px}
+  .da-carte-doc .da-titre{font-weight:600;font-size:14px;color:var(--text)}
+  .da-carte-doc .da-meta{font-size:12px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+  .da-badge{font-size:11px;padding:3px 10px}
+  .da-badge::before{content:"●";margin-right:5px;font-size:8px;vertical-align:1px}
+  body.da-page .da-liste li.da-vide{flex-direction:column;text-align:center;gap:6px;padding:30px 16px;border-style:dashed;cursor:default;color:var(--muted);font-size:13px;transform:none}
+  .da-vide strong{font-size:15px;color:var(--text)}
+  .da-vide-ico{font-size:36px}
+  .da-etapes{list-style:none;display:flex;margin:0 0 20px;padding:0;flex-wrap:wrap;row-gap:8px}
+  .da-etapes li{display:flex;align-items:center;gap:8px;font-size:13px;font-weight:600;color:var(--muted);flex:1;min-width:120px}
+  .da-etapes li:last-child{flex:0 0 auto}
+  .da-etapes li:not(:last-child)::after{content:"";flex:1;height:2px;margin:0 12px;background:var(--border);border-radius:2px}
+  .da-etapes li.fait::after{background:var(--accent)}
+  .da-pastille{width:28px;height:28px;border-radius:50%;display:grid;place-items:center;font-size:12px;font-weight:700;border:2px solid var(--border);flex:none}
+  .da-etapes li.actuel{color:var(--text)}
+  .da-etapes li.actuel .da-pastille{border-color:var(--accent);background:var(--accent);color:var(--texte-accent,#000)}
+  .da-etapes li.fait .da-pastille{border-color:var(--accent);background:color-mix(in srgb,var(--accent) 22%,transparent);color:var(--accent)}
+  .da-etapes li.annule{color:var(--danger)}
+  .da-etapes li.annule .da-pastille{border-color:var(--danger);color:var(--danger)}
+  body.da-page .da-bandeau{border-radius:12px;padding:12px 16px;background:color-mix(in srgb,var(--accent) 11%,transparent);border-color:color-mix(in srgb,var(--accent) 32%,var(--border))}
+  body.da-page .champ label{font-size:12px;font-weight:600;text-transform:none;letter-spacing:.01em;margin-bottom:6px}
+  body.da-page input.titre-doc{font-size:20px;font-weight:700;padding:14px 16px;border-radius:12px}
+  body.da-page input.champ-texte,body.da-page textarea,body.da-page .da-ligne-champs select,body.da-page .da-bloc-barre select{border-radius:10px;padding:10px 12px;font-size:14px}
+  body.da-page .da-bloc{border-radius:12px;padding:14px;background:var(--da-surface)}
+  body.da-page .da-ajout button{border-radius:999px;padding:6px 14px;font-size:12px}
+  .da-actions-principales,.da-actions-secondaires{display:flex;gap:8px;flex-wrap:wrap}
+  .da-actions-secondaires{margin-left:auto}
+  body.da-page .da-ruban button{padding:9px 16px;border-radius:10px;font-size:14px}
+  body.da-page .da-ruban button#btn-emettre{padding:9px 22px;font-weight:700}
+  .da-plus{position:relative}
+  .da-plus>summary{padding:10px 14px;border:1px solid var(--border);border-radius:10px;font-size:14px;color:var(--muted)}
+  .da-plus-liste{position:absolute;right:0;top:calc(100% + 8px);min-width:230px;display:flex;flex-direction:column;gap:6px;padding:10px;background:var(--panel);border:1px solid var(--border);border-radius:12px;box-shadow:var(--da-ombre);z-index:6}
+  .da-plus-liste button{width:100%;text-align:left}
+  /* ═════ Deux écrans : la liste des documents, ou UN seul document en plein champ (classe da-edition sur body) ═════ */
+  body:not(.da-edition) .da-colonne-edition{display:none}
+  body:not(.da-edition) .da-espace,body.da-edition .da-espace{grid-template-columns:minmax(0,1fr)}
+  body:not(.da-edition) .da-colonne-liste{position:static;max-height:none;width:100%;max-width:980px;margin:0 auto}
+  body:not(.da-edition) .da-colonne-liste .da-liste{display:grid;grid-template-columns:repeat(auto-fill,minmax(min(290px,100%),1fr))}
+  body.da-edition .da-hero,body.da-edition .da-reglages,body.da-edition .da-colonne-liste{display:none}
+  /* édition : ruban + feuille forment une seule colonne centrée dans la page */
+  body.da-edition .da-espace{justify-items:center}
+  body.da-edition .da-colonne-edition{width:100%;min-width:0;max-width:880px;margin:0 auto}
+  body.da-edition #carte-editeur{width:100%;max-width:880px;margin-left:auto;margin-right:auto;box-sizing:border-box}
+  body.da-edition .da-feuille{width:100%;box-sizing:border-box;max-width:794px;margin-left:auto;margin-right:auto}
+  body.da-edition #apercu-pdf{display:block;margin-left:auto;margin-right:auto;max-width:794px}
+  body.da-page .da-liste li.da-voir-plus{justify-content:center;color:var(--accent);font-size:13px;font-weight:600;border-style:dashed;grid-column:1/-1}
+  /* ═════ Éditeur façon traitement de texte : ruban collant en haut, puis la feuille blanche telle qu'elle s'imprime ═════ */
+  .da-ruban{position:sticky;top:56px;z-index:8;display:flex;flex-direction:column;gap:10px;padding:12px 14px;margin-bottom:16px;border:1px solid var(--border);border-radius:12px;background:color-mix(in srgb,var(--panel) 96%,transparent);backdrop-filter:blur(8px)}
+  .da-ruban-actions{display:flex;align-items:center;gap:8px;flex-wrap:wrap;margin:0}
+  .da-ruban-champs{display:flex;gap:10px;flex-wrap:wrap}
+  .da-ruban-champs .champ{flex:1;min-width:150px}
+  .da-ruban-champs select,.da-ruban-champs input{width:100%}
+  .da-ruban .da-ajout{align-items:center;gap:6px;margin:0}
+  .da-ruban-lib{font-size:12px;font-weight:600;color:var(--muted)}
+  .da-feuille{background:var(--doc-fond,#fff);color:var(--doc-texte,#1a1a1a);max-width:794px;min-height:560px;margin:0 auto;padding:34px 54px 56px;border-radius:3px;box-shadow:0 2px 18px color-mix(in srgb,var(--ombre,#000000) 40%,transparent);font-family:Calibri,"Segoe UI",system-ui,sans-serif}
+  .da-date{text-align:right;font-size:14px;color:var(--fond-releve,#1a1a1a);margin:10px 0}
+  body.da-page .da-feuille input.titre-doc{background:transparent;color:var(--doc-texte-saisie,#111);border:0;border-bottom:1px dashed var(--doc-bordure,#cbd5e1);border-radius:0;text-align:center;text-transform:uppercase;text-decoration:underline;font-size:19px;padding:10px 4px;margin:14px 0 10px}
+  body.da-page .da-feuille .da-bloc{background:transparent;border:1px solid transparent;border-radius:4px;padding:2px 4px;margin-bottom:2px}
+  body.da-page .da-feuille .da-bloc:hover,body.da-page .da-feuille .da-bloc:focus-within{border-color:var(--doc-bordure,#cbd5e1);background:var(--doc-survol,#f8fafc)}
+  body.da-page .da-feuille .da-bloc textarea{background:transparent;color:var(--doc-texte-saisie,#111);border:0;border-radius:0;padding:4px;font:inherit;font-size:14.5px;line-height:1.55;min-height:30px !important;resize:none;overflow:hidden}
+  .da-feuille .da-bloc[data-type=titre] textarea{font-weight:700;font-size:16px}
+  .da-feuille .da-bloc[data-type=sous_titre] textarea{font-weight:700;font-style:italic}
+  .da-feuille .da-bloc[data-type=paragraphe] textarea,.da-feuille .da-bloc[data-type=considerant] textarea,.da-feuille .da-bloc[data-type=article] textarea{text-align:justify}
+  .da-feuille .da-bloc[data-type=destinataire] textarea{margin-left:50%;width:50%}
+  .da-feuille .da-bloc-barre{height:0;opacity:0;overflow:hidden;margin:0;transition:opacity .12s}
+  .da-feuille .da-bloc:hover .da-bloc-barre,.da-feuille .da-bloc:focus-within .da-bloc-barre{height:auto;opacity:1;overflow:visible;margin-bottom:4px}
+  .da-feuille .da-bloc-barre select{background:var(--doc-fond,#fff);color:var(--doc-texte-saisie,#111);border-color:var(--doc-bordure,#cbd5e1)}
+  .da-feuille .da-grille-zone,.da-feuille .da-saut{color:var(--doc-texte-discret,#444)}
+  .da-feuille table.da-grille input{color:var(--doc-texte-saisie,#111)}
+  .da-feuille table.da-grille th,.da-feuille table.da-grille td{border-color:var(--doc-bordure,#cbd5e1)}
+  @media (max-width:900px){.da-ruban{top:48px}.da-feuille{padding:22px 18px 40px}}
+  @media (max-width:900px){
+    body.da-page .layout.da-layout{padding:0 14px;margin-top:16px}
+    .da-espace{grid-template-columns:1fr}
+    .da-colonne-liste{position:static;max-height:none}
+    .da-hero{padding:22px}.da-hero h2{font-size:21px}
+    body.da-page button.da-hero-cta{width:100%}
+    .da-actions-secondaires{margin-left:0}
+  }
+  /* ═════ Synthèses : ce qui s'ajoute à la page des documents administratifs ═════ */
+  .da-badge.finalisee{background:color-mix(in srgb,var(--ok,#22c55e) 18%,transparent);color:var(--ok,#22c55e)}
+  .sy-table-nom{margin-top:8px;font-size:13px}
+  .sy-meta-table{text-align:center;font-size:12px;color:var(--doc-texte-discret,#444);margin:2px 0 10px}
+  .sy-picker{border:1px solid var(--border);border-radius:12px;padding:14px;margin-bottom:16px;background:var(--da-surface,var(--panel))}
+  .sy-picker-tete{display:flex;gap:8px;align-items:center;flex-wrap:wrap;margin-bottom:8px}
+  .sy-picker-tete select{flex:1;min-width:200px;background:var(--fond-noir,#000);color:var(--text);border:1px solid var(--border);border-radius:10px;padding:8px 10px;font:inherit;font-size:13px}
+  #pk-cartes{max-height:60vh;overflow:auto}
+  .sy-carte{border:1px solid var(--border);border-radius:10px;padding:10px 12px;margin-bottom:10px}
+  .sy-carte-titre{font-weight:700;font-size:14px;margin-bottom:6px;overflow-wrap:anywhere}
+  .sy-elem{margin:6px 0}
+  .sy-elem-tete{display:flex;gap:8px;align-items:center;font-size:12px;color:var(--muted);margin-bottom:3px}
+  .sy-apercu{max-height:260px;overflow:auto;border:1px solid var(--border);border-radius:8px;padding:6px 8px;background:#fff;color:#111;font-size:12px;line-height:1.45;overflow-wrap:anywhere}
+  .sy-apercu p{margin:0}
+  .sy-img{max-width:100%;height:auto;display:block;margin:0 auto}
+  table.sy-tab{border-collapse:collapse;width:100%}
+  table.sy-tab th,table.sy-tab td{border:1px solid #cbd5e1;padding:3px 6px;text-align:left;vertical-align:top;font-size:12px;color:#111}
+  table.sy-tab th{background:#eef2f7}
+  .sy-carte-actions{display:flex;gap:8px;flex-wrap:wrap;align-items:center;margin-top:8px}
+  .sy-carte-actions input[type=text]{flex:1;min-width:160px}
+  .sy-etiquette{font-size:12px;font-weight:600;overflow-wrap:anywhere}
+  .sy-legende{display:flex;gap:10px;flex-wrap:wrap;align-items:center;margin-top:6px}
+  .sy-legende input[type=text]{flex:1;min-width:160px}
+  .da-feuille .da-bloc[data-type=analyse]{border-color:var(--doc-bordure,#cbd5e1);margin:6px 0}
+  .da-feuille .da-bloc[data-type=analyse] .sy-apercu{max-height:none}
+  .da-feuille .da-bloc[data-type=commentaire]{border-left:3px solid var(--accent)}
+  .da-feuille .da-bloc[data-type=explication]{background:#eef2f7 !important}
+  .da-feuille .da-bloc[data-type=a_retenir]{border-left:3px solid var(--accent);background:color-mix(in srgb,var(--accent) 12%,#fff) !important}
+  .da-feuille .da-bloc[data-type=commentaire] textarea,.da-feuille .da-bloc[data-type=explication] textarea,.da-feuille .da-bloc[data-type=a_retenir] textarea{text-align:left}
+  .da-feuille .sy-legende input[type=text]{background:transparent;color:var(--doc-texte-saisie,#111);border:0;border-bottom:1px dashed var(--doc-bordure,#cbd5e1);border-radius:0;text-align:center;font-style:italic}
+  .da-feuille .sy-legende .ligne-checkbox{color:var(--doc-texte-discret,#444);font-size:12px}
+</style>
+<script src="{% static 'engine/js/dialogues.js' %}"></script>
+<script src="{% static 'engine/js/colonne_toggle.js' %}" defer></script>
+</head>
+<body class="page-configuration_documents da-page">
+
+<div class="header">{% include "engine/_marque_entete.html" %}
+</div>
+
+<div id="toast"></div>
+
+<div class="layout da-layout">
+
+  <section class="da-hero">
+    <div class="da-hero-texte">
+      <h2>{% t "engine/templates/engine/syntheses.html:hero_titre" %}</h2>
+      <p>{% t "engine/templates/engine/syntheses.html:hero_sous_titre" %}</p>
+      <p class="sy-table-nom">{% t "engine/templates/engine/syntheses.html:table_label" %} <strong>{{ nom_table|default:table.nom }}</strong></p>
+    </div>
+    <button type="button" class="principal da-hero-cta" id="btn-hero-nouveau">＋ {% t "engine/templates/engine/syntheses.html:hero_cta" %}</button>
+  </section>
+
+  <div class="da-espace">
+    <aside class="da-colonne-liste" data-colonne-laterale data-colonne-inverse="da-edition" data-libelle="{% t 'engine/templates/engine/syntheses.html:a:colonne_bascule' %}">
+  <div class="carte">
+    <h2><span class="da-ico">📁</span>{% t "engine/templates/engine/syntheses.html:carte_liste" %}</h2>
+    <div class="da-filtres">
+      <input type="search" id="f-q" maxlength="100" placeholder="{% t 'engine/templates/engine/syntheses.html:a:filtre_q_ph' %}">
+      <select id="f-statut">
+        <option value="">{% t "engine/templates/engine/syntheses.html:filtre_tous_statuts" %}</option>
+        <option value="brouillon"></option><option value="finalisee"></option>
+      </select>
+      <select id="f-archive">
+        <option value="0">{% t "engine/templates/engine/syntheses.html:archives_non" %}</option>
+        <option value="1">{% t "engine/templates/engine/syntheses.html:archives_oui" %}</option>
+        <option value="tout">{% t "engine/templates/engine/syntheses.html:archives_tout" %}</option>
+      </select>
+    </div>
+    <div class="da-pied-liste"><span id="f-total"></span></div>
+    <ul class="da-liste" id="liste-syntheses"></ul>
+    <button type="button" class="principal" id="btn-nouveau">{% t "engine/templates/engine/syntheses.html:nouveau" %}</button>
+  </div>
+    {% include "engine/_retour_table.html" with auto=1 %}
+    </aside>
+    <main class="da-colonne-edition">
+
+  <div class="carte" id="carte-editeur" style="display:none">
+    <h2><span class="da-ico">✍️</span>{% t "engine/templates/engine/syntheses.html:carte_editeur" %}</h2>
+    <ol class="da-etapes" id="da-etapes"></ol>
+    <div class="da-bandeau" id="bandeau-statut" style="display:none"></div>
+    <div class="da-ruban">
+      <div class="da-actions da-ruban-actions">
+        <button type="button" id="btn-retour">{% t "engine/templates/engine/syntheses.html:retour_liste" %}</button>
+        <div class="da-actions-principales">
+          <button type="button" class="principal" id="btn-enregistrer">{% t "engine/templates/engine/syntheses.html:enregistrer" %}</button>
+          <button type="button" class="principal" id="btn-finaliser">{% t "engine/templates/engine/syntheses.html:finaliser" %}</button>
+        </div>
+        <div class="da-actions-secondaires">
+          <button type="button" id="btn-apercu">{% t "engine/templates/engine/syntheses.html:apercu_pdf" %}</button>
+          <button type="button" id="btn-pdf">{% t "engine/templates/engine/syntheses.html:telecharger_pdf" %}</button>
+          <button type="button" id="btn-imprimer">{% t "engine/templates/engine/syntheses.html:imprimer" %}</button>
+          <button type="button" class="danger" id="btn-supprimer">{% t "engine/templates/engine/syntheses.html:supprimer" %}</button>
+        </div>
+        <details class="da-plus" id="da-plus"><summary>{% t "engine/templates/engine/syntheses.html:plus_actions" %}</summary>
+          <div class="da-plus-liste">
+            <button type="button" id="btn-rouvrir" style="display:none">{% t "engine/templates/engine/syntheses.html:rouvrir" %}</button>
+            <button type="button" id="btn-archiver" style="display:none">{% t "engine/templates/engine/syntheses.html:archiver" %}</button>
+          </div>
+        </details>
+      </div>
+      <div class="da-ruban-champs">
+        <div class="champ"><label for="entete-document">{% t "engine/templates/engine/syntheses.html:label_entete" %}</label><select id="entete-document" title="{% t 'engine/templates/engine/syntheses.html:a:aide_entete_choix' %}"></select></div>
+      </div>
+      <div class="da-ajout" id="zone-ajout"><span class="da-ruban-lib">{% t "engine/templates/engine/syntheses.html:ruban_inserer" %}</span></div>
+    </div>
+
+    <div class="sy-picker" id="picker" style="display:none">
+      <div class="sy-picker-tete">
+        <strong>{% t "engine/templates/engine/syntheses.html:picker_titre" %}</strong>
+        <select id="pk-section" aria-label="{% t 'engine/templates/engine/syntheses.html:a:aria_section' %}"></select>
+        <button type="button" class="petit" id="pk-rafraichir">{% t "engine/templates/engine/syntheses.html:picker_rafraichir" %}</button>
+        <button type="button" class="petit" id="pk-fermer">{% t "engine/templates/engine/syntheses.html:picker_fermer" %}</button>
+      </div>
+      <p class="aide" id="pk-aide">{% t "engine/templates/engine/syntheses.html:picker_aide" %}</p>
+      <div id="pk-cartes"></div>
+    </div>
+
+    <div class="da-feuille" id="da-feuille">
+      <div id="apercu-entete"></div>
+      <input type="text" class="titre-doc" id="titre-document" maxlength="200" aria-label="{% t 'engine/templates/engine/syntheses.html:a:label_titre' %}" placeholder="{% t 'engine/templates/engine/syntheses.html:a:ph_titre' %}">
+      <p class="sy-meta-table">{% t "engine/templates/engine/syntheses.html:table_label" %} {{ nom_table|default:table.nom }}</p>
+      <div id="corps-document"></div>
+      <div id="da-sceaux" style="display:flex;flex-wrap:wrap;gap:24px;justify-content:flex-end;align-items:flex-end;margin-top:18px"></div>
+    </div>
+    <p class="aide" style="text-align:center;margin-top:8px"><a class="btn petit" href="/configuration-documents/">{% t "engine/templates/engine/syntheses.html:lien_config" %}</a></p>
+    <p class="aide" id="statut-document"></p>
+    <iframe id="apercu-pdf" title="{% t 'engine/templates/engine/syntheses.html:a:apercu_titre' %}" style="display:none;width:100%;height:80vh;border:1px solid var(--border);border-radius:8px;margin-top:10px;background:var(--voile-clair,#fff)"></iframe>
+  </div>
+    </main>
+  </div>
+
+</div>
+
+{% i18n_js %}
+<script src="{% static 'engine/js/entete_officiel.js' %}"></script>
+<script>
+const CSRF = document.cookie.match(/gy_csrftoken=([^;]+)/)?.[1] || "{{ csrf_token }}";
+const J = (c, v) => tj("engine/templates/engine/syntheses.html:js:" + c, v);
+function toast(msg, err=false){
+  const t = document.getElementById("toast");
+  t.textContent = msg; t.className = err ? "err" : "";
+  t.style.display = "block";
+  clearTimeout(t._t);
+  t._t = setTimeout(() => t.style.display = "none", 3500);
+}
+const esc = s => String(s == null ? "" : s).replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;").replace(/"/g,"&quot;");
+const $ = id => document.getElementById(id);
+async function api(url, opts={}){
+  const res = await fetch(url, {headers:{"Content-Type":"application/json","X-CSRFToken":CSRF}, ...opts});
+  const data = await res.json().catch(() => ({}));
+  if (!res.ok){ toast(data.erreur || J("erreur_http", {v1: res.status}), true); throw data; }
+  return data;
+}
+/* Lecture silencieuse : l'entête, le cachet et les signatures ne servent qu'à l'aperçu à l'écran (le PDF fait foi) ; un refus n'est pas une erreur. */
+async function lire(url){ try { const r = await fetch(url, {headers:{"X-CSRFToken":CSRF}}); return r.ok ? await r.json() : null; } catch(e){ return null; } }
+
+const TABLE_ID = {{ table.id }};
+const URL_SYN = `/api/tables/${TABLE_ID}/syntheses/`;
+const TYPES_TEXTE = ["paragraphe", "titre", "sous_titre", "commentaire", "explication", "a_retenir", "liste", "tableau", "saut_page"];
+const TYPES_BLOCS = TYPES_TEXTE.map(v => [v, J("type_" + v)]);
+const PH_BLOCS = {tableau: "ph_tableau", liste: "ph_liste", commentaire: "ph_commentaire", explication: "ph_explication", a_retenir: "ph_a_retenir"};
+const LIGNES_BLOCS = {paragraphe: 5, commentaire: 4, explication: 4, a_retenir: 3, liste: 4, tableau: 4};
+const GENRES = {texte: "genre_texte", tableau: "genre_tableau", graphique: "genre_graphique", autre: "genre_autre"};
+
+let syntheses = [];
+let nbAffiches = 10;
+let courant = null;      // {id | null, titre, corps, statut, modele_entete, archive, peut_agir, finalisee_le, auteur}
+let modifie = false;
+let ENTETES = [];        // modèles d'entête de l'entreprise (nom, défaut)
+let MODELES = [];        // leurs lignes (aperçu à l'écran seulement)
+let PERSO = null, REGLAGES = null, CFG = null, logoUrl = null;
+let LIM = {lignes: 12, texte: 160};
+let SECTIONS = null;     // types d'analyse [{id, libelle}]
+const CATALOGUE = {};    // section -> promesse {cartes, erreur?} (le serveur garde aussi un cache de quelques minutes)
+
+function marquerModifie(v){
+  modifie = v;
+  $("statut-document").textContent = v ? J("non_enregistre") : "";
+}
+const gardeNavigation = GY.garderNavigation(() => modifie, {message: () => J("confirmer_abandon"), ignorer: u => new URL(u, location.href).pathname.indexOf("/api/") === 0});
+async function confirmerAbandon(){ return !modifie || await GY.confirmer(J("confirmer_abandon")); }
+
+const brouillon = () => !courant || !courant.id || courant.statut === "brouillon";
+const modifiable = () => brouillon() && (!courant || !courant.id || courant.peut_agir);
+const libelleSection = id => ((SECTIONS || []).find(s => s.id === id) || {}).libelle || id;
+const titreCarte = cle => String(cle || "").replace(/#\d+$/, "");
+
+// ── En-tête, cachet et signatures (aperçu) ──
+const modeleParDefaut = () => ENTETES.find(m => m.par_defaut) || null;
+function majSceaux(){
+  const zone = $("da-sceaux");
+  zone.innerHTML = "";
+  if (!CFG) return;
+  const bloc = (url, nom, fonction) => zone.insertAdjacentHTML("beforeend", `<div style="text-align:center;font-size:12px">${url ? `<img src="${esc(url)}" alt="" style="max-height:80px;max-width:160px;display:block;margin:0 auto 2px">` : ""}<b>${esc(nom || "")}</b>${fonction ? `<br>${esc(fonction)}` : ""}</div>`);
+  if (CFG.afficher_cachet_document && CFG.cachet_image_actif_url) bloc(CFG.cachet_image_actif_url, "", "");
+  if (CFG.afficher_signatures_document) (CFG.signatures || []).filter(s => s.actif && s.image_url && (!s.types_document.length || s.types_document.includes("synthese"))).forEach(s => bloc(s.image_url, s.nom, s.fonction));
+}
+function majApercuEntete(){
+  const zone = $("apercu-entete");
+  if (!window.EnteteOfficiel) return;
+  const id = (courant && courant.modele_entete) || (modeleParDefaut() || {}).id;
+  const lignes = MODELES.find(m => m.id === id) || null;
+  const fusion = (a, b) => (a || []).concat(b || []).slice(0, LIM.lignes);
+  EnteteOfficiel.monterApercu(zone, fusion(lignes && lignes.lignes_gauche, PERSO && PERSO.gauche), fusion(lignes && lignes.lignes_droite, PERSO && PERSO.droite), logoUrl,
+                              REGLAGES && REGLAGES.entetes_actifs && REGLAGES.numerotation_active ? REGLAGES.exemple : "");
+  majSceaux();
+}
+function remplirEntete(){
+  const sel = $("entete-document"), defaut = modeleParDefaut();
+  sel.innerHTML = "";
+  sel.add(new Option(J("entete_defaut") + (defaut ? " (" + defaut.nom + ")" : ""), ""));
+  ENTETES.forEach(m => sel.add(new Option(m.nom, String(m.id))));
+  const v = courant && courant.modele_entete;
+  sel.value = v && ENTETES.some(m => m.id === v) ? String(v) : "";
+}
+async function chargerEntetes(){
+  const e = await api(URL_SYN + "entetes/");
+  ENTETES = e.entetes || [];
+  const [m, off, cfg] = await Promise.all([lire("/api/documents-administratifs/modeles-entete/"), lire("/api/entete-officiel/"), lire("/api/configuration-documents/courrier/")]);
+  if (m){ MODELES = m.modeles || []; if (m.limites) LIM = m.limites; }
+  if (off){ PERSO = off.perso || null; REGLAGES = off.reglages || null; }
+  if (cfg){ CFG = cfg; logoUrl = cfg.afficher_logo_document ? cfg.logo_url : null; }
+  if (courant && courant.modele_entete && !ENTETES.some(x => x.id === courant.modele_entete)) courant.modele_entete = null;
+  remplirEntete(); majApercuEntete();
+}
+
+// ── Catalogue des analyses (ce que le moteur a déjà calculé pour la table) ──
+async function chargerSections(){
+  if (SECTIONS) return SECTIONS;
+  try { SECTIONS = (await api(URL_SYN + "catalogue/")).sections || []; } catch(e){ SECTIONS = null; return []; }
+  return SECTIONS;
+}
+function chargerSection(section, forcer){
+  if (forcer || !CATALOGUE[section]){
+    CATALOGUE[section] = api(`${URL_SYN}catalogue/?section=${encodeURIComponent(section)}${forcer ? "&rafraichir=1" : ""}`).catch(() => { delete CATALOGUE[section]; return {cartes: [], erreur: J("section_erreur")}; });
+  }
+  return CATALOGUE[section];
+}
+function urlImage(section, carte, element){
+  return `${URL_SYN}catalogue/image/?section=${encodeURIComponent(section)}&carte=${encodeURIComponent(carte)}&element=${encodeURIComponent(element)}`;
+}
+function apercuHtml(section, carte, e){
+  const a = e.apercu || {};
+  if (e.genre === "texte") return `<p>${esc(a.texte || "")}</p>`;
+  if (e.genre === "tableau"){
+    const l = a.lignes || [];
+    const rangs = l.map((r, i) => `<tr>${r.map(c => i ? `<td>${esc(c)}</td>` : `<th>${esc(c)}</th>`).join("")}</tr>`).join("");
+    return `<div class="da-grille-defil"><table class="sy-tab">${rangs}</table></div>` + (a.nb_lignes > l.length ? `<p class="aide">${esc(J("tableau_suite", {v1: a.nb_lignes}))}</p>` : "");
+  }
+  if (e.genre === "graphique") return a.image ? `<img class="sy-img" loading="lazy" alt="" src="${esc(urlImage(section, carte, e.id))}">` : `<p class="aide">${esc(J("graphique_composite"))}</p>`;
+  return `<p class="aide">${esc(J("element_autre"))}</p>`;
+}
+/* Cases à cocher des éléments d'une carte : `choisis` = liste d'identifiants ([] = tous). Retourne la liste à stocker ([] si tout est coché). */
+function elementsHtml(section, carte, choisis, editable){
+  return carte.elements.map(e => `
+    <div class="sy-elem">
+      <label class="sy-elem-tete"><input type="checkbox" data-id="${esc(e.id)}" ${(!choisis.length || choisis.includes(e.id)) ? "checked" : ""} ${editable ? "" : "disabled"}> ${esc(J(GENRES[e.genre] || "genre_autre"))}</label>
+      <div class="sy-apercu">${apercuHtml(section, carte.cle, e)}</div>
+    </div>`).join("");
+}
+function lireCoches(zone){
+  const cases = [...zone.querySelectorAll("input[type=checkbox][data-id]")], on = cases.filter(c => c.checked).map(c => c.dataset.id);
+  return {tous: on.length === cases.length, ids: on, cases};
+}
+
+// ── Liste ──
+function parametresFiltres(){
+  const p = new URLSearchParams();
+  [["q", "f-q"], ["statut", "f-statut"], ["archive", "f-archive"]].forEach(([cle, id]) => { const v = $(id).value.trim(); if (v) p.set(cle, v); });
+  return p;
+}
+async function chargerListe(){
+  const res = await api(URL_SYN + "?" + parametresFiltres().toString());
+  syntheses = res.syntheses || [];
+  $("f-total").textContent = J("total", {v1: res.total != null ? res.total : syntheses.length});
+  rendreListe();
+}
+let minuterieFiltres = null;
+function filtresChanges(){ nbAffiches = 10; clearTimeout(minuterieFiltres); minuterieFiltres = setTimeout(() => chargerListe().catch(() => {}), 300); }
+["f-q", "f-statut", "f-archive"].forEach(id => {
+  const el = $(id);
+  el.addEventListener(el.tagName === "INPUT" ? "input" : "change", filtresChanges);
+});
+["brouillon", "finalisee"].forEach(v => { document.querySelector(`#f-statut option[value="${v}"]`).textContent = J("statut_" + v); });
+function rendreListe(){
+  const ul = $("liste-syntheses");
+  if (!syntheses.length){
+    ul.innerHTML = `<li class="da-vide"><span class="da-vide-ico">📝</span><strong>${esc(J("vide_titre"))}</strong><span>${esc(J("vide_texte"))}</span></li>`;
+    return;
+  }
+  ul.innerHTML = syntheses.slice(0, nbAffiches).map(s => `
+    <li data-id="${s.id}" class="${courant && courant.id === s.id ? "actif" : ""}">
+      <span class="da-icone">${s.statut === "finalisee" ? "🔒" : "📝"}</span>
+      <div class="da-carte-doc">
+        <span class="da-titre">${esc(s.titre || J("sans_titre"))}</span>
+        <span class="da-meta">${esc((s.modifie_le || "").slice(0, 10))}${s.auteur ? " · " + esc(s.auteur) : ""} · ${esc(J("nb_blocs", {v1: s.nb_blocs}))}${s.archive ? " · 📦 " + esc(J("archive_marque")) : ""}</span>
+      </div>
+      <span class="da-badge ${esc(s.statut)}">${esc(J("statut_" + s.statut))}</span>
+    </li>`).join("") + (syntheses.length > nbAffiches ? `<li class="da-voir-plus">${esc(J("voir_plus", {v1: syntheses.length - nbAffiches}))}</li>` : "");
+  const plus = ul.querySelector(".da-voir-plus"); if (plus) plus.onclick = () => { nbAffiches += 10; rendreListe(); };
+  ul.querySelectorAll("li[data-id]").forEach(li => li.onclick = async () => await ouvrir(Number(li.dataset.id)));
+}
+async function retourListe(){
+  if (!await confirmerAbandon()) return;
+  courant = null; marquerModifie(false); masquerApercu(); fermerPicker();
+  $("carte-editeur").style.display = "none";
+  document.body.classList.remove("da-edition");
+  await chargerListe();
+}
+
+// ── Éditeur ──
+function depuisServeur(d){
+  return {id: d.id, titre: d.titre || "", statut: d.statut || "brouillon", modele_entete: d.modele_entete || null, archive: !!d.archive,
+          peut_agir: d.peut_agir !== false, finalisee_le: d.finalisee_le || "", auteur: d.auteur || "",
+          corps: (d.corps && d.corps.length) ? d.corps : [{type: "paragraphe", texte: ""}]};
+}
+function rendreEtapes(){
+  const fin = courant.statut === "finalisee", etapes = ["brouillon", "finalisee"];
+  $("da-etapes").innerHTML = etapes.map((e, i) => {
+    const etat = fin ? "fait" : (i === 0 ? "actuel" : "");
+    return `<li class="${etat}"><span class="da-pastille">${etat === "fait" ? "✓" : i + 1}</span><span>${esc(J("etape_" + e))}</span></li>`;
+  }).join("");
+}
+function afficherEditeur(){
+  $("carte-editeur").style.display = "block";
+  if (!document.body.classList.contains("da-edition")){
+    document.body.classList.add("da-edition"); $("corps-document")._actif = null; window.scrollTo(0, 0);
+  }
+  $("titre-document").value = courant.titre || "";
+  remplirEntete();
+  const fige = !modifiable(), existe = !!courant.id, fin = courant.statut === "finalisee";
+  [$("titre-document"), $("entete-document")].forEach(x => x.disabled = fige);
+  const montrer = (id, v) => $(id).style.display = v ? "" : "none";
+  montrer("zone-ajout", !fige);
+  if (fige) fermerPicker();
+  montrer("btn-enregistrer", !fige);
+  montrer("btn-finaliser", existe && !fige);
+  montrer("btn-supprimer", existe && !fige);
+  montrer("btn-rouvrir", fin && courant.peut_agir);
+  montrer("btn-archiver", existe && courant.peut_agir);
+  $("btn-archiver").textContent = courant.archive ? J("desarchiver") : J("archiver");
+  const plus = $("da-plus");
+  plus.open = false;
+  plus.style.display = [...plus.querySelectorAll("button")].some(b => b.style.display !== "none") ? "" : "none";
+  rendreEtapes(); majApercuEntete(); masquerApercu();
+  const bandeau = $("bandeau-statut");
+  bandeau.style.display = existe ? "" : "none";
+  bandeau.innerHTML = !existe ? "" : fin
+    ? `${esc(J("bandeau_finalisee", {v1: (courant.finalisee_le || "").slice(0, 10)}))} ${esc(J("bandeau_fige"))}`
+    : esc(J("bandeau_brouillon"));
+  rendreCorps(); marquerModifie(false); rendreListe();
+}
+function nouvelle(){
+  courant = depuisServeur({id: null, titre: "", corps: []});
+  afficherEditeur();
+  $("titre-document").focus();
+}
+async function nouvelleSynthese(){
+  if (!await confirmerAbandon()) return;
+  nouvelle();
+}
+async function ouvrir(id){
+  if (courant && courant.id === id) return;
+  if (!await confirmerAbandon()) return;
+  courant = depuisServeur(await api(`${URL_SYN}${id}/`));
+  afficherEditeur();
+  if (window.innerWidth < 900) $("carte-editeur").scrollIntoView({behavior: "smooth", block: "start"});
+}
+function rendreCorps(){ rendreBlocs($("corps-document"), courant.corps, modifiable(), () => marquerModifie(true)); }
+function ajuster(z){ if (z.scrollHeight){ z.style.height = "auto"; z.style.height = z.scrollHeight + "px"; } }
+
+/* Éditeur de blocs : texte {type, texte} ou analyse {type: "analyse", section, carte, elements, legende, avec_titre}. */
+function rendreBlocs(zone, corps, editable, surChangement){
+  zone.innerHTML = "";
+  const rerendre = () => rendreBlocs(zone, corps, editable, surChangement);
+  const fleches = `<span class="espace"></span><button type="button" class="petit" data-a="haut">↑</button><button type="button" class="petit" data-a="bas">↓</button><button type="button" class="petit danger" data-a="suppr">✕</button>`;
+  corps.forEach((b, i) => {
+    const el = document.createElement("div");
+    el.className = "da-bloc"; el.dataset.type = b.type;
+    el.addEventListener("focusin", () => { zone._actif = i; });
+    let zoneTexte = null;
+    if (b.type === "analyse"){
+      el.innerHTML = `
+        <div class="da-bloc-barre"><span class="sy-etiquette">📊 ${esc(libelleSection(b.section))} — ${esc(titreCarte(b.carte))}</span>${fleches}</div>
+        <div class="sy-contenu"><p class="aide">${esc(J("chargement"))}</p></div>
+        <div class="sy-legende"><input type="text" class="champ-texte" maxlength="300" placeholder="${esc(J("ph_legende"))}" value="${esc(b.legende || "")}">
+          <label class="ligne-checkbox"><input type="checkbox" ${b.avec_titre === false ? "" : "checked"}> ${esc(J("avec_titre"))}</label></div>`;
+      const contenu = el.querySelector(".sy-contenu"), legende = el.querySelector(".sy-legende input[type=text]"), titre = el.querySelector(".sy-legende input[type=checkbox]");
+      legende.disabled = titre.disabled = !editable;
+      legende.oninput = () => { b.legende = legende.value; surChangement(); };
+      titre.onchange = () => { b.avec_titre = titre.checked; surChangement(); };
+      chargerSection(b.section).then(data => {
+        const carte = (data.cartes || []).find(c => c.cle === b.carte);
+        if (!carte){ contenu.innerHTML = `<p class="aide">${esc(J("analyse_absente"))}</p>`; return; }
+        contenu.innerHTML = elementsHtml(b.section, carte, b.elements || [], editable);
+        contenu.querySelectorAll("input[type=checkbox][data-id]").forEach(c => c.onchange = () => {
+          const r = lireCoches(contenu);
+          if (!r.ids.length){ c.checked = true; toast(J("au_moins_un"), true); return; }
+          b.elements = r.tous ? [] : r.ids; surChangement();
+        });
+      });
+    } else {
+      const saut = b.type === "saut_page", grille = b.type === "tableau", lignes = LIGNES_BLOCS[b.type] || 1;
+      el.innerHTML = `
+        <div class="da-bloc-barre">
+          <select>${TYPES_BLOCS.map(([v, l]) => `<option value="${v}">${esc(l)}</option>`).join("")}</select>
+          ${(saut || grille) ? "" : `<span class="mise-forme">
+            <button type="button" class="petit" data-f="**" title="${esc(J("gras"))}"><b>G</b></button>
+            <button type="button" class="petit" data-f="*" title="${esc(J("italique"))}"><i>I</i></button>
+            <button type="button" class="petit" data-f="__" title="${esc(J("souligne"))}"><u>S</u></button></span>`}
+          ${fleches}
+        </div>
+        ${saut ? `<div class="da-saut">${esc(J("saut_page_libelle"))}</div>`
+               : grille ? `<div class="da-grille-zone"></div>`
+               : `<textarea rows="${lignes}" style="min-height:${lignes > 1 ? 18 * lignes + 14 : 40}px" placeholder="${esc(J(PH_BLOCS[b.type] || "ph_bloc"))}">${esc(b.texte)}</textarea>`}`;
+      const sel = el.querySelector("select");
+      sel.value = b.type;
+      zoneTexte = el.querySelector("textarea");
+      if (!editable){ el.querySelectorAll("select,button").forEach(x => x.disabled = true); if (zoneTexte) zoneTexte.disabled = true; }
+      const zoneGrille = el.querySelector(".da-grille-zone");
+      if (zoneGrille) monterGrille(zoneGrille, b, editable, surChangement);
+      sel.onchange = () => { b.type = sel.value; if (b.type === "saut_page") b.texte = ""; surChangement(); rerendre(); };
+      if (zoneTexte){
+        zoneTexte.oninput = ev => { b.texte = ev.target.value; ajuster(zoneTexte); surChangement(); };
+        zoneTexte.onkeydown = ev => {      // Entrée en fin de bloc = nouveau paragraphe ; Retour arrière sur un bloc vide = on le retire
+          const aller = n => { const z = zone.querySelectorAll(".da-bloc")[n]; if (z && z.querySelector("textarea")) z.querySelector("textarea").focus(); };
+          if (ev.key === "Enter" && !ev.shiftKey && b.type !== "liste" && zoneTexte.selectionStart === zoneTexte.value.length){
+            ev.preventDefault(); corps.splice(i + 1, 0, {type: "paragraphe", texte: ""}); surChangement(); rerendre(); aller(i + 1);
+          } else if (ev.key === "Backspace" && !zoneTexte.value && corps.length > 1){
+            ev.preventDefault(); corps.splice(i, 1); surChangement(); rerendre(); aller(Math.max(0, i - 1));
+          }
+        };
+      }
+      el.querySelectorAll("button[data-f]").forEach(btn => btn.onclick = () => {      // entoure la sélection de **…**, *…* ou __…__
+        const m = btn.dataset.f, d = zoneTexte.selectionStart, f = zoneTexte.selectionEnd;
+        zoneTexte.setRangeText(m + zoneTexte.value.slice(d, f) + m, d, f, "select");
+        b.texte = zoneTexte.value; surChangement(); zoneTexte.focus();
+      });
+    }
+    if (b.type === "analyse" && !editable) el.querySelectorAll("button").forEach(x => x.disabled = true);
+    el.querySelectorAll("button[data-a]").forEach(btn => btn.onclick = () => {
+      const a = btn.dataset.a;
+      if (a === "haut" && i > 0) [corps[i-1], corps[i]] = [corps[i], corps[i-1]];
+      else if (a === "bas" && i < corps.length - 1) [corps[i+1], corps[i]] = [corps[i], corps[i+1]];
+      else if (a === "suppr") corps.splice(i, 1);
+      else return;
+      surChangement(); rerendre();
+    });
+    zone.appendChild(el);
+    if (zoneTexte) ajuster(zoneTexte);
+  });
+  if (!corps.length) zone.innerHTML = `<p class="aide">${esc(J("corps_vide"))}</p>`;
+}
+/* Bloc « tableau » : vraie grille (1re ligne = en-tête) ; stocké en texte, une ligne par rangée, cellules séparées par « | ». */
+function monterGrille(zone, b, editable, surChangement){
+  let lignes = (b.texte || "").split("\n").filter(x => x.trim()).map(x => x.split("|").map(c => c.trim()));
+  if (!lignes.length) lignes = [["", "", ""], ["", "", ""], ["", "", ""]];
+  const n = Math.max(1, ...lignes.map(r => r.length));
+  lignes = lignes.map(r => r.concat(Array(n - r.length).fill("")));
+  const ecrire = () => { b.texte = lignes.map(r => r.join(" | ")).join("\n"); surChangement(); };
+  const dessiner = () => {
+    zone.innerHTML = "";
+    const tbl = document.createElement("table"); tbl.className = "da-grille";
+    lignes.forEach((r, i) => {
+      const tr = document.createElement("tr");
+      r.forEach((c, j) => {
+        const td = document.createElement(i === 0 ? "th" : "td"), inp = document.createElement("input");
+        inp.type = "text"; inp.value = c; inp.disabled = !editable;
+        inp.oninput = () => { lignes[i][j] = inp.value.replace(/[|\n]/g, " "); ecrire(); };
+        td.appendChild(inp); tr.appendChild(td);
+      });
+      if (editable && lignes.length > 1){
+        const td = document.createElement("td"), x = document.createElement("button");
+        x.type = "button"; x.className = "petit danger"; x.textContent = "✕"; x.title = J("tab_suppr_ligne");
+        x.onclick = () => { lignes.splice(i, 1); ecrire(); dessiner(); };
+        td.appendChild(x); tr.appendChild(td);
+      }
+      tbl.appendChild(tr);
+    });
+    const defil = document.createElement("div"); defil.className = "da-grille-defil"; defil.appendChild(tbl); zone.appendChild(defil);
+    if (!editable) return;
+    const barre = document.createElement("div"); barre.className = "da-grille-barre";
+    [["tab_ajout_ligne", () => lignes.push(Array(lignes[0].length).fill(""))],
+     ["tab_ajout_colonne", () => lignes.forEach(r => r.push(""))],
+     ["tab_suppr_colonne", () => { if (lignes[0].length > 1) lignes.forEach(r => r.pop()); }]].forEach(([cle, action]) => {
+      const btn = document.createElement("button"); btn.type = "button"; btn.className = "petit"; btn.textContent = J(cle);
+      btn.onclick = () => { action(); ecrire(); dessiner(); };
+      barre.appendChild(btn);
+    });
+    zone.appendChild(barre);
+  };
+  dessiner();
+}
+/* Insère un bloc juste après celui qui a le focus (ou en fin de corps). */
+function insererBloc(bloc){
+  const zone = $("corps-document"), corps = courant && courant.corps;
+  if (!corps || !modifiable()) return -1;
+  const pos = zone._actif != null && zone._actif < corps.length ? zone._actif + 1 : corps.length;
+  corps.splice(pos, 0, bloc); zone._actif = pos;
+  marquerModifie(true); rendreCorps();
+  return pos;
+}
+(function monterBoutons(){
+  const zone = $("zone-ajout");
+  TYPES_BLOCS.forEach(([v, libelle]) => {
+    const btn = document.createElement("button");
+    btn.type = "button"; btn.className = "petit"; btn.textContent = "+ " + libelle;
+    btn.onclick = async () => {
+      let texte = "";
+      if (v === "tableau"){      // taille choisie d'emblée : colonnes x lignes (la 1re ligne sert d'en-tête)
+        const r = await GY.demander(J("tab_dimensions"), "3 x 4");
+        if (r === null) return;
+        const m = /(\d+)\D+(\d+)/.exec(r), col = Math.min(8, Math.max(2, m ? +m[1] : 3)), lig = Math.min(50, Math.max(1, m ? +m[2] : 4));
+        texte = Array(lig).fill(Array(col).fill("").join(" | ")).join("\n");
+      }
+      const pos = insererBloc({type: v, texte});
+      const cible = pos >= 0 && $("corps-document").querySelectorAll(".da-bloc")[pos], champ = cible && cible.querySelector("textarea,input");
+      if (v !== "saut_page" && champ) champ.focus();
+    };
+    zone.appendChild(btn);
+  });
+  const analyse = document.createElement("button");
+  analyse.type = "button"; analyse.className = "petit principal"; analyse.textContent = "📊 " + J("inserer_analyse");
+  analyse.onclick = ouvrirPicker;
+  zone.appendChild(analyse);
+})();
+
+// ── Sélecteur d'analyse : type d'analyse -> cartes (commentaire, tableau, graphique…) à placer dans la synthèse ──
+function fermerPicker(){ $("picker").style.display = "none"; }
+async function ouvrirPicker(){
+  if (!modifiable()) return;
+  $("picker").style.display = "block";
+  $("picker").scrollIntoView({behavior: "smooth", block: "nearest"});
+  const sel = $("pk-section");
+  if (sel.options.length) return;
+  const sections = await chargerSections();
+  sel.innerHTML = "";
+  sel.add(new Option(J("picker_choisir"), ""));
+  sections.forEach(s => sel.add(new Option(s.libelle, s.id)));
+}
+async function chargerCartesPicker(forcer){
+  const section = $("pk-section").value, zone = $("pk-cartes");
+  if (!section){ zone.innerHTML = ""; $("pk-aide").textContent = J("picker_aide"); return; }
+  zone.innerHTML = `<p class="aide">${esc(J("chargement"))}</p>`;
+  const data = await chargerSection(section, forcer);
+  if (section !== $("pk-section").value) return;       // un autre type d'analyse a été choisi pendant le calcul
+  const cartes = data.cartes || [];
+  $("pk-aide").textContent = data.erreur || (cartes.length ? J("picker_aide_cartes") : J("aucune_carte"));
+  zone.innerHTML = "";
+  cartes.forEach(c => {
+    const div = document.createElement("div");
+    div.className = "sy-carte";
+    div.innerHTML = `<div class="sy-carte-titre">${esc(c.titre)}</div><div class="sy-elems">${elementsHtml(section, c, [], true)}</div>
+      <div class="sy-carte-actions"><input type="text" class="champ-texte" maxlength="300" placeholder="${esc(J("ph_legende"))}">
+        <label class="ligne-checkbox"><input type="checkbox" class="pk-titre" checked> ${esc(J("avec_titre"))}</label>
+        <button type="button" class="principal petit">${esc(J("inserer"))}</button></div>`;
+    div.querySelectorAll(".sy-elems input[type=checkbox]").forEach(x => x.onchange = () => { if (!lireCoches(div.querySelector(".sy-elems")).ids.length){ x.checked = true; toast(J("au_moins_un"), true); } });
+    div.querySelector("button.principal").onclick = () => {
+      const r = lireCoches(div.querySelector(".sy-elems"));
+      if (insererBloc({type: "analyse", section, carte: c.cle, elements: r.tous ? [] : r.ids, legende: div.querySelector("input[type=text]").value, avec_titre: div.querySelector(".pk-titre").checked}) >= 0) toast(J("analyse_inseree"));
+    };
+    zone.appendChild(div);
+  });
+}
+$("pk-section").onchange = () => chargerCartesPicker(false);
+$("pk-rafraichir").onclick = () => { if ($("pk-section").value) chargerCartesPicker(true); };
+$("pk-fermer").onclick = fermerPicker;
+
+$("titre-document").oninput = ev => { if (courant){ courant.titre = ev.target.value; marquerModifie(true); } };
+$("entete-document").onchange = ev => { if (courant){ courant.modele_entete = ev.target.value ? Number(ev.target.value) : null; marquerModifie(true); majApercuEntete(); } };
+
+// ── Actions ──
+const corpsNonVide = corps => corps.filter(b => b.type === "saut_page" || b.type === "analyse" || (b.type === "tableau" ? (b.texte || "").replace(/[|\s]/g, "") : (b.texte || "").trim()));
+async function enregistrer(){
+  if (!courant) return null;
+  if (!modifiable()) return courant;      // finalisée : rien à enregistrer
+  const charge = JSON.stringify({titre: courant.titre, corps: corpsNonVide(courant.corps), modele_entete: courant.modele_entete || ""});
+  const d = courant.id
+    ? await api(`${URL_SYN}${courant.id}/`, {method: "PUT", body: charge})
+    : await api(URL_SYN, {method: "POST", body: charge});
+  courant = depuisServeur(d);
+  afficherEditeur();
+  await chargerListe();
+  return d;
+}
+function masquerApercu(){
+  const cadre = $("apercu-pdf");
+  cadre.style.display = "none"; cadre.removeAttribute("src");
+}
+$("btn-nouveau").onclick = nouvelleSynthese;
+$("btn-retour").onclick = retourListe;
+$("btn-hero-nouveau").onclick = async () => { await nouvelleSynthese(); $("carte-editeur").scrollIntoView({behavior: "smooth", block: "start"}); };
+$("btn-enregistrer").onclick = async () => { try { await enregistrer(); toast(J("enregistre")); } catch(e){} };
+$("btn-pdf").onclick = async () => {
+  try {
+    const d = await enregistrer();      // le PDF reflète toujours ce qui est à l'écran
+    if (d){ gardeNavigation.liberer(); window.location.href = `${URL_SYN}${d.id}/pdf/`; }
+  } catch(e){}
+};
+$("btn-imprimer").onclick = async () => {
+  try {
+    const d = await enregistrer();
+    if (!d) return;
+    const cadre = $("apercu-pdf");
+    cadre.onload = () => { cadre.onload = null; try { cadre.contentWindow.focus(); cadre.contentWindow.print(); } catch(e){ window.open(`${URL_SYN}${d.id}/pdf/?apercu=1`, "_blank"); } };
+    cadre.src = `${URL_SYN}${d.id}/pdf/?apercu=1&t=${Date.now()}`;
+    cadre.style.display = "block";
+  } catch(e){}
+};
+$("btn-apercu").onclick = async () => {
+  try {
+    const d = await enregistrer();      // l'aperçu reflète toujours ce qui est à l'écran
+    if (!d) return;
+    const cadre = $("apercu-pdf");
+    cadre.src = `${URL_SYN}${d.id}/pdf/?apercu=1&t=${Date.now()}`;
+    cadre.style.display = "block"; cadre.scrollIntoView({behavior: "smooth", block: "start"});
+  } catch(e){}
+};
+$("btn-supprimer").onclick = async () => {
+  if (!courant || !courant.id) return;
+  if (!await GY.confirmer(J("confirmer_suppression"))) return;
+  try {
+    await api(`${URL_SYN}${courant.id}/`, {method: "DELETE"});
+    masquerApercu(); fermerPicker();
+    courant = null; marquerModifie(false);
+    $("carte-editeur").style.display = "none"; document.body.classList.remove("da-edition");
+    await chargerListe();
+    toast(J("supprime"));
+  } catch(e){}
+};
+$("btn-finaliser").onclick = async () => {
+  if (!courant) return;
+  try {
+    const d = await enregistrer();
+    if (!d) return;
+    if (!courant.corps.length || !corpsNonVide(courant.corps).length){ toast(J("vide_erreur"), true); return; }
+    if (!await GY.confirmer(J("confirmer_finalisation"))) return;
+    courant = depuisServeur(await api(`${URL_SYN}${d.id}/finaliser/`, {method: "POST", body: "{}"}));
+    afficherEditeur(); await chargerListe();
+    toast(J("finalise_ok"));
+  } catch(e){}
+};
+$("btn-rouvrir").onclick = async () => {
+  if (!courant || !courant.id || !await GY.confirmer(J("confirmer_reouverture"))) return;
+  try {
+    courant = depuisServeur(await api(`${URL_SYN}${courant.id}/rouvrir/`, {method: "POST", body: "{}"}));
+    afficherEditeur(); await chargerListe();
+    toast(J("rouvert_ok"));
+  } catch(e){}
+};
+$("btn-archiver").onclick = async () => {
+  if (!courant || !courant.id) return;
+  const archiver = !courant.archive;
+  try {
+    courant = depuisServeur(await api(`${URL_SYN}${courant.id}/archiver/`, {method: "POST", body: JSON.stringify({archive: archiver})}));
+    afficherEditeur(); await chargerListe();
+    toast(J(archiver ? "archive_ok" : "desarchive_ok"));
+  } catch(e){}
+};
+
+// ── Démarrage ──
+(async function demarrer(){
+  try {
+    await Promise.all([chargerListe(), chargerEntetes(), chargerSections()]);
+    if (courant) rendreCorps();      // les libellés des types d'analyse arrivent après le premier affichage
+  } catch(e){ console.error("syntheses:", e); }
+})();
+</script>
+</body>
+</html>

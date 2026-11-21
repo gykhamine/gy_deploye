@@ -34,6 +34,7 @@ GROUPES = [
         ("statistiques", "🧮", "statistiques", "/tables/{id}/statistiques/"),
         ("anova", "📐", "anova", "/tables/{id}/anova/"),
         ("analyse_factorielle", "🧭", "analyse_factorielle", "/tables/{id}/analyse-factorielle/"),
+        ("syntheses", "📝", "syntheses", "/tables/{id}/syntheses/"),
         ("series_temporelles", "📉", "series_temporelles", "/tables/{id}/series-temporelles/"),
         ("analyse_media", "🎞️", "analyse_media", "/tables/{id}/analyse-media/"),
         ("geolocalisation", "🌍", "geolocalisation", "/tables/{id}/geolocalisation/"),

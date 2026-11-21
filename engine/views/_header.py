@@ -68,6 +68,7 @@ VUES_DISPONIBLES = [
     ("analyse_media", tl("engine/views_analyse_media.py:titre")),
     ("anova", "ANOVA"),
     ("analyse_factorielle", _gtfr("engine/views/_header.py:68:29")),
+    ("syntheses", tl("engine/views/_header.py:vue_syntheses")),
     ("skills", "Skills"),
     ("kpi", "Indicateurs (KPI)"),
     ("exports", "Exports (tableur, PDF, cartes)"),

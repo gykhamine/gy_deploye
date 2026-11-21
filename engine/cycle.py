@@ -209,7 +209,7 @@ def _controle_documents_administratifs(entreprise):
     """{"emis": nombre de PDF figés, "alteres": [références]} : chaque PDF figé est relu et son empreinte SHA-256 comparée à celle enregistrée
     à l'émission (emission_documents.octets_figes). Une pièce altérée ou disparue est NOMMÉE, jamais archivée ni restaurée en silence."""
     from .emission_documents import ErreurEmission, octets_figes
-    from .models import DocumentAdministratif
+    from .models import DocumentAdministratif, SyntheseRedigee
     emis, alteres = 0, []
     for d in DocumentAdministratif.objects.filter(entreprise=entreprise).exclude(pdf_fige="").exclude(pdf_fige__isnull=True):
         emis += 1
@@ -217,6 +217,12 @@ def _controle_documents_administratifs(entreprise):
             octets_figes(d)
         except ErreurEmission:
             alteres.append(d.reference or f"#{d.pk}")
+    for s in SyntheseRedigee.objects.filter(entreprise=entreprise).exclude(pdf_fige="").exclude(pdf_fige__isnull=True):     # synthèses finalisées : même contrôle
+        emis += 1
+        try:
+            octets_figes(s)
+        except ErreurEmission:
+            alteres.append(f"synthese-{s.pk}")
     return {"emis": emis, "alteres": alteres}
 
 

@@ -58,6 +58,7 @@
     <div class="onglets-vue sx-onglets">
       <button class="onglet-vue actif" data-partie="desc">{% t "engine/templates/engine/statistiques.html:59:59" %}</button>
       <button class="onglet-vue" data-partie="inf">{% t "engine/templates/engine/statistiques.html:60:52" %}</button>
+      <button class="onglet-vue" data-partie="grp">{% t "sg.onglet" %}</button>
       <button class="onglet-vue" data-partie="prob">{% t "engine/templates/engine/statistiques.html:61:53" %}</button>
     </div>
   </div>
@@ -82,6 +83,22 @@
       <div class="sx-formulaire" id="i-params"></div>
       <button class="geo-btn principal" id="i-lancer" style="max-width:200px">{% t "engine/templates/engine/statistiques.html:83:79" %}</button>
       <div id="i-res"></div>
+    </div>
+
+    <div id="sx-grp" class="sx-partie" style="display:none">
+      <div class="sx-barre">
+        <label class="geo-champ" style="min-width:min(300px,100%)">{% t "sg.ui.mode" %}
+          <select id="g-mode">
+            <option value="continues">{% t "sg.mode.continues" %}</option>
+            <option value="qualitatives">{% t "sg.mode.qualitatives" %}</option>
+            <option value="continues_par_quali">{% t "sg.mode.continues_par_quali" %}</option>
+          </select></label>
+        <label class="geo-champ" id="g-par-zone" style="max-width:260px;display:none">{% t "sg.ui.par" %}
+          <select id="g-par"></select></label>
+        <button class="geo-btn principal" id="g-lancer" style="max-width:200px">{% t "sg.ui.lancer" %}</button>
+      </div>
+      <div class="geo-note" id="g-aide" style="margin-bottom:8px"></div>
+      <div id="g-res"></div>
     </div>
 
     <div id="sx-prob" class="sx-partie" style="display:none">

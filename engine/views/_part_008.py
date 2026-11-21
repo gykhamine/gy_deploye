@@ -13,6 +13,7 @@ from ._part_005 import *  # noqa
 from ._part_006 import *  # noqa
 from ._part_007 import *  # noqa
 from ..models import DocumentAdministratif  # noqa: E402
+from .. import acces_entreprise as _acces_entreprise  # noqa: E402
 
 
 def _sauvegarder_personnalisation(agent, contexte, corps):

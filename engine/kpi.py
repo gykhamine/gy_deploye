@@ -231,7 +231,8 @@ def surveiller_seuil_lignes(table):
     cascade d'écriture (ajout, import, suppression...), sans rien configurer."""
     from django.core.cache import cache
     nb = table.enregistrements.count()
-    seuils = (("alerte", table.SEUIL_ALERTE_LIGNES), ("plafond", table.PLAFOND_ABSOLU_LIGNES))
+    absolu = table.plafond_absolu_lignes(table.entreprise_id)   # plafond propre à l'entreprise ; alerte à 90 %
+    seuils = (("alerte", absolu * 9 // 10), ("plafond", absolu))
     cles = {niveau: f"kpi_lignes_{niveau}_{table.id}" for niveau, _ in seuils}
     for niveau, seuil in seuils:
         if nb < seuil:

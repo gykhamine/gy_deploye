@@ -4,7 +4,7 @@ from . import views
 from .securite import vue_sante
 from . import usabilite, maj_table
 from . import views_modules
-from . import views_propriete_tables, views_erreur, views_marque, views_langue, views_couleur, views_geo, views_series, views_statistiques, views_analyses, views_transformation, views_media, views_identification, views_messagerie, views_agenda, views_finances, views_fantome_ontologie, views_traces_ontologie, views_acces_client, views_analyse_media, views_saisons, views_ontologie_apercu
+from . import views_propriete_tables, views_erreur, views_marque, views_langue, views_couleur, views_geo, views_series, views_statistiques, views_analyses, views_syntheses, views_transformation, views_media, views_identification, views_messagerie, views_agenda, views_finances, views_fantome_ontologie, views_traces_ontologie, views_acces_client, views_analyse_media, views_saisons, views_ontologie_apercu
 from .urls_paiement import urlpatterns as urlpatterns_paiement
 from .urls_wallet import urlpatterns as urlpatterns_wallet
 from . import views_wallet_especes
@@ -211,8 +211,20 @@ urlpatterns = [
     path("api/tables/<int:table_id>/analyse-media/executer/", views_analyse_media.api_media_executer, name="api_media_executer"),
     path("api/tables/<int:table_id>/analyse-media/pdf/", views_analyse_media.api_media_pdf, name="api_media_pdf"),
     path("api/tables/<int:table_id>/statistiques/descriptives/", views_statistiques.api_stat_descriptives, name="api_stat_descriptives"),
+    path("api/tables/<int:table_id>/statistiques/ensembles/", views_statistiques.api_stat_ensembles, name="api_stat_ensembles"),
     path("api/tables/<int:table_id>/statistiques/test/", views_statistiques.api_stat_test, name="api_stat_test"),
     path("api/tables/<int:table_id>/statistiques/probabilites/", views_statistiques.api_stat_probabilites, name="api_stat_probabilites"),
+    # Synthèses rédigées (analyse écrite à la main sur une table, avec les cartes / tableaux / graphiques déjà calculés ; même principe que les documents administratifs)
+    path("tables/<int:table_id>/syntheses/", views_syntheses.vue_syntheses, name="vue_syntheses"),
+    path("api/tables/<int:table_id>/syntheses/", views_syntheses.api_syntheses, name="api_syntheses"),
+    path("api/tables/<int:table_id>/syntheses/catalogue/", views_syntheses.api_syntheses_catalogue, name="api_syntheses_catalogue"),
+    path("api/tables/<int:table_id>/syntheses/catalogue/image/", views_syntheses.api_syntheses_catalogue_image, name="api_syntheses_catalogue_image"),
+    path("api/tables/<int:table_id>/syntheses/entetes/", views_syntheses.api_syntheses_entetes, name="api_syntheses_entetes"),
+    path("api/tables/<int:table_id>/syntheses/<int:synthese_id>/", views_syntheses.api_synthese, name="api_synthese"),
+    path("api/tables/<int:table_id>/syntheses/<int:synthese_id>/pdf/", views_syntheses.api_synthese_pdf, name="api_synthese_pdf"),
+    path("api/tables/<int:table_id>/syntheses/<int:synthese_id>/finaliser/", views_syntheses.api_synthese_finaliser, name="api_synthese_finaliser"),
+    path("api/tables/<int:table_id>/syntheses/<int:synthese_id>/rouvrir/", views_syntheses.api_synthese_rouvrir, name="api_synthese_rouvrir"),
+    path("api/tables/<int:table_id>/syntheses/<int:synthese_id>/archiver/", views_syntheses.api_synthese_archiver, name="api_synthese_archiver"),
     path("tables/<int:table_id>/modules/", views_modules.vue_modules, name="vue_modules"),
     path("modules/", views_modules.vue_modules_courant, name="vue_modules_courant"),
     path("tables/<int:table_id>/anova/", views_analyses.vue_anova, name="vue_anova"),

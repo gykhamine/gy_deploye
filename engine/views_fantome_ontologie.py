@@ -24,7 +24,7 @@ from django.views.decorators.http import require_http_methods
 from . import fantome_ontologie as fo
 from .models import MembreEntreprise
 from .ratelimit import limiter
-from .stockage import dossier_systeme
+from .stockage import cle_entreprise, dossier_systeme
 from .views import _entreprise_courante, _vue_autorisee
 
 logger = logging.getLogger(__name__)
@@ -35,8 +35,18 @@ def chemin_modele(entreprise_id) -> str:
     return str(dossier_systeme("modeles_fantomes", f"ontologie_e{int(entreprise_id)}.agentgy"))
 
 
-def _cle() -> bytes:
+def _cle(entreprise_id) -> bytes:
+    """Clé de signature propre à CETTE entreprise : le modèle d'une autre entreprise ne s'accorde pas avec elle et n'est jamais chargé."""
+    return cle_entreprise(entreprise_id, "ontologie")
+
+
+def _cle_ancienne() -> bytes:
+    """Clé unique d'AVANT l'isolation (SECRET_KEY seule) : relit une fois les fichiers déjà appris, qui sont alors réécrits."""
     return str(settings.SECRET_KEY).encode("utf-8")
+
+
+def _charger(chemin: str, entreprise_id):
+    return fo.charger(chemin, _cle(entreprise_id), proprietaire=f"entreprise:{int(entreprise_id)}", cles_anciennes=(_cle_ancienne(),))
 
 
 @contextmanager
@@ -52,24 +62,24 @@ def _verrou(chemin: str):
 
 
 def _contexte(request):
-    """(chemin du modèle, refus éventuel)."""
+    """(chemin du modèle, identifiant de l'entreprise, refus éventuel). Le modèle est TOUJOURS celui de l'entreprise courante de l'utilisateur."""
     entreprise = _entreprise_courante(request)
     membre = MembreEntreprise.objects.filter(utilisateur=request.user, entreprise=entreprise).first()
     if not _vue_autorisee(membre, "dashboard_bi"):
-        return None, JsonResponse({"erreur": t("engine/views_fantome_ontologie.py:interdit")}, status=403)
-    return chemin_modele(entreprise.id), None
+        return None, None, JsonResponse({"erreur": t("engine/views_fantome_ontologie.py:interdit")}, status=403)
+    return chemin_modele(entreprise.id), entreprise.id, None
 
 
 @login_required
 @require_http_methods(["GET"])
 def api_fantome_ontologie(request):
-    chemin, refus = _contexte(request)
+    chemin, entreprise_id, refus = _contexte(request)
     if refus:
         return refus
     with _verrou(chemin):
-        modele = fo.charger(chemin, _cle())
+        modele = _charger(chemin, entreprise_id)
         if modele.sale:   # modèle neuf, ou fichier migré : écrit tout de suite pour que le prochain GET le retrouve
-            fo.ecrire(chemin, modele, _cle())
+            fo.ecrire(chemin, modele, _cle(entreprise_id))
     return JsonResponse(modele.etat_public())
 
 
@@ -77,7 +87,7 @@ def api_fantome_ontologie(request):
 @require_http_methods(["POST"])
 @limiter("fantome_ontologie", max_appels=120, periode_secondes=60)
 def api_fantome_ontologie_observer(request):
-    chemin, refus = _contexte(request)
+    chemin, entreprise_id, refus = _contexte(request)
     if refus:
         return refus
     if len(request.body or b"") > TAILLE_MAX_CORPS:
@@ -89,7 +99,7 @@ def api_fantome_ontologie_observer(request):
     if not isinstance(corps, dict):
         return JsonResponse({"erreur": t("engine/views_fantome_ontologie.py:corps_invalide")}, status=400)
     with _verrou(chemin):
-        modele = fo.charger(chemin, _cle())
+        modele = _charger(chemin, entreprise_id)
         modele.observer(corps.get("episodes"), corps.get("pas"), corps.get("recherches"))
-        fo.ecrire(chemin, modele, _cle())
+        fo.ecrire(chemin, modele, _cle(entreprise_id))
     return JsonResponse(modele.etat_public())

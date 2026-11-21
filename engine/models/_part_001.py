@@ -72,6 +72,13 @@ class Entreprise(models.Model):
     acces_jusqua = models.DateTimeField(null=True, blank=True, db_index=True)
     bloquee = models.BooleanField(default=False)
     en_essai = models.BooleanField(default=False)
+    # Plafond de personnes inscrites (agents + clients) de l'entreprise, fixé par le super-administrateur (page /plateforme/entreprises/) :
+    # le trafic, donc le tarif, croît avec ce nombre. 5 par défaut ; l'augmenter est un service payant. Voir acces_entreprise.place_disponible.
+    max_connexions = models.PositiveIntegerField(default=5)
+    # Plafonds ABSOLUS de taille d'une table pour cette entreprise, fixés par le super-administrateur : ils bornent toujours les réglages de
+    # l'administrateur de l'entreprise (ConfigurationIA.limite_lignes / limite_colonnes, « 0 = illimité » compris). Voir TableDynamique.plafond_absolu_*.
+    plafond_lignes_max = models.PositiveIntegerField(default=100_000)
+    plafond_colonnes_max = models.PositiveIntegerField(default=1000)
 
     def __str__(self):
         return self.nom
@@ -628,9 +635,21 @@ class TableDynamique(models.Model):
         from ._part_003 import ConfigurationIA  # import local (réf. avant sa définition)
         cfg = ConfigurationIA.objects.filter(entreprise=entreprise).first()
         limite = cfg.limite_lignes if cfg is not None else cls.LIMITE_LIGNES_DEFAUT
-        if limite == 0:   # « illimité » réglé par l'entreprise : le plafond absolu de sécurité s'applique quand même
-            return cls.PLAFOND_ABSOLU_LIGNES
-        return min(limite, cls.PLAFOND_ABSOLU_LIGNES)
+        absolu = cls.plafond_absolu_lignes(entreprise)
+        if limite == 0:   # « illimité » réglé par l'entreprise : le plafond absolu (fixé par le super-administrateur) s'applique quand même
+            return absolu
+        return min(limite, absolu)
+
+    @classmethod
+    def plafond_absolu_lignes(cls, entreprise):
+        """Plafond absolu de lignes d'une table pour cette entreprise (objet ou id) : celui du super-administrateur (Entreprise.plafond_lignes_max)."""
+        v = Entreprise.objects.filter(pk=getattr(entreprise, "pk", entreprise)).values_list("plafond_lignes_max", flat=True).first()
+        return v or cls.PLAFOND_ABSOLU_LIGNES
+
+    @classmethod
+    def plafond_absolu_colonnes(cls, entreprise):
+        v = Entreprise.objects.filter(pk=getattr(entreprise, "pk", entreprise)).values_list("plafond_colonnes_max", flat=True).first()
+        return v or 1000
 
     @cached_property
     def plafond_colonnes(self):
@@ -641,9 +660,8 @@ class TableDynamique(models.Model):
         from ._part_003 import ConfigurationIA  # import local (réf. avant sa définition)
         cfg = ConfigurationIA.objects.filter(entreprise_id=self.entreprise_id).first()
         limite = cfg.limite_colonnes if cfg is not None else ConfigurationIA.LIMITE_COLONNES_DEFAUT
-        if limite == 0:
-            return None
-        return limite
+        absolu = self.plafond_absolu_colonnes(self.entreprise_id)   # fixé par le super-administrateur : borne aussi « 0 = illimité »
+        return absolu if limite == 0 else min(limite, absolu)
 
     # ── Photo d'identité propre à cette table ──────────────────────────────
     afficher_photo_identite_document = models.BooleanField(

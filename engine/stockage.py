@@ -14,6 +14,19 @@ _ANCIENS_DOSSIERS = ("modeles_fantomes", "archives_geo", "images_auto", "flux_ac
 _ANCIENS_FICHIERS = ("double_facteur.json",)
 
 
+def cle_entreprise(entreprise_id, usage: str) -> bytes:
+    """Clé de SIGNATURE propre à UNE entreprise et à UN usage (« decision », « ontologie »), dérivée de SECRET_KEY.
+
+    ISOLATION DES ENTREPRISES : les fichiers de modèle fantôme étaient tous signés avec la même clé ; le fichier d'une entreprise copié, restauré
+    ou renommé à la place de celui d'une autre aurait donc été accepté et lu comme le sien. Avec une clé par entreprise, la signature ne
+    s'accorde qu'avec SON entreprise : un fichier qui n'est pas le sien est refusé (et mis de côté), jamais chargé."""
+    import hashlib
+    import hmac
+    from django.conf import settings
+    return hmac.new(str(settings.SECRET_KEY).encode("utf-8"), f"agentgy|{usage}|entreprise:{int(entreprise_id)}".encode("utf-8"),
+                    hashlib.sha256).digest()
+
+
 def racine_systeme(media_root, base_dir) -> Path:
     return Path(media_root or Path(base_dir) / "media") / SYSTEME
 

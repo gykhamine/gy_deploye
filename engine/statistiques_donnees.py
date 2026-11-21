@@ -314,6 +314,52 @@ def descriptives(memo: dict, refs: list[str], forces: dict | None = None, par: s
     return _s.nettoyer({"variables": sortie, "relations": relations, "synthese": _s.synthese(sortie, relations), **resume_memoire(memo)})
 
 
+# ── Analyses GROUPÉES : plusieurs variables ensemble (voir engine/statistiques_groupes.py) ──────────────────────────────────────────
+MODES_GROUPES = ("continues", "qualitatives", "continues_par_quali")
+
+
+def ensembles(memo: dict, mode: str, refs: list[str], forces: dict | None = None, par: str | None = None) -> dict:
+    """Analyse groupée des colonnes choisies : `continues` (variables continues entre elles), `qualitatives` (variables qualitatives entre elles) ou
+    `continues_par_quali` (les variables continues comparées entre les groupes de la colonne qualitative `par`). Une analyse par table de calcul
+    (les colonnes doivent être alignées ligne à ligne) ; les colonnes qui ne conviennent pas au mode sont simplement laissées de côté."""
+    from . import statistiques_groupes as _g
+    if mode not in MODES_GROUPES:
+        raise ValueError(_gt("sg.err.mode"))
+    variables, avert = [], []
+    for ref in _tranche(refs, _limites()["variables"]):
+        try:
+            variables.append(variable(memo, ref, forces))
+        except ValueError as e:
+            avert.append(_gtf("sg.avert.ignoree", v1=ref, v2=str(e)))
+    groupe = None
+    if mode == "continues_par_quali":
+        if not par:
+            raise ValueError(_gt("sg.err.une_quali_groupe"))
+        groupe = variable(memo, par, forces)
+        variables = [v for v in variables if v["ref"] != par and v["classe"] == groupe["classe"]]
+    par_classe = {}
+    for v in variables:
+        par_classe.setdefault(v["classe"], []).append(v)
+    analyses, derniere = [], None
+    for classe, vs in par_classe.items():
+        try:
+            if mode == "continues":
+                res = _g.continues(vs)
+            elif mode == "qualitatives":
+                res = _g.qualitatives(vs)
+            else:
+                res = _g.continues_par_qualitative(vs, groupe)
+        except ValueError as e:
+            derniere = str(e)
+            continue
+        analyses.append({"table": vs[0]["table"], **res})
+    if not analyses:
+        raise ValueError(derniere or _gt("sg.err.aucune"))
+    sortie = {"mode": mode, "analyses": analyses, **resume_memoire(memo)}
+    sortie["avertissements"] = list(sortie.get("avertissements") or []) + avert
+    return _s.nettoyer(sortie)
+
+
 # ── Descriptives d'une grande table : un lot = UNE colonne (ou les liaisons d'une classe), lue dans le Parquet par celui qui calcule ─────
 # Le lot ne contient que des références ; le worker lit lui-même sa colonne (lecture seule), applique l'échantillon éventuel et appelle
 # les MÊMES fonctions (`_decrire`, `_par_groupe`, `_s.relations`). Aucune ligne ne passe par Spark ni par le nœud initiateur.

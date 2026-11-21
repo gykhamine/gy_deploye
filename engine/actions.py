@@ -776,6 +776,9 @@ def _creer_employe(entreprise, donnees):
     CreerEmployeForm déjà validé côté vue, rôle toujours "agent")."""
     from django.contrib.auth import get_user_model
     from .models import MembreEntreprise
+    from . import acces_entreprise
+    if not acces_entreprise.place_disponible(entreprise):
+        raise ActionRefusee(acces_entreprise.message_limite(entreprise))
     User = get_user_model()
     employe = User.objects.create_user(
         username=donnees['username'],

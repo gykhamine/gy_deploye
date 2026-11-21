@@ -389,6 +389,7 @@ class VuesAutoriseesMiddleware:
         (_re.compile(r"^/api/tables/\d+/(statistiques|stats)/|^/tables/\d+/statistiques/"), "statistiques", None),
         (_re.compile(r"^/api/tables/\d+/analyse-media/|^/tables/\d+/analyse-media/"), "analyse_media", None),
         (_re.compile(r"^/api/tables/\d+/anova/|^/tables/\d+/anova/"), "anova", None),
+        (_re.compile(r"^/api/tables/\d+/syntheses/|^/tables/\d+/syntheses/"), "syntheses", None),
         (_re.compile(r"^/api/tables/\d+/analyse-factorielle/|^/tables/\d+/analyse-factorielle/"), "analyse_factorielle", None),
         (_re.compile(r"^/api/(graphiques-bi|demandes)/|^/tables/\d+/dashboard-bi/"), "dashboard_bi", None),
         (_re.compile(r"^/api/(formules-calcul|transformations-colonne)/|^/api/tables/\d+/transformations/"), "calcul", None),

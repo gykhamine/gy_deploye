@@ -888,6 +888,150 @@ def _figure_plan(titre, points, largeur, fleches=None):
     return _image_figure(fig, min(largeur, 12.5 * cm))
 
 
+# ─────────────────────────────────────────────────────────────
+# 6 bis. Statistiques groupées : plusieurs variables ensemble (onglet « Groupes de variables » de la page Statistiques)
+# ─────────────────────────────────────────────────────────────
+MAX_QUALI_RAPPORT = 3        # variables qualitatives qui définissent les groupes dans le rapport (les plus discriminantes)
+MAX_CANDIDATES_RAPPORT = 8   # variables qualitatives essayées avant d'en retenir MAX_QUALI_RAPPORT
+
+
+def _analyses_groupes(table, cache=None):
+    """Analyses groupées du rapport = ce que l'onglet « Groupes de variables » reçoit de `donnees.ensembles` (même fonction, toutes les colonnes de la
+    table, une seule lecture des lignes) : continues entre elles, qualitatives entre elles, et les continues selon les variables qualitatives qui les
+    séparent le mieux. Un mode sans objet pour cette table (pas assez de variables du bon genre) vaut None. Résultat posé dans le `cache` (relu par la synthèse)."""
+    if cache is not None and "groupes" in cache:
+        return cache["groupes"]
+    from .. import statistiques_donnees as sd
+    res = {"continues": None, "qualitatives": None, "par": []}
+    fiche = sd.decrire(table)
+    if fiche:
+        refs = _refs_page(table)
+        memo = sd.memoire([table], None, colonnes=refs)
+        for mode in ("continues", "qualitatives"):
+            try:
+                res[mode] = sd.ensembles(memo, mode, refs)
+            except ValueError:
+                pass
+        essais = []
+        for c in [c for c in fiche["colonnes"] if c.get("famille") != "quanti"][:MAX_CANDIDATES_RAPPORT]:
+            try:
+                r = sd.ensembles(memo, "continues_par_quali", refs, None, f"{table.id}:{c['slug']}")
+            except ValueError:
+                continue
+            essais.append((sum(1 for a in r["analyses"] for v in a["variables"] if v.get("p_ajuste") is not None and v["p_ajuste"] < 0.05), r))
+        res["par"] = [r for _n, r in sorted(essais, key=lambda e: -e[0])[:MAX_QUALI_RAPPORT]]
+    if cache is not None:
+        cache["groupes"] = res
+    return res
+
+
+def _matrice_rect_page(lignes, colonnes, valeurs, echelle, largeur, couleurs, st):
+    """Matrice lignes × colonnes teintée comme la page (vert si positif, rouge si négatif, opacité = |valeur| / échelle)."""
+    def teinte(val):
+        if val is None:
+            return colors.white
+        a, (r, g, b) = min(abs(val) / echelle, 1.0) * 0.55, ((0x2e, 0xcc, 0x71) if val >= 0 else (0xe7, 0x4c, 0x3c))
+        return colors.Color((255 * (1 - a) + r * a) / 255, (255 * (1 - a) + g * a) / 255, (255 * (1 - a) + b * a) / 255)
+    donnees = [[""] + [Paragraph(_esc_rg(x), st["tete"]) for x in colonnes]]
+    for i, lig in enumerate(valeurs):
+        donnees.append([Paragraph("<b>" + _esc_rg(lignes[i]) + "</b>", st["cell"])] + [Paragraph("—" if x is None else _dec(f"{x:.2f}"), st["cell"]) for x in lig])
+    n = max(len(colonnes), 1)
+    tbl = Table(donnees, colWidths=[largeur * 0.2] + [largeur * 0.8 / n] * n, repeatRows=1)
+    sty = [("BACKGROUND", (1, 0), (-1, 0), couleurs["entete"]), ("GRID", (0, 0), (-1, -1), 0.4, colors.HexColor("#d1d5db")), ("PADDING", (0, 0), (-1, -1), 2)]
+    sty += [("BACKGROUND", (j + 1, i + 1), (j + 1, i + 1), teinte(x)) for i, lig in enumerate(valeurs) for j, x in enumerate(lig)]
+    tbl.setStyle(TableStyle(sty))
+    return tbl
+
+
+def _entete_groupes(a, cle, st):
+    return ([Paragraph(_esc_rg(_ptf(cle, v1=a.get("groupe", ""), v2=a.get("table", ""))), st["sous"])]
+            + [Paragraph("• " + _esc_rg(x), st["normal"]) for x in a.get("lecture") or []]
+            + [Paragraph(_esc_rg(x), st["muted"]) for x in a.get("avertissements") or []])
+
+
+def _pdf_continues(a, table, largeur, couleurs, st):
+    g, out = a["global"], _entete_groupes(a, "sg.titre.continues", st)
+    out.append(_tableau([_pt("sg.col.variable"), _pt("sg.col.moyenne"), _pt("sg.col.ecart_type"), "VIF", "MSA"],
+                        [[v["nom"], _nombre(v["moyenne"]), _nombre(v["ecart_type"]), ("(!) " if v["redondante"] else "") + _nombre(v["vif"]), _nombre(v["msa"])] for v in a["variables"]],
+                        largeur, couleurs, st))
+    out += [Paragraph(_esc_rg(_tj("468:62")), st["sous"]), _matrice_page(a["matrice"], "pearson", largeur, couleurs, st),
+            Paragraph(_esc_rg(_tj("468:155")), st["sous"]), _matrice_page(a["matrice"], "spearman", largeur, couleurs, st)]
+    out += [Paragraph(_esc_rg(_pt("sg.titre.paires")), st["sous"]),
+            _tableau([_tj("lbl_var1"), _tj("lbl_var2"), "Pearson r", "Spearman", _pt("sg.col.p"), _pt("sg.col.force")],
+                     [[q["a"], q["b"], _nombre(q["valeur"]), _nombre(q["spearman"]), _p_txt(q["p"]), q["force"]] for q in a["paires"]], largeur, couleurs, st)]
+    bart = g.get("bartlett") or {}
+    out += [Paragraph(_esc_rg(_pt("sg.titre.indicateurs")), st["sous"]),
+            _tableau(["KMO", _pt("sg.col.bartlett"), _pt("sg.col.alpha"), _pt("sg.col.dimensions"), _pt("sg.col.n")],
+                     [[_nombre(g.get("kmo")), _p_txt(bart.get("p")), _nombre(g.get("alpha_standardise")), g.get("kaiser"), a.get("n")]], largeur, couleurs, st),
+            Paragraph(_esc_rg(_pt("sg.titre.valeurs_propres")), st["sous"]),
+            _tableau([_pt("sg.col.composante"), _pt("sg.col.valeur_propre"), _pt("sg.col.pct"), _pt("sg.col.cumul")],
+                     [[i + 1, _nombre(v["valeur"]), _pct_page(v["pct"]), _pct_page(v["cumul"])] for i, v in enumerate(g["valeurs_propres"])], largeur, couleurs, st)]
+    if a["aberrantes"]["n"]:
+        out += [Paragraph(_esc_rg(_ptf("sg.titre.aberrantes", v1=a["aberrantes"]["n"])), st["sous"]),
+                _tableau([_pt("sg.col.ligne"), _pt("sg.col.d2")], [[x["ligne"], _nombre(x["d2"])] for x in a["aberrantes"]["lignes"]], largeur, couleurs, st)]
+    return out
+
+
+def _pdf_qualitatives(a, table, largeur, couleurs, st):
+    out = _entete_groupes(a, "sg.titre.qualitatives", st)
+    out.append(_tableau([_pt("sg.col.variable"), _pt("sg.col.modalites"), _pt("sg.col.diversite"), _pt("sg.col.v_moyen"), _pt("sg.col.plus_lie")],
+                        [[v["nom"], v["modalites"], _nombre(v["diversite"]), _nombre(v["v_moyen"]), v["plus_lie"]] for v in a["variables"]], largeur, couleurs, st))
+    out += [Paragraph(_esc_rg(_pt("sg.titre.matrice_v")), st["sous"]), _matrice_page(a["matrice"], "cramer", largeur, couleurs, st),
+            Paragraph(_esc_rg(_pt("sg.titre.matrice_theil")), st["sous"]), _matrice_page(a["matrice"], "theil", largeur, couleurs, st),
+            Paragraph(_esc_rg(_pt("sg.titre.paires")), st["sous"]),
+            _tableau([_tj("lbl_var1"), _tj("lbl_var2"), _pt("sg.col.v"), _pt("sg.col.v_corrige"), _pt("sg.col.ddl"), _pt("sg.col.p"), _pt("sg.col.p_ajuste"), _pt("sg.col.force")],
+                     [[q["a"], q["b"], _nombre(q["valeur"]), _nombre(q["v_corrige"]), q["ddl"], _p_txt(q["p"]), _p_txt(q["p_ajuste"]), q["force"]] for q in a["paires"]], largeur, couleurs, st)]
+    if a.get("profils"):
+        out += [Paragraph(_esc_rg(_ptf("sg.titre.profils", v1=a.get("n_profils"))), st["sous"]),
+                _tableau([_pt("sg.col.profil"), _pt("sg.col.effectif"), _pt("sg.col.frequence")],
+                         [[" · ".join(f"{k} = {v}" for k, v in p["modalites"].items()), p["effectif"], _pct_page(p["frequence"])] for p in a["profils"]], largeur, couleurs, st)]
+    return out
+
+
+def _pdf_par_quali(a, table, largeur, couleurs, st):
+    out, m = _entete_groupes(a, "sg.titre.par_quali", st), a.get("multivarie")
+    if m:
+        out += [Paragraph(_esc_rg(_pt("sg.titre.manova")), st["sous"]),
+                _tableau([_pt("sg.col.test"), _pt("sg.col.statistique"), "F", _pt("sg.col.ddl"), _pt("sg.col.p")],
+                         [["Wilks Λ", _nombre(m["wilks"]["lambda"]), _nombre(m["wilks"]["f"]), f"{_nombre(m['wilks']['ddl1'], 0)} ; {_nombre(m['wilks']['ddl2'], 0)}", _p_txt(m["wilks"]["p"])],
+                          ["Pillai V", _nombre(m["pillai"]["trace"]), _nombre(m["pillai"]["f"]), f"{_nombre(m['pillai']['ddl1'], 0)} ; {_nombre(m['pillai']['ddl2'], 0)}", _p_txt(m["pillai"]["p"])]],
+                         largeur, couleurs, st)]
+    out += [Paragraph(_esc_rg(_pt("sg.titre.tests_variable")), st["sous"]),
+            _tableau([_pt("sg.col.variable"), "F", _pt("sg.col.p"), _pt("sg.col.p_ajuste"), "η²", "Kruskal-Wallis p", _pt("sg.col.levene"), _pt("sg.col.plus_haut"), _pt("sg.col.plus_bas")],
+                     [[v["nom"], _nombre(v["f"]), _p_txt(v["p"]), _p_txt(v["p_ajuste"]), _nombre(v["eta2"]), _p_txt(v["kruskal_p"]), _p_txt(v["levene_p"]), v["plus_haut"], v["plus_bas"]] for v in a["variables"]],
+                     largeur, couleurs, st),
+            Paragraph(_esc_rg(_pt("sg.titre.profil_groupes")), st["sous"]), Paragraph(_esc_rg(_pt("sg.aide.profil")), st["muted"]),
+            _matrice_rect_page(a["profil"]["groupes"], a["profil"]["variables"], a["profil"]["z"], 1.5, largeur, couleurs, st)]
+    if a.get("distances"):
+        out += [Paragraph(_esc_rg(_pt("sg.titre.distances")), st["sous"]), Paragraph(_esc_rg(_pt("sg.aide.distances")), st["muted"]),
+                _matrice_rect_page(a["distances"]["groupes"], a["distances"]["groupes"], a["distances"]["d2"], 4, largeur, couleurs, st)]
+    for v in [v for v in a["variables"] if v.get("graphique")][:3]:     # boîtes à moustaches des variables qui séparent le mieux les groupes
+        out.append(Paragraph(_esc_rg(v["nom"]), st["sous"]))
+        _sure(lambda v=v: _fig_boites([(f"{q.get('nom')} (n = {q.get('n')})", q["boite"]) for q in v["graphique"].get("groupes") or []], largeur), table, out)
+    return out
+
+
+def _bloc_groupes(table, largeur, couleurs, st, cache=None):
+    """Statistiques groupées du rapport : variables continues entre elles, qualitatives entre elles, continues selon les variables qualitatives."""
+    _pal_raz()
+    st = {**st, "sous": ParagraphStyle("RGSousGroupes", parent=st["sous"], keepWithNext=1)}
+    res = _analyses_groupes(table, cache)
+    out = []
+    for cle, rendu in (("continues", _pdf_continues), ("qualitatives", _pdf_qualitatives)):
+        for a in (res.get(cle) or {}).get("analyses") or []:
+            try:
+                out += rendu(a, table, largeur, couleurs, st)
+            except Exception:
+                _log.exception(_gt("rg5.msg.080"), table.id)
+    for r in res.get("par") or []:
+        for a in r.get("analyses") or []:
+            try:
+                out += _pdf_par_quali(a, table, largeur, couleurs, st)
+            except Exception:
+                _log.exception(_gt("rg5.msg.080"), table.id)
+    return out or [Paragraph(_esc_rg(_pt("sg.pdf.aucune")), st["normal"])]
+
+
 def _bloc_factoriel(table, largeur, couleurs, st, cache=None):
     _pal_raz()   # nouvelle analyse = palette depuis le début, comme à l'ouverture de la page
     from ..views_analyses import calculer_factorielle
@@ -1343,6 +1487,21 @@ def _donnees_synthese(table, cache=None):
         ligne("statistiques", _ptf("rg.syn.stats", v1=len(variables), v2=len(constats), v3=len(res.get("relations") or [])),
               _LECTURE_SURVEILLER if manquantes or avertissements or dispersees or aberrantes else (_LECTURE_NET if variables else _LECTURE_RIEN))
 
+    def groupes():
+        res = _analyses_groupes(table, cache)
+        analyses = [a for cle in ("continues", "qualitatives") for a in (res.get(cle) or {}).get("analyses") or []] + [a for r in res.get("par") or [] for a in r.get("analyses") or []]
+        if not analyses:
+            return ligne("groupes", _pt("sg.syn.aucun"))
+        liens = sum(1 for a in analyses for q in a.get("paires") or [] if abs(q["valeur"]) >= 0.7 and q.get("p") is not None and q["p"] < 0.05)
+        effets = sum(1 for a in analyses for v in a.get("variables") or [] if v.get("p_ajuste") is not None and v["p_ajuste"] < 0.05 and a.get("mode") == "continues_par_quali")
+        for a in analyses[:MAX_NOMS_CITES_SYNTHESE]:
+            if a.get("lecture"):
+                msg("groupes", a["lecture"][0] if a["mode"] != "continues_par_quali" or len(a["lecture"]) < 2 else a["lecture"][1])
+        for a in analyses:
+            for w in (a.get("avertissements") or [])[:1]:
+                att("groupes", w)
+        ligne("groupes", _ptf("sg.syn.groupes", v1=len(analyses), v2=liens, v3=effets), _LECTURE_NET if liens or effets else _LECTURE_RIEN)
+
     def anova():
         from ..views_analyses import calculer_anova
         res = _memo(cache, "anova", lambda: calculer_anova([table], _refs_page(table)))
@@ -1426,7 +1585,7 @@ def _donnees_synthese(table, cache=None):
         ligne("geospatial", texte, _LECTURE_SURVEILLER if collisions else _LECTURE_NET)
 
     for identifiant, construire in (("structure", structure), ("kpi", kpi), ("dashboards", dashboards), ("skills", skills), ("bi", bi),
-                                    ("statistiques", statistiques), ("anova", anova), ("factoriel", factoriel), ("series", series),
+                                    ("statistiques", statistiques), ("groupes", groupes), ("anova", anova), ("factoriel", factoriel), ("series", series),
                                     ("geospatial", geospatial)):
         try:
             construire()
@@ -1838,6 +1997,8 @@ def _elements_table_complete(table, doc, styles_rg, couleurs, premiere=False, se
 
     if veut("statistiques"):
         _section(_pt("engine/reports/_part_007.py:pdf:598:13"), lambda: _bloc_statistiques(table, largeur, couleurs, st, cache), st, elements, num())
+    if veut("groupes"):
+        _section(_pt("sg.section"), lambda: _bloc_groupes(table, largeur, couleurs, st, cache), st, elements, num())
     if veut("anova"):
         _section(_pt("engine/reports/_part_007.py:pdf:599:13"), lambda: _bloc_anova(table, largeur, couleurs, st, cache), st, elements, num())
     if veut("factoriel"):
@@ -1853,11 +2014,11 @@ def _elements_table_complete(table, doc, styles_rg, couleurs, premiere=False, se
 
 
 SECTIONS_RAPPORT_GENERAL = [_ptl("engine/reports/_part_007.py:pdf:608:28"), _ptl("engine/reports/_part_007.py:pdf:608:41"), _ptl("engine/reports/_part_007.py:pdf:608:62"), _ptl("engine/reports/_part_007.py:pdf:608:101"), _ptl("engine/reports/_part_007.py:pdf:608:122"),
-                            _ptl("engine/reports/_part_007.py:pdf:609:28"), _ptl("engine/reports/_part_007.py:pdf:609:44"), _ptl("engine/reports/_part_007.py:pdf:609:53"), _ptl("engine/reports/_part_007.py:pdf:609:94"), _ptl("engine/reports/_part_007.py:pdf:609:117"), _ptl("rg.syn.section")]
+                            _ptl("engine/reports/_part_007.py:pdf:609:28"), _ptl("sg.section"), _ptl("engine/reports/_part_007.py:pdf:609:44"), _ptl("engine/reports/_part_007.py:pdf:609:53"), _ptl("engine/reports/_part_007.py:pdf:609:94"), _ptl("engine/reports/_part_007.py:pdf:609:117"), _ptl("rg.syn.section")]
 
 
 # Identifiants des sections du rapport, DANS L'ORDRE de SECTIONS_RAPPORT_GENERAL (libellés) et de _elements_table_complete.
-SECTIONS_RAPPORT_GENERAL_IDS = ("structure", "kpi", "dashboards", "skills", "bi", "statistiques", "anova", "factoriel", "series", "geospatial", "synthese")
+SECTIONS_RAPPORT_GENERAL_IDS = ("structure", "kpi", "dashboards", "skills", "bi", "statistiques", "groupes", "anova", "factoriel", "series", "geospatial", "synthese")
 
 
 def sections_rapport_general():

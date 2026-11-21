@@ -13,6 +13,8 @@
 <body class="page-login">
 
 <div class="login-card">
+  {# Choix de la langue dès la connexion (liste = catalogues de i18n_defaults/) : pour ne jamais rester devant une langue incomprise. #}
+  <div class="choix-langue">{% csrf_token %}<select id="choix-langue" aria-label="{% t 'plateforme.login.langue' %}" hidden></select></div>
   <div class="login-logo">
     <img src="{% static 'engine/img/logo_agent_gy.png' %}" alt="{% t 'engine/templates/engine/login.html:17:65' %}">
     <h1>{% t "engine/templates/engine/login.html:18:9" %}</h1>
@@ -60,6 +62,7 @@
 </div>
 
 {% i18n_js %}
+<script src="{% static 'engine/js/choix_langue.js' %}"></script>
 <script src="{% static 'engine/js/login_1.js' %}"></script>
 <script src="{% static 'engine/js/icones.js' %}"></script>
 </body>

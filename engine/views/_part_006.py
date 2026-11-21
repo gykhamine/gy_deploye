@@ -479,7 +479,7 @@ def vue_inscription(request):
 
     if request.method == 'POST':
         formulaire = InscriptionForm(request.POST, rejoindre_entreprise=bool(entreprise_cible))
-        if formulaire.is_valid():
+        if formulaire.is_valid() and _inscription_possible(formulaire, entreprise_cible):
             User = get_user_model()
             donnees = formulaire.cleaned_data
             try:
@@ -771,6 +771,15 @@ def api_profile(request):
 
 
 # ── GESTION DES EMPLOYES ─────────────────────────────────────
+def _inscription_possible(formulaire, entreprise):
+    """Plafond de personnes inscrites (acces_entreprise.place_disponible) : au plafond, l'inscription est refusée avec le message du plafond."""
+    from .. import acces_entreprise as acces
+    if entreprise is None or acces.place_disponible(entreprise):
+        return True
+    formulaire.add_error(None, acces.message_limite(entreprise))
+    return False
+
+
 @login_required
 def vue_employes(request):
     """Page de gestion des employes de l'entreprise."""
@@ -791,6 +800,9 @@ def vue_employes(request):
         if action == 'creer_employe':
             formulaire = CreerEmployeForm(request.POST)
             if formulaire.is_valid():
+                from .. import acces_entreprise as _acces
+                if formulaire.cleaned_data.get('role') != 'admin' and not _acces.place_disponible(entreprise):
+                    return redirect('/employes/?err=limite')
                 User = get_user_model()
                 donnees = formulaire.cleaned_data
                 employe = User.objects.create_user(
@@ -915,6 +927,9 @@ def api_employes(request):
         # lecteur (client) sont attribues ailleurs, pas via cette creation
         # rapide — on ignore donc toute valeur de role potentiellement
         # envoyee (y compris via un appel direct a l'API).
+        from .. import acces_entreprise as _acces
+        if membre and not _acces.place_disponible(membre.entreprise):
+            return JsonResponse({"erreur": _acces.message_limite(membre.entreprise)}, status=402)
         try:
             employe = actions.executer_action(
                 "creer_employe", membre, membre.entreprise if membre else None,

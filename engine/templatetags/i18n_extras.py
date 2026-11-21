@@ -59,7 +59,7 @@ def _catalogue_js(langue):
         _JS_CACHE[cle_cache] = {
             c: _appliquer_devise(cur.get(c) or defaut.get(c) or texte)
             for c, texte in fr.items()
-            if c.startswith("engine/static/") or ":js:" in c or ":a:" in c or c.startswith("groupes.") or c.startswith("decoupage.ui.") or c in _CLES_JS_EXTRA
+            if c.startswith("engine/static/") or ":js:" in c or ":a:" in c or c.startswith("groupes.") or c.startswith("sg.") or c.startswith("decoupage.ui.") or c in _CLES_JS_EXTRA
         }
     return _JS_CACHE[cle_cache]
 

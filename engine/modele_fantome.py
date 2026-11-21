@@ -201,15 +201,17 @@ def _meta_defaut(maintenant: float = 0.0) -> dict:
             "cles": [], "empreinte": 0, "echelle_revenu": 0.0, "perte": None}
 
 
-def nouveau_coeur(rang: int, maintenant: float, parametres: dict | None = None) -> Coeur:
-    """Rang 0 : le noyau pré-entraîné. Rang > 0 : réseau à sortie nulle (n'altère pas la somme des précédents)."""
+def nouveau_coeur(rang: int, maintenant: float, parametres: dict | None = None, proprietaire: str | None = None) -> Coeur:
+    """Rang 0 : le noyau pré-entraîné. Rang > 0 : réseau à sortie nulle (n'altère pas la somme des précédents).
+    `proprietaire` : entreprise à laquelle ce réseau appartient (inscrit dans son fichier)."""
     p = {**PARAMETRES, **(parametres or {})}
     if rang == 0:
         reseau = _moteur.Reseau({k: a.copy() for k, a in _noyau(p).items()})
     else:
         reseau = _moteur.Reseau.nouveau(dn.D, p["largeur_depart"], D_SORTIE, graine=1000 + rang, sortie_nulle=True)
     coeur = Coeur(reseau, {**_meta_defaut(maintenant), "rang": rang,
-                           "apport_externe": rang == 0})   # rang 0 : noyau SANS apport cuit ; un noyau plus ancien (clé absente) l'a dans ses poids
+                           "apport_externe": rang == 0,   # rang 0 : noyau SANS apport cuit ; un noyau plus ancien (clé absente) l'a dans ses poids
+                           **({"proprietaire": proprietaire} if proprietaire is not None else {})})
     coeur.sale = True
     return coeur
 
@@ -345,7 +347,7 @@ def _croitre(modele: Modele, maintenant: float) -> None:
         return
     c.meta["gele"], c.sale = True, True
     c.X, c.Y, c.W = c.X[:0], c.Y[:0], c.W[:0]   # un réseau gelé n'apprend plus : plus de rejeu à garder
-    suivant = nouveau_coeur(c.meta["rang"] + 1, maintenant, p)
+    suivant = nouveau_coeur(c.meta["rang"] + 1, maintenant, p, c.meta.get("proprietaire"))
     for k in ("empreinte", "echelle_revenu", "dernier_pas_ts"):
         suivant.meta[k] = c.meta[k]
     modele.coeurs.append(suivant)
@@ -453,10 +455,13 @@ def _disposition_fichier(meta: dict, cle_meta: str, actuelles: list, taille: int
     return noms
 
 
-def deserialiser(octets: bytes, cle: bytes) -> Coeur:
+def deserialiser(octets: bytes, cle: bytes, proprietaire: str | None = None, cles_anciennes: tuple = ()) -> Coeur:
     """Lève ValueError si l'en-tête, la version, la signature, le contenu ou les dimensions sont invalides, et ModeleTropRecent (sous-classe)
     si le fichier vient d'une version plus récente. Un fichier d'une version ou d'une disposition antérieure est MIGRÉ en mémoire
-    (`coeur.migre`) : aucun poids n'est perdu."""
+    (`coeur.migre`) : aucun poids n'est perdu.
+    ISOLATION DES ENTREPRISES : `proprietaire` (ex. « entreprise:7 ») est inscrit dans le fichier ; un fichier qui déclare un AUTRE propriétaire
+    est refusé (ValueError). `cles_anciennes` : clés avec lesquelles les fichiers d'avant la clé par entreprise ont été signés ; un fichier ainsi
+    signé est accepté UNE fois, marqué à réécrire, et ne sera plus relu qu'avec la clé de son entreprise."""
     tete = len(_MAGIE) + 1
     if len(octets) < tete + 32 or octets[: len(_MAGIE)] != _MAGIE:
         raise ValueError(_i18n_t("engine/modele_fantome.py:g:380:26"))
@@ -466,8 +471,11 @@ def deserialiser(octets: bytes, cle: bytes) -> Coeur:
     if version not in _VERSIONS_LISIBLES:
         raise ValueError(_i18n_t("engine/modele_fantome.py:g:380:26"))
     signature, corps = octets[tete: tete + 32], octets[tete + 32:]
+    ancienne_cle = False
     if not hmac.compare_digest(signature, _signer(cle, corps, version)):
-        raise ValueError(_i18n_t("engine/modele_fantome.py:g:383:26"))
+        if not any(hmac.compare_digest(signature, _signer(k, corps, version)) for k in cles_anciennes):
+            raise ValueError(_i18n_t("engine/modele_fantome.py:g:383:26"))
+        ancienne_cle = True
     z = rn.depuis_octets(corps)
     try:
         meta = json.loads(np.array(z["meta"], dtype=np.uint8).tobytes().decode("utf-8"))
@@ -492,6 +500,13 @@ def deserialiser(octets: bytes, cle: bytes) -> Coeur:
         raise ValueError(_gt("rg5.msg.020")) from exc
     if reseau.d_in != dn.D or reseau.d_out != D_SORTIE or X.shape[1:] != (dn.D,) or Y.shape[1:] != (D_SORTIE,) or W.shape != Y.shape or len(X) != len(Y):
         raise ValueError(_gt("rg8.msg.042"))
+    if proprietaire is not None:
+        declare = meta.get("proprietaire")
+        if declare is not None and declare != proprietaire:
+            raise ValueError(_gt("rg8.msg.042"))   # fichier d'une AUTRE entreprise : refusé, jamais chargé
+        if declare is None or ancienne_cle:
+            migre = True   # fichier d'avant l'isolation : réécrit avec son propriétaire et la clé de son entreprise
+        meta = {**meta, "proprietaire": proprietaire}
     # Clés de méta ajoutées depuis l'écriture du fichier : valeur par défaut (jamais de KeyError). `rang` et `apport_externe` : voir _meta_defaut.
     coeur = Coeur(reseau, {**_meta_defaut(), **meta}, X, Y, W)
     coeur.migre = coeur.sale = migre   # un fichier migré est réécrit au prochain enregistrement, dans la disposition courante
@@ -517,9 +532,9 @@ def ecrire(chemin: str, coeur: Coeur, cle: bytes) -> None:
         raise
 
 
-def lire(chemin: str, cle: bytes) -> Coeur:
+def lire(chemin: str, cle: bytes, proprietaire: str | None = None, cles_anciennes: tuple = ()) -> Coeur:
     with open(chemin, "rb") as f:
-        return deserialiser(f.read(), cle)
+        return deserialiser(f.read(), cle, proprietaire, cles_anciennes)
 
 
 def chemin_coeur(base: str, rang: int) -> str:
@@ -540,7 +555,8 @@ def _copie_avant_maj(chemin: str, coeur: Coeur) -> None:
         pass
 
 
-def charger(base: str, cle: bytes, maintenant: float, parametres: dict | None = None) -> Modele:
+def charger(base: str, cle: bytes, maintenant: float, parametres: dict | None = None,
+            proprietaire: str | None = None, cles_anciennes: tuple = ()) -> Modele:
     """Modèle lu depuis ses fichiers ; noyau neuf s'il n'existe pas. Un fichier altéré est mis de côté (`.invalide`) avec
     tous les réseaux qui le suivent (ils corrigeaient son résidu) : le modèle reprend au dernier réseau sain.
     Un fichier d'une version ou d'une disposition ANTÉRIEURE est migré (poids conservés, copie `.avant_maj_*` à côté) ; un fichier d'une
@@ -549,7 +565,7 @@ def charger(base: str, cle: bytes, maintenant: float, parametres: dict | None = 
     for rang in range(256):
         chemin = chemin_coeur(base, rang)
         try:
-            coeur = lire(chemin, cle)
+            coeur = lire(chemin, cle, proprietaire, cles_anciennes)
         except FileNotFoundError:
             break
         except ModeleTropRecent:
@@ -568,9 +584,9 @@ def charger(base: str, cle: bytes, maintenant: float, parametres: dict | None = 
             _copie_avant_maj(chemin, coeur)
         coeurs.append(coeur)
     if not coeurs:
-        coeurs = [nouveau_coeur(0, maintenant, parametres)]
+        coeurs = [nouveau_coeur(0, maintenant, parametres, proprietaire)]
     elif coeurs[-1].meta["gele"] and not trop_recent:
-        coeurs.append(nouveau_coeur(len(coeurs), maintenant, parametres))
+        coeurs.append(nouveau_coeur(len(coeurs), maintenant, parametres, proprietaire))
     modele = Modele(coeurs, parametres)
     modele.lecture_seule = trop_recent
     return modele

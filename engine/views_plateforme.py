@@ -76,7 +76,7 @@ def api_sauvegarde_restaurer(request):
 # ── Essai, blocage et déblocage des entreprises (super-administrateur) ─────────────────────────────────────────────────────
 
 _CLES_ENTREPRISES = ("titre", "intro", "col_nom", "col_etat", "col_fin", "col_actions", "etat_illimite", "etat_essai", "etat_actif",
-                     "etat_echu", "etat_bloquee", "exemptee", "debloquer", "bloquer", "prolonger", "jours", "reglages_titre", "numero", "email",
+                     "etat_echu", "etat_bloquee", "exemptee", "col_inscrits", "col_plafonds", "plafond_lignes", "plafond_colonnes", "definir_plafonds", "limite", "definir", "limite_aide", "debloquer", "bloquer", "prolonger", "jours", "reglages_titre", "numero", "email",
                      "message", "essai_jours", "prolongation_jours", "enregistrer", "enregistre", "aucune", "erreur", "confirmer_bloquer")
 
 
@@ -94,7 +94,9 @@ def _corps_json(request):
 
 def _entreprise_json(e):
     return {"id": e.id, "nom": e.nom or "—", "etat": acces.etat(e), "fin": e.acces_jusqua.strftime("%Y-%m-%d") if e.acces_jusqua else "",
-            "exemptee": acces.exemptee(e)}
+            "exemptee": acces.exemptee(e),
+            "utilisees": acces.connexions_utilisees(e), "max": e.max_connexions,
+            "max_lignes": e.plafond_lignes_max, "max_colonnes": e.plafond_colonnes_max}
 
 
 def _reglage_json(r):
@@ -128,6 +130,24 @@ def api_entreprise_action(request, entreprise_id):
     action = corps.get("action")
     if action == "bloquer":
         acces.bloquer(entreprise)
+    elif action == "limite":   # plafond de personnes inscrites (agents + clients) : service payant, relevé ici par le super-administrateur
+        try:
+            limite = int(corps.get("max_connexions"))
+        except (TypeError, ValueError):
+            return JsonResponse({"erreur": t("plateforme.entreprises.erreur")}, status=400)
+        if not 1 <= limite <= 1000000:
+            return JsonResponse({"erreur": t("plateforme.entreprises.erreur")}, status=400)
+        entreprise.max_connexions = limite
+        entreprise.save(update_fields=["max_connexions"])
+    elif action == "plafonds":   # taille maximale absolue d'une table de cette entreprise (lignes et colonnes)
+        try:
+            lignes, colonnes = int(corps.get("max_lignes")), int(corps.get("max_colonnes"))
+        except (TypeError, ValueError):
+            return JsonResponse({"erreur": t("plateforme.entreprises.erreur")}, status=400)
+        if not (1 <= lignes <= 100_000_000 and 1 <= colonnes <= 100_000):
+            return JsonResponse({"erreur": t("plateforme.entreprises.erreur")}, status=400)
+        entreprise.plafond_lignes_max, entreprise.plafond_colonnes_max = lignes, colonnes
+        entreprise.save(update_fields=["plafond_lignes_max", "plafond_colonnes_max"])
     elif action in ("debloquer", "prolonger"):
         try:
             jours = int(corps.get("jours") or 0) or None
@@ -138,7 +158,7 @@ def api_entreprise_action(request, entreprise_id):
         acces.debloquer(entreprise, jours)
     else:
         return JsonResponse({"erreur": t("plateforme.entreprises.erreur")}, status=400)
-    siem._bloc_systeme(request.user, "acces_entreprise", {"entreprise": entreprise.pk, "action": action, "fin": str(entreprise.acces_jusqua),
+    siem._bloc_systeme(request.user, "acces_entreprise", {"entreprise": entreprise.pk, "action": action, "fin": str(entreprise.acces_jusqua), "max_connexions": entreprise.max_connexions, "plafonds": [entreprise.plafond_lignes_max, entreprise.plafond_colonnes_max],
                                                          "ip": siem.adresse_ip(request)})
     return JsonResponse({"entreprise": _entreprise_json(entreprise)})
 

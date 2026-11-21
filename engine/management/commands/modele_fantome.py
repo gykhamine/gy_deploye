@@ -33,6 +33,12 @@ class Command(BaseCommand):
         if not entreprises.exists():
             raise CommandError(_gt("rg5.msg.088"))
         for e in entreprises:
+            self._traiter(e, o)
+
+    def _traiter(self, e, o):
+        """Une entreprise à la fois, sur SA base (mode « une base par entreprise ») : rien ne passe d'une entreprise à la suivante."""
+        from engine import base_par_entreprise as bpe
+        with bpe.dans_entreprise(e.id):
             if o["entretenir"]:
                 etat = fusionner_etat(e, forcer=True)
                 bilan = memoire_decision.entretenir(e, etat, portail.graphe_dependances(e, forcer=True), evaluer(etat))
