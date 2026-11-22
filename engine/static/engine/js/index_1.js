@@ -1267,6 +1267,7 @@ function construireStatsColonnes(champs, toutesLignes, tableSlug){
       <div class="ligne-stat"><span>${tj("engine/static/engine/js/index_1.js:aberr_hautes")}</span><b>${aberrantes.haut.length}</b></div>
       ${bornes ? `<div style="font-size:11px;opacity:.7">${escapeHtml(bornes)}</div>` : ""}
       ${boutonAberr("bas", aberrantes.bas.length)}${boutonAberr("haut", aberrantes.haut.length)}` : ""}
+      ${_termesEligible(c) ? `<button type="button" class="btn-termes-colonne" data-col="${escapeHtml(c.slug)}" style="margin-top:8px;font-size:12px;padding:3px 8px" title="${escapeHtml(tj("engine/static/engine/js/index_1.js:termes_bouton_titre", {v1: c.nom}))}">${tj("engine/static/engine/js/index_1.js:termes_bouton")}</button>` : ""}
       ${vides > 0 ? `<button type="button" class="btn-lister-vides" data-col="${escapeHtml(c.slug)}" style="margin-top:8px;font-size:12px;padding:3px 8px" title="${escapeHtml(tj("engine/static/engine/js/index_1.js:vides_lister_titre", {v1: c.nom}))}">${tj("engine/static/engine/js/index_1.js:vides_lister", {v1: vides})}</button>` : ""}
     </div>`;
   }).join("");
@@ -1429,7 +1430,50 @@ document.addEventListener("click", (ev) => {
   if(b){ _ouvrirListeVides(b.dataset.col, b.dataset.sens || "vides"); return; }
   const n = ev.target.closest && ev.target.closest(".btn-liste-noire");
   if(n) _ouvrirListeVides("", "noire");
+  const tb = ev.target.closest && ev.target.closest(".btn-termes-colonne");
+  if(tb) _ouvrirTermes(tb.dataset.col);
 });
+// Statistiques par terme d'une colonne (variantes d'un même mot : bz, BZ, Brazzavile…) : GET .../termes/, lu dans un cache fichier côté serveur
+// (engine/termes_colonne.py). Cocher des termes puis « Fusionner » ouvre la transformation « fusionner » avec ces termes déjà saisis.
+const _TYPES_SANS_TERMES = new Set([...TYPES_FICHIER, "relation", "choix_multiple", "formule", "constante", "horodatage", "id_client", "vecteur", "matrice", "json"]);
+function _termesEligible(c){ return !_TYPES_SANS_TERMES.has(c.type) && !_estChampNumerique(c); }
+async function _ouvrirTermes(slugChamp, recalculer){
+  const table = tables.find(t => t.slug === _statsContexte.slug), champ = table && table.champs.find(c => c.slug === slugChamp);
+  if(!champ) return;
+  let d;
+  try { d = await api(`/api/tables/${table.id}/champs/${champ.id}/termes/${recalculer ? "?recalculer=1" : ""}`); } catch(err) { return; }   // api() a déjà signalé l'erreur
+  document.getElementById("modal-termes-fond")?.remove();
+  const fond = document.createElement("div");
+  fond.id = "modal-termes-fond";
+  fond.style.cssText = "position:fixed;inset:0;background:color-mix(in srgb,var(--voile,#000000) 75%,transparent);display:flex;align-items:center;justify-content:center;z-index:2000;padding:16px";
+  const K = "engine/static/engine/js/index_1.js:", coches = new Set();
+  fond.innerHTML = `<div style="width:640px;max-width:100%;max-height:92vh;display:flex;flex-direction:column;background:var(--panel);border:1px solid var(--border);border-radius:10px;padding:18px">
+    <h2 style="margin:0 0 4px;font-size:15px">${tj(K + "termes_titre", {v1: escapeHtml(champ.nom)})}</h2>
+    <p style="margin:0 0 8px;font-size:12px;color:var(--muted)">${tj(K + "termes_resume", {v1: d.distincts, v2: d.total, v3: d.vides})} · ${d.en_cache ? tj(K + "termes_cache", {v1: escapeHtml(d.calcule_le || "")}) : tj(K + "termes_frais")}${d.tronque ? ` · ${tj(K + "termes_tronque", {v1: d.termes.length})}` : ""}</p>
+    <input id="termes-filtre" type="text" placeholder="${escapeHtml(tj(K + "termes_filtrer"))}" style="padding:6px 8px;font-size:13px;width:100%;box-sizing:border-box;margin-bottom:8px" autocomplete="off">
+    <div style="overflow:auto;flex:1;min-height:120px"><table style="width:100%;font-size:12px;border-collapse:collapse"><thead><tr><th style="width:28px"></th><th style="text-align:left;padding:3px 6px">${tj(K + "termes_col_terme")}</th><th style="text-align:right;padding:3px 6px">${tj(K + "termes_col_n")}</th><th style="text-align:right;padding:3px 6px">%</th></tr></thead><tbody id="termes-corps"></tbody></table></div>
+    <div style="display:flex;gap:8px;justify-content:flex-end;margin-top:12px;flex-wrap:wrap">
+      <button id="termes-recalculer" type="button">${tj(K + "termes_recalculer")}</button>
+      <button id="termes-fermer" type="button">${tj("engine/static/engine/js/index_1.js:2222:52")}</button>
+      <button id="termes-fusionner" type="button" class="principal" disabled></button>
+    </div></div>`;
+  document.body.appendChild(fond);
+  const el = (id) => fond.querySelector("#" + id), fermer = () => fond.remove();
+  const maj = () => { const b = el("termes-fusionner"); b.disabled = !coches.size; b.textContent = tj(K + "termes_fusionner", {v1: coches.size}); };
+  const dessiner = () => {
+    const f = el("termes-filtre").value.trim().toLowerCase();
+    el("termes-corps").innerHTML = d.termes.filter(x => !f || x.terme.toLowerCase().includes(f)).map(x =>
+      `<tr><td style="padding:3px 6px;border-top:1px solid var(--border)"><input type="checkbox" data-terme="${escapeHtml(x.terme)}"${coches.has(x.terme) ? " checked" : ""}></td><td style="padding:3px 6px;border-top:1px solid var(--border);overflow-wrap:anywhere">${escapeHtml(x.terme)}</td><td style="padding:3px 6px;border-top:1px solid var(--border);text-align:right">${x.n}</td><td style="padding:3px 6px;border-top:1px solid var(--border);text-align:right">${d.total ? Math.round(x.n / d.total * 1000) / 10 : 0}</td></tr>`).join("")
+      || `<tr><td colspan="4" style="padding:8px;color:var(--muted)">${tj(K + "termes_aucun")}</td></tr>`;
+  };
+  el("termes-filtre").addEventListener("input", dessiner);
+  el("termes-corps").addEventListener("change", (ev) => { const t = ev.target.dataset && ev.target.dataset.terme; if(t === undefined) return; ev.target.checked ? coches.add(t) : coches.delete(t); maj(); });
+  el("termes-fermer").onclick = fermer;
+  el("termes-recalculer").onclick = () => { fermer(); _ouvrirTermes(slugChamp, true); };
+  el("termes-fusionner").onclick = () => { const termes = [...coches]; fermer(); ouvrirModalTransformation(table, champ, {termes}); };
+  fond.addEventListener("mousedown", (ev) => { if(ev.target === fond) fermer(); });
+  dessiner(); maj();
+}
 // Vue Données
 // ── État pagination par table ─────────────────────────────────────────────
 const _paginationEtat = {};  // slug -> {page, taille, total, pages}
@@ -2701,7 +2745,7 @@ document.addEventListener("click", async function(e){
 // API : POST /api/tables/<id>/champs/<champ_id>/transformer/ (apercu:true = aucune écriture), GET .../transformations/,
 // POST /api/transformations-colonne/<id>/annuler/ (engine/views_transformation.py).
 const _TRANSFO_OPERATIONS = [
-  ["remplacer", tj("engine/static/engine/js/index_1.js:2108:18")], ["supprimer", tj("engine/static/engine/js/index_1.js:2108:71")], ["extraire", tj("engine/static/engine/js/index_1.js:2108:116")],
+  ["remplacer", tj("engine/static/engine/js/index_1.js:2108:18")], ["fusionner", tj("engine/static/engine/js/index_1.js:op_fusionner")], ["supprimer", tj("engine/static/engine/js/index_1.js:2108:71")], ["extraire", tj("engine/static/engine/js/index_1.js:2108:116")],
   ["majuscules", "MAJUSCULES"], ["minuscules", "minuscules"], ["titre", tj("engine/static/engine/js/index_1.js:2109:74")],
   ["rogner", tj("engine/static/engine/js/index_1.js:2110:15")], ["espaces", tj("engine/static/engine/js/index_1.js:2110:71")],
   ["prefixe", tj("engine/static/engine/js/index_1.js:2111:16")], ["suffixe", tj("engine/static/engine/js/index_1.js:2111:51")],
@@ -2767,7 +2811,7 @@ async function ouvrirModalCouleur(table, champ){
   } catch(err) { /* api() a déjà signalé l'erreur */ }
 }
 
-function ouvrirModalTransformation(table, champ){
+function ouvrirModalTransformation(table, champ, initial){
   document.getElementById("modal-transfo-fond")?.remove();
   const fond = document.createElement("div");
   fond.id = "modal-transfo-fond";
@@ -2801,6 +2845,12 @@ function ouvrirModalTransformation(table, champ){
         <label style="font-size:12px">${tj("engine/static/engine/js/index_1.js:2205:40")} <span style="color:var(--muted)">${tj("engine/static/engine/js/index_1.js:2205:87")}</span>
           <input id="transfo-remplacement" type="text" style="${champStyle}" autocomplete="off"></label>
       </div>
+      <div id="transfo-bloc-fusion" style="margin-top:10px;display:none">
+        <label style="font-size:12px">${tj("engine/static/engine/js/index_1.js:fusion_termes")} <span style="color:var(--muted)">${tj("engine/static/engine/js/index_1.js:fusion_termes_aide")}</span>
+          <textarea id="transfo-termes" rows="4" style="${champStyle}" autocomplete="off"></textarea></label>
+        <label style="display:block;margin-top:6px;font-size:12px">${tj("engine/static/engine/js/index_1.js:fusion_final")}
+          <input id="transfo-final" type="text" style="${champStyle}" autocomplete="off"></label>
+      </div>
       <div id="transfo-bloc-extraire" style="margin-top:10px;display:none;gap:10px;flex-wrap:wrap;align-items:end">
         <label style="font-size:12px">${tj("engine/static/engine/js/index_1.js:2209:40")} <span style="color:var(--muted)">${tj("engine/static/engine/js/index_1.js:2209:89")}</span>
           <input id="transfo-groupe" type="number" min="0" value="1" style="${champStyle};width:90px"></label>
@@ -2830,10 +2880,12 @@ function ouvrirModalTransformation(table, champ){
     const op = el("transfo-operation").value;
     return !el("transfo-avance").checked && besoinMotif(op) ? _motifSimple(el("transfo-cible").value, el("transfo-t1").value, el("transfo-t2").value, el("transfo-inclure").checked, op === "extraire") : null;
   };
-  const params = () => { const sm = _simple(); return {
+  const _termesSaisis = () => { const v = el("transfo-termes").value; return (v.includes("\n") ? v.split("\n") : v.split(/[,;]/)).map(s => s.trim()).filter(Boolean); };   // un terme par ligne, ou séparés par , ou ;
+  const params = () => { const sm = _simple(), fus = el("transfo-operation").value === "fusionner"; return {
     operation: el("transfo-operation").value, motif: sm ? sm.motif : el("transfo-motif").value,
-    est_regex: sm ? true : el("transfo-regex").checked, casse: el("transfo-casse").checked, tout: el("transfo-tout").checked,
-    remplacement: sm ? el("transfo-remplacement").value.replace(/\\/g, "\\\\").replace(/\$/g, "$$$$") : el("transfo-remplacement").value,   // texte tel quel : « \ » et « $ » ne sont pas des codes
+    est_regex: sm ? true : el("transfo-regex").checked, casse: !fus && el("transfo-casse").checked, tout: el("transfo-tout").checked,
+    termes: fus ? _termesSaisis() : undefined,
+    remplacement: fus ? el("transfo-final").value : sm ? el("transfo-remplacement").value.replace(/\\/g, "\\\\").replace(/\$/g, "$$$$") : el("transfo-remplacement").value,   // texte tel quel : « \ » et « $ » ne sont pas des codes
     groupe: sm ? sm.groupe : parseInt(el("transfo-groupe").value, 10) || 0,
     si_absent: el("transfo-si-absent").value, texte: el("transfo-texte").value,
     mode: el("transfo-operation").value, dernier: el("transfo-dernier").checked,
@@ -2844,6 +2896,7 @@ function ouvrirModalTransformation(table, champ){
     const op = el("transfo-operation").value;
     el("transfo-bloc-motif").style.display = besoinMotif(op) ? "" : "none";
     el("transfo-bloc-remplacement").style.display = op === "remplacer" ? "" : "none";
+    el("transfo-bloc-fusion").style.display = op === "fusionner" ? "" : "none";
     el("transfo-bloc-dernier").style.display = el("transfo-aide-decoupe").style.display = op === "decouper" ? "" : "none";
     el("transfo-bloc-extraire").style.display = op === "extraire" ? "flex" : "none";
     el("transfo-bloc-texte").style.display = (op === "prefixe" || op === "suffixe") ? "" : "none";
@@ -2869,7 +2922,7 @@ function ouvrirModalTransformation(table, champ){
       el("transfo-resume").textContent = tj("engine/static/engine/js/index_1.js:2273:43");
       apercuValide = true; el("transfo-appliquer").disabled = false; return;
     }
-    const incomplet = (besoinMotif(op) && !p.motif) || ((op === "prefixe" || op === "suffixe") && !p.texte);
+    const incomplet = (besoinMotif(op) && !p.motif) || ((op === "prefixe" || op === "suffixe") && !p.texte) || (op === "fusionner" && (!p.termes.length || !p.remplacement.trim()));
     apercuValide = false; el("transfo-appliquer").disabled = true;
     if(incomplet){ el("transfo-resume").textContent = tj("engine/static/engine/js/index_1.js:2278:56"); el("transfo-apercu").innerHTML = ""; return; }
     try {
@@ -2892,9 +2945,10 @@ function ouvrirModalTransformation(table, champ){
     } catch(err) { if(mon === numeroApercu) el("transfo-resume").textContent = tj("engine/static/engine/js/index_1.js:2295:81"); }
   };
   const planifierApercu = () => { clearTimeout(minuterie); minuterie = setTimeout(calculerApercu, 350); };
-  ["transfo-operation","transfo-motif","transfo-regex","transfo-casse","transfo-tout","transfo-remplacement","transfo-groupe","transfo-si-absent","transfo-texte","transfo-dernier","transfo-cible","transfo-t1","transfo-t2","transfo-inclure","transfo-avance"]
+  ["transfo-operation","transfo-motif","transfo-regex","transfo-casse","transfo-tout","transfo-remplacement","transfo-groupe","transfo-si-absent","transfo-texte","transfo-dernier","transfo-cible","transfo-t1","transfo-t2","transfo-inclure","transfo-avance","transfo-termes","transfo-final"]
     .forEach(id => { el(id).addEventListener("input", planifierApercu); el(id).addEventListener("change", planifierApercu); });
   ["transfo-operation", "transfo-cible", "transfo-avance"].forEach(id => el(id).addEventListener("change", adapterFormulaire));
+  if(initial && initial.termes){ el("transfo-operation").value = "fusionner"; el("transfo-termes").value = initial.termes.join("\n") + "\n"; }   // « \n » final : même un terme unique contenant une virgule n'est pas coupé   // venu de la liste des termes de l'analyse exploratoire
   adapterFormulaire();
 
   const chargerHistorique = async () => {
@@ -7167,6 +7221,7 @@ async function chargerProfil(){
     if(!p.est_lecteur) document.getElementById("btn-wallets-clients").style.display = "block";
     if(p.finances_autorise) document.getElementById("btn-finances").style.display = "block";   // administrateur, ou agent à qui la vue « finances » est accordée
     if(p.est_super_admin) document.getElementById("btn-siem").style.display = "block";   // le SIEM n'est ouvert qu'au super-administrateur (la page refuse tout autre)
+    if(p.est_super_admin) ["btn-sauvegarde", "btn-restauration", "btn-entreprises-plateforme"].forEach(id => document.getElementById(id).style.display = "block");   // pages de la plateforme : super-administrateur seulement (les pages refusent tout autre)
     if(!p.est_lecteur) document.getElementById("btn-notifications").style.display = "block";
     if(!p.est_lecteur) document.getElementById("btn-messagerie").style.display = "block";
     if(!p.est_lecteur) document.getElementById("btn-agenda").style.display = "block";
@@ -7185,6 +7240,9 @@ document.getElementById("btn-paiement-config").onclick = () => { window.location
 document.getElementById("btn-wallets-clients").onclick = () => { window.location.href = "/wallets-clients/"; };
 document.getElementById("btn-finances").onclick = () => { window.location.href = "/finances/"; };
 document.getElementById("btn-siem").onclick = () => { window.location.href = "/siem/"; };
+document.getElementById("btn-sauvegarde").onclick = () => { window.location.href = "/plateforme/sauvegarde/#sauvegarder"; };
+document.getElementById("btn-restauration").onclick = () => { window.location.href = "/plateforme/sauvegarde/#restaurer"; };
+document.getElementById("btn-entreprises-plateforme").onclick = () => { window.location.href = "/plateforme/entreprises/"; };
 document.getElementById("btn-notifications").onclick = () => { window.location.href = "/notifications/"; };
 document.getElementById("btn-messagerie").onclick = () => { window.location.href = "/messagerie/"; };
 document.getElementById("btn-agenda").onclick = () => { window.location.href = "/agenda/"; };

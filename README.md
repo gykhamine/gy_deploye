@@ -135,26 +135,12 @@ Le super-administrateur dispose de la page **Sauvegarde et restauration** (`/pla
 les fichiers ; la restauration refait d'abord une sauvegarde de sécurité de l'état actuel. Le zip contient les clés secrètes : le garder confidentiel.
 Une sauvegarde SQLite se restaure sur SQLite, une sauvegarde PostgreSQL sur PostgreSQL.
 
-## SQLite : un fichier par entreprise (optionnel)
+## Une seule base pour toutes les entreprises
 
-Réglage : `GYPLATFORM_BASE=sqlite_par_entreprise` (jamais choisi par `auto`).
-
-- Base système `media/systeme/db.sqlite3` : comptes, sessions, entreprises, membres, clés API, SIEM, partages inter-agents.
-- Une base par entreprise `media/systeme/entreprises/<id>.sqlite3` : ses tables, enregistrements, graphiques, ontologie, documents…
-  Créée et migrée automatiquement à la première utilisation.
-- Passage d'une base existante : sauvegarder, arrêter l'application, puis
-  `GYPLATFORM_BASE=sqlite_par_entreprise python manage.py decouper_base_par_entreprise` (copie + contrôle des comptes ;
-  `--purger` retire ensuite les données de la base système).
-- Après une nouvelle migration du code : `python manage.py migrate` puis, pour chaque fichier, `python manage.py migrate --database ent_<id>`.
-- Partage inter-agents : dans ce mode, seul le partage d'une **table** en lecture seule est disponible.
-- La sauvegarde/restauration du super administrateur inclut tous les fichiers d'entreprise (copies à chaud cohérentes).
-
-### Contrôles du mode « un fichier par entreprise »
-- Avant la mise en service : `python manage.py verifier_base_par_entreprise` (liste les jointures entre fichiers à corriger).
-- Après chaque mise à jour du code : `python manage.py migrer_entreprises` (système + chaque fichier ; une entreprise en échec n'arrête pas les autres).
-- Les comptes sont copiés SANS mot de passe dans chaque fichier (jointures seulement) ; les identifiants des nouvelles lignes
-  d'une entreprise commencent à `id_entreprise × 10⁹` ; le partage d'une table est refusé (409) si le destinataire a déjà une table de même numéro.
-- Sauvegardes : `manage.py sauvegarder` et la page du super administrateur copient chaque fichier à chaud, de façon cohérente.
+Toutes les entreprises sont enregistrées dans la même base (SQLite `media/systeme/db.sqlite3` ou PostgreSQL) ; l'isolation est faite
+par l'application. Il n'y a plus de fichier par entreprise (`GYPLATFORM_BASE=sqlite_par_entreprise` est traité comme `sqlite`).
+Si d'anciens fichiers `media/systeme/entreprises/<id>.sqlite3` existent : sauvegarder, puis `python manage.py reunir_base_entreprises`
+(copie sans rien écraser ni supprimer).
 
 ## Essai d'une semaine, blocage et déblocage des entreprises
 

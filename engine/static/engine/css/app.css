@@ -3239,3 +3239,12 @@ body.page-employes .actions-cell input{background:var(--fond-noir,#000000);color
 body.page-login .choix-langue{display:flex;justify-content:flex-end;margin-bottom:8px}
 body.page-login .choix-langue select{background:var(--bg);color:var(--text);border:1px solid var(--border);border-radius:6px;padding:4px 8px;font:inherit;font-size:12px;cursor:pointer}
 body.page-login .choix-langue select:focus{outline:none;border-color:var(--accent)}
+
+/* ── Recherche côté client : même présentation que la grille côté agent (tableau simple, en-tête fixe, lignes lisibles) ── */
+body.page-client .tableau-recherche-scroll{max-height:60vh;overflow:auto;border:1px solid var(--border);border-radius:6px;background:var(--panel);padding:0}
+body.page-client .pt-wrap{background:none;padding:0;border-radius:0}
+body.page-client table.tableau-recherche{border-collapse:collapse;border-spacing:0;background:var(--panel);border-radius:0;color:var(--text);width:100%}
+body.page-client table.tableau-recherche th{position:sticky;top:0;z-index:2;background:var(--panel2);color:var(--muted);text-align:left;font-size:12px;font-weight:600;padding:8px 10px;border-bottom:1px solid var(--border);white-space:nowrap}
+body.page-client table.tableau-recherche td{color:var(--text);text-align:left;font-size:12px;padding:8px 10px;border-bottom:1px solid var(--border);max-width:none}
+body.page-client table.tableau-recherche tbody tr:nth-child(odd) > *,body.page-client table.tableau-recherche tbody tr:nth-child(even) > *{background:transparent}
+body.page-client table.tableau-recherche tbody tr:hover > *{background:var(--hover)}

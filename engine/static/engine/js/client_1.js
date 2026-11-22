@@ -224,7 +224,7 @@ function rendreRecherche(lignes) {
   }
   // Limite d'affichage raisonnable (colonnes et lignes) pour rester lisible
   // sur un tableau simple sans pagination ni tri.
-  const colonnes = champsTableActive.slice(0, 6);
+  const colonnes = champsTableActive;   // tous les champs, comme la grille côté agent (défilement horizontal si besoin)
   const LIMITE_LIGNES = 200;
   // Pas de bouton PDF par ligne ici : l'export unitaire n'a d'intérêt que
   // côté admin (page index) ; côté client, seul l'export de la liste
@@ -234,7 +234,7 @@ function rendreRecherche(lignes) {
   // une ligne par champ, lignes alternées. Jusqu'à 4 résultats on compare en colonnes (champs en lignes) ;
   // au-delà on garde un résultat par ligne, mais avec les mêmes onglets colorés (lisible pour 50 résultats).
   const visibles = lignes.slice(0, LIMITE_LIGNES);
-  const comparatif = visibles.length <= 4 && colonnes.length > 1;
+  const comparatif = false;   // même présentation que côté agent : une ligne par résultat, une colonne par champ (plus de grille de tarifs transposée)
   const cls = (i) => 'pt-c' + (i % 3);
   let html = '<div class="pt-wrap"><table class="tableau-recherche ' + (comparatif ? 'pt-comparatif' : 'pt-liste') + '">';
   if (comparatif) {
@@ -252,7 +252,7 @@ function rendreRecherche(lignes) {
     html += '</tbody>';
   } else {
     html += '<thead><tr>';
-    colonnes.forEach((c, i) => { html += `<th class="pt-onglet ${cls(i)}">${_echapper(c.nom)}</th>`; });
+    colonnes.forEach(c => { html += `<th>${_echapper(c.nom)}</th>`; });
     html += '</tr></thead><tbody>';
     visibles.forEach(ligne => {
       html += '<tr>';

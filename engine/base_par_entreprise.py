@@ -1,4 +1,4 @@
-"""SQLite : UN FICHIER PAR ENTREPRISE (mode optionnel GYPLATFORM_BASE=sqlite_par_entreprise).
+"""[RETIRÉ] SQLite : UN FICHIER PAR ENTREPRISE — désormais inactif (actif() vaut toujours False), toutes les entreprises sont dans la même base.
 
 Principe
   - La base « default » (media/systeme/db.sqlite3) reste la base SYSTÈME : comptes, sessions, entreprises, membres, clés API,
@@ -46,7 +46,9 @@ DECALAGE_IDENTIFIANTS = 10 ** 9   # les nouvelles lignes d'une entreprise commen
 
 
 def actif() -> bool:
-    return getattr(settings, "GYPLATFORM_BASE_MOTEUR", "") == "sqlite_par_entreprise"
+    """Mode « un fichier par entreprise » RETIRÉ : toutes les entreprises vivent dans la même base. Ce module ne sert plus qu'à
+    réunir d'anciens fichiers d'entreprise dans la base unique (commande reunir_base_entreprises)."""
+    return False
 
 
 def dossier() -> Path:

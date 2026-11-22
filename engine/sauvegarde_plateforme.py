@@ -27,6 +27,11 @@ from django.db import connection, connections, transaction
 
 logger = logging.getLogger("engine.sauvegarde")
 
+
+def t(cle, **valeurs):   # texte du catalogue i18n (import tardif : ce module est aussi lancé par des commandes, hors requête)
+    from .i18n import tf, t as _t
+    return tf(cle, **valeurs) if valeurs else _t(cle)
+
 FORMAT = 1
 BASE_SQLITE = "base/db.sqlite3"
 BASE_JSON = "base/donnees.json"
@@ -117,11 +122,11 @@ def _lire_manifeste(z: zipfile.ZipFile) -> dict:
     try:
         manifeste = json.loads(z.read("VERSION.json"))
     except (KeyError, ValueError):
-        raise SauvegardeErreur("Ce fichier n'est pas une sauvegarde de la plateforme (VERSION.json absent ou illisible).")
+        raise SauvegardeErreur(t("plateforme.sauvegarde.err.zip_invalide_manifeste"))
     if manifeste.get("format") != FORMAT:
-        raise SauvegardeErreur("Format de sauvegarde non pris en charge.")
+        raise SauvegardeErreur(t("plateforme.sauvegarde.err.format_non_pris"))
     if manifeste.get("moteur") != _moteur():
-        raise SauvegardeErreur(f"Cette sauvegarde vient d'une base {manifeste.get('moteur')} ; la base actuelle est {_moteur()}.")
+        raise SauvegardeErreur(t("plateforme.sauvegarde.err.moteur_different", source=manifeste.get("moteur"), actuel=_moteur()))
     return manifeste
 
 
@@ -133,18 +138,18 @@ def verifier(chemin_zip) -> dict:
             noms = z.namelist()
             attendu = BASE_SQLITE if _moteur() == "sqlite" else BASE_JSON
             if attendu not in noms:
-                raise SauvegardeErreur("La base est absente de la sauvegarde.")
+                raise SauvegardeErreur(t("plateforme.sauvegarde.err.base_absente"))
             media = (Path(settings.MEDIA_ROOT)).resolve()
             for n in noms:
                 if n.startswith("/") or ".." in Path(n).parts:
-                    raise SauvegardeErreur("Chemin interdit dans la sauvegarde.")
+                    raise SauvegardeErreur(t("plateforme.sauvegarde.err.chemin_interdit"))
                 if n.startswith("media/") and not (media / n[len("media/"):]).resolve().is_relative_to(media):
-                    raise SauvegardeErreur("Chemin interdit dans la sauvegarde.")
+                    raise SauvegardeErreur(t("plateforme.sauvegarde.err.chemin_interdit"))
             if z.testzip() is not None:
-                raise SauvegardeErreur("Sauvegarde corrompue.")
+                raise SauvegardeErreur(t("plateforme.sauvegarde.err.corrompue"))
             return manifeste
     except zipfile.BadZipFile:
-        raise SauvegardeErreur("Ce fichier n'est pas un zip valide.")
+        raise SauvegardeErreur(t("plateforme.sauvegarde.err.zip_invalide"))
 
 
 def restaurer(chemin_zip) -> dict:

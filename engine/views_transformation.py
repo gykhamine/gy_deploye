@@ -4,6 +4,9 @@
         (operation, motif, remplacement, est_regex, casse, tout, groupe, si_absent, texte) + `apercu` (bool).
         apercu=true : AUCUNE écriture, renvoie le nombre de cellules touchées et des exemples avant → après.
         apercu=false : applique, journalise (JournalTransformationColonne) et écrit UN bloc de blockchain pour toute la colonne.
+  GET  /api/tables/<id>/champs/<champ_id>/termes/            statistiques par terme (valeur distincte → occurrences) de la colonne, pour l'analyse
+        exploratoire ; lues dans un fichier de cache (engine/termes_colonne.py) tant que les données n'ont pas changé ; `?recalculer=1` force le recomptage.
+        Transformation « fusionner » : `termes` (liste) + `remplacement` (terme final) — voir transformation_colonne.py.
   POST /api/transformations-colonne/<id>/annuler/            restaure les anciennes valeurs (cellules intactes depuis la transformation) ou retire les colonnes créées.
   POST /api/transformations-colonne/<id>/refaire/             rétablit une transformation annulée (tant qu'aucune nouvelle n'a été faite).
   GET  /api/tables/<id>/transformations/                      historique de la table + état des boutons ; POST .../annuler/ et .../refaire/ = Ctrl+Z / Ctrl+Y (pile).
@@ -31,13 +34,13 @@ import time
 
 from django.contrib.auth.decorators import login_required
 from django.db import transaction
-from django.db.models import Max
+from django.db.models import Count, Max
 from django.http import JsonResponse
 from django.shortcuts import get_object_or_404
 from django.utils.text import slugify
 from django.views.decorators.http import require_http_methods
 
-from . import geo_adresses, transformation_colonne as tc
+from . import geo_adresses, termes_colonne, transformation_colonne as tc
 from .ratelimit import limiter
 from .models import (
     Bloc, ChampDynamique, Enregistrement, JournalTransformationColonne, MembreEntreprise, TableDynamique, ValeurChamp,
@@ -87,13 +90,13 @@ def _refus_groupe(request, membre, table, champ):
     return None
 
 
-def _contexte(request, table_id, champ_id):
+def _contexte(request, table_id, champ_id, lecture=False):
     """(table, champ, membre, entreprise, refus). `refus` = JsonResponse à renvoyer si l'accès est interdit."""
     entreprise = _entreprise_courante(request)
     table = get_object_or_404(TableDynamique, id=table_id, entreprise=entreprise)
     refus = _interdit_table_non_exposee(request, table)
     membre = MembreEntreprise.objects.filter(utilisateur=request.user, entreprise=entreprise).first()
-    if refus is None and (membre is None or membre.role == "lecteur"):
+    if refus is None and (membre is None or (membre.role == "lecteur" and not lecture)):
         refus = JsonResponse({"erreur": td("engine/views_transformation.py:g:93:41")}, status=403)
     champ = get_object_or_404(ChampDynamique, id=champ_id, table=table)
     if refus is None and champ.slug in _champs_masques_pour(membre, table):
@@ -194,14 +197,14 @@ def api_transformer_colonne(request, table_id, champ_id):
             entreprise=entreprise, table=table, champ=champ, utilisateur=request.user,
             libelle=_libelle_operation(corps, champ),
             operation={k: corps.get(k) for k in (
-                "operation", "motif", "remplacement", "est_regex", "casse", "tout", "groupe", "si_absent", "texte")},
+                "operation", "motif", "remplacement", "est_regex", "casse", "tout", "groupe", "si_absent", "texte", "termes")},
             anciennes_valeurs={str(c): a for c, a, _b in valides} if annulable else {},
             nouvelles_valeurs={str(c): b for c, _a, b in valides} if annulable else {},
             nb_modifiees=len(valides),
         )
         Bloc.ajouter_transaction(entreprise.id, {
             "type": "transformation_colonne", "table_id": table.id, "table": table.nom, "champ": champ.nom,
-            "agent_id": request.user.id, "operation": corps.get("operation"), "motif": corps.get("motif"),
+            "agent_id": request.user.id, "operation": corps.get("operation"), "motif": corps.get("motif"), "termes": (corps.get("termes") or [])[:MAX_EXEMPLES_BLOC],
             "groupe_id": table.groupe_id, "tables_du_groupe": [t.nom for t, _c in _cibles(table, champ)] if table.groupe_id else None,
             "nb_modifiees": len(valides), "journal_id": journal.id,
             "modifications": [{"champ": champ.nom, "avant": a, "apres": b} for _c, a, b in valides[:MAX_EXEMPLES_BLOC]],
@@ -209,6 +212,38 @@ def api_transformer_colonne(request, table_id, champ_id):
     _recalculer_dependances(table, champ)
     reponse.update({"journal_id": journal.id, "annulable": annulable})
     return JsonResponse(reponse)
+
+
+def _signature(cibles):
+    """Empreinte de l'état des lignes (nombre, dernière modification, dernier id) de chaque partie : change dès qu'on ajoute, retire ou modifie une ligne."""
+    morceaux = []
+    for t, _c in cibles:
+        a = Enregistrement.objects.filter(table=t).aggregate(n=Count("id"), m=Max("maj_le"), i=Max("id"))
+        morceaux.append(f"{t.id}:{a['n']}:{a['m']}:{a['i']}")
+    return "|".join(morceaux)
+
+
+@login_required
+@require_http_methods(["GET"])
+def api_termes_colonne(request, table_id, champ_id):
+    """Statistiques par terme de la colonne (analyse exploratoire), avec cache fichier. Un agent ne voit que ses lignes : pas de cache partagé pour lui."""
+    table, champ, membre, entreprise, refus = _contexte(request, table_id, champ_id, lecture=True)
+    if refus:
+        return refus
+    cibles = _cibles(table, champ)
+    partage = not (membre and membre.role == "agent")
+    signature = _signature(cibles)
+    donnees = None if (request.GET.get("recalculer") == "1" or not partage) else termes_colonne.lire(table, champ, signature)
+    en_cache = donnees is not None
+    if not en_cache:
+        cellules = _cellules(table, champ, request, membre)
+        if len(cellules) > MAX_CELLULES:
+            return JsonResponse({"erreur": tf("engine/views_transformation.py:g:155:40", v1=MAX_CELLULES)}, status=400)
+        donnees = {**termes_colonne.compter(v for _c, v in cellules), "calcule_le": time.strftime("%Y-%m-%d %H:%M:%S")}
+        if partage:
+            termes_colonne.ecrire(table, champ, signature, donnees)
+    donnees = {k: v for k, v in donnees.items() if k != "signature"}
+    return JsonResponse({**donnees, "champ": champ.nom, "en_cache": en_cache, "groupe": _infos_groupe(table, champ)})
 
 
 def _infos_groupe(table, champ):
@@ -224,6 +259,7 @@ def _ecrire(table, champ, changements):
     ids = [c for c, _a, _b in changements]
     nouvelles = {c: b for c, _a, b in changements}
     for t, c in _cibles(table, champ):
+        transaction.on_commit(lambda t=t: termes_colonne.invalider(t))   # APRÈS validation : sinon un recomptage concurrent re-cacherait l'ancien état
         if t.est_nosql:
             from . import nosql_store
             for e in Enregistrement.objects.filter(table=t, id__in=ids):
@@ -345,7 +381,8 @@ def _vider_refaire(table):
 
 def _libelle_operation(corps, champ):
     op = corps.get("operation") or "?"
-    motif = f" « {corps.get('motif')} »" if corps.get("motif") else ""
+    motif = corps.get("motif") or (corps.get("remplacement") if op == "fusionner" else "")
+    motif = f" « {motif} »" if motif else ""
     return tf("engine/views_transformation.py:l:op_sur", v1=f"{op}{motif}", v2=champ.nom)[:200]
 
 

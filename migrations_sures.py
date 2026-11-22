@@ -7,8 +7,7 @@
     python3 migrations_sures.py --sans-sauvegarde    # n'écrit pas la copie « avant_migration »
 
 Appelé automatiquement par installer_dependances.py à chaque mise à jour (GitHub, dossier ou zip).
-Valable pour les trois modes de base : sqlite, sqlite_par_entreprise (la base système ET chaque fichier d'entreprise sont analysés)
-et postgresql.
+Valable pour sqlite et postgresql (une seule base pour toutes les entreprises).
 
 Étapes (dans l'ordre ; tant que l'étape 1 bloque, AUCUNE donnée n'est touchée) :
   1. Analyse des migrations en attente, sans rien écrire. BLOQUÉ : suppression de colonne ou de table, SQL brut, code Python sans
@@ -18,7 +17,7 @@ et postgresql.
      Avant de copier ou de migrer, la place est vérifiée (quota GYPLATFORM_QUOTA_MO, 512 sur PythonAnywhere gratuit ; 0 = pas de contrôle) :
      copie + reconstruction de table par SQLite + marge. Insuffisant : rien n'est touché. Seule la dernière copie est gardée.
      Si la copie échoue, on ne migre pas. (Bases non SQLite : sauvegarde complète d'engine/sauvegarde_plateforme.py.)
-  3. Migration (migrate, ou migrer_entreprises en mode sqlite_par_entreprise).
+  3. Migration (migrate).
   4. Contrôle : nombre de lignes de chaque table, base par base, avant et après. Une baisse est signalée en ALERTE.
 
 Une base sans aucune migration appliquée est une installation neuve : rien à protéger, tout est appliqué sans blocage.
@@ -113,7 +112,7 @@ def copier_bases(liste, proteges):
 
 
 def bases():
-    """[(alias, libellé)] : la base principale + chaque fichier d'entreprise existant (mode sqlite_par_entreprise)."""
+    """[(alias, libellé)] : la base principale + chaque fichier d'entreprise existant ."""
     from django.db import Error
     from engine import base_par_entreprise as bpe
     res = [("default", "base principale")]
@@ -266,10 +265,7 @@ def main():
 
     # 3. Comptes avant, migration
     avant = {alias: comptes(alias) for alias, _ in liste if alias in a_proteger}
-    if bpe.actif():
-        call_command("migrer_entreprises")
-    else:
-        call_command("migrate", interactive=False, verbosity=1)
+    call_command("migrate", interactive=False, verbosity=1)
 
     # 4. Contrôle : aucune table ne doit avoir perdu de lignes
     baisses = []

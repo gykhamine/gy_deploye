@@ -158,7 +158,7 @@ MIDDLEWARE = [
     # CleAPIAuthMiddleware pour voir aussi les 401 des clés API invalides — voir engine/siem_collecte.py.
     'engine.siem_collecte.SiemMiddleware',
     'engine.middleware.CleAPIAuthMiddleware',
-    # SQLite par entreprise (GYPLATFORM_BASE=sqlite_par_entreprise) : pose la base de l'entreprise de la requête — sans effet sinon.
+    # (mode un fichier par entreprise retiré : ce middleware est inerte)
     'engine.base_par_entreprise.BaseEntrepriseMiddleware',
     # Essai d'une semaine / blocage à l'échéance : entreprise échue ou bloquée → page « Accès suspendu » (bouton Contacter WhatsApp) — engine/acces_entreprise.py.
     'engine.acces_entreprise.AccesEntrepriseMiddleware',
@@ -221,15 +221,13 @@ WSGI_APPLICATION = 'gyplatform.wsgi.application'
 # https://docs.djangoproject.com/en/6.0/ref/settings/#databases
 from engine.stockage import SYSTEME as _SYSTEME, rapatrier as _rapatrier   # tout vit sous MEDIA_ROOT (engine/stockage.py)
 # ── Base de données : TOUT est conditionné ici ─────────────────────────────────────────────────────────────────────────
-# GYPLATFORM_BASE = auto (défaut) | postgresql | sqlite
+# GYPLATFORM_BASE = auto (défaut) | postgresql | sqlite — dans tous les cas UNE SEULE base pour toutes les entreprises
 #   auto        : PostgreSQL si DATABASE_URL (postgres://…) ou GYPLATFORM_PG_NOM est défini, sinon SQLite.
 #   postgresql  : UNE base unifiée pour toutes les entreprises (l'isolation est faite par l'application, entreprise par entreprise).
 #                 Réglages : DATABASE_URL=postgres://utilisateur:mot_de_passe@hôte:5432/base
 #                            ou GYPLATFORM_PG_NOM / _UTILISATEUR / _MOT_DE_PASSE / _HOTE / _PORT.  Pilote : pip install "psycopg[binary]".
 #   sqlite      : un fichier MEDIA_ROOT/systeme/db.sqlite3 (mode WAL ci-dessous).
-#   sqlite_par_entreprise : base système SQLite (comptes, sessions, entreprises) + UN FICHIER SQLite PAR ENTREPRISE pour ses données
-#                 (MEDIA_ROOT/systeme/entreprises/<id>.sqlite3) — voir engine/base_par_entreprise.py. Jamais choisi par « auto ».
-#                 Pour découper une base existante : python manage.py decouper_base_par_entreprise
+#   (l'ancien mode « un fichier par entreprise » est retiré : une seule base pour toutes les entreprises)
 # Dans les deux cas, le super-administrateur dispose du bouton « Sauvegarde et restauration » (zip complet) : /plateforme/sauvegarde/.
 def _config_base():
     from urllib.parse import unquote, urlparse
@@ -237,9 +235,11 @@ def _config_base():
     choix = os.environ.get("GYPLATFORM_BASE", "auto").strip().lower()
     if choix == "auto":
         choix = "postgresql" if (url.startswith(("postgres://", "postgresql://")) or os.environ.get("GYPLATFORM_PG_NOM")) else "sqlite"
-    if choix not in ("postgresql", "sqlite", "sqlite_par_entreprise"):
+    if choix == "sqlite_par_entreprise":
+        choix = "sqlite"   # ancien mode retiré : toutes les entreprises vivent dans la MÊME base (jamais un fichier par entreprise)
+    if choix not in ("postgresql", "sqlite"):
         from django.core.exceptions import ImproperlyConfigured
-        raise ImproperlyConfigured("GYPLATFORM_BASE doit valoir auto, postgresql, sqlite ou sqlite_par_entreprise (reçu : %r)" % choix)
+        raise ImproperlyConfigured("GYPLATFORM_BASE doit valoir auto, postgresql ou sqlite (reçu : %r)" % choix)
     if choix == "postgresql":
         if url.startswith(("postgres://", "postgresql://")):
             u = urlparse(url)
@@ -264,10 +264,8 @@ def _config_base():
 
 
 GYPLATFORM_BASE_MOTEUR, _BASE_PAR_DEFAUT = _config_base()
-GYPLATFORM_BASE_UNIFIEE = GYPLATFORM_BASE_MOTEUR == "postgresql"   # True : une seule base pour toutes les entreprises
+GYPLATFORM_BASE_UNIFIEE = True   # une seule base pour toutes les entreprises (SQLite ou PostgreSQL), l'isolation est faite par l'application
 DATABASES = {'default': _BASE_PAR_DEFAUT}
-if GYPLATFORM_BASE_MOTEUR == "sqlite_par_entreprise":
-    DATABASE_ROUTERS = ["engine.base_par_entreprise.RouteurEntreprise"]
 
 # ── Concurrence SQLite : mode WAL ───────────────────────────────────────
 # Par défaut, SQLite utilise un journal "rollback" : un écrivain bloque

@@ -50,7 +50,7 @@ AIDE = {
     "niveau": "primaire | secondaire | full (mémorisé au dernier choix 1-3 ; la mise à jour le réutilise)",
     "dossier": "dossier du projet ; vide = dossier de ce script (cloné ici s'il n'y a pas de manage.py)",
     "venv": "environnement virtuel (à indiquer dans l'onglet Web de PythonAnywhere)",
-    "base": "valeur de GYPLATFORM_BASE pour les migrations (ex. sqlite_par_entreprise) ; vide = variable d'environnement ou défaut",
+    "base": "valeur de GYPLATFORM_BASE pour les migrations (sqlite ou postgresql) ; vide = variable d'environnement ou défaut",
     "conserver": "fichiers/dossiers jamais écrasés par la mise à jour (séparés par des virgules, jokers permis)",
     "quota_mo": "quota disque du compte en Mo (512 = compte gratuit PythonAnywhere) : une mise à jour ou une migration qui ne tiendrait pas est refusée AVANT toute écriture ; 0 = pas de contrôle",
     "recharger": "auto = recharge le site PythonAnywhere (/var/www/*_wsgi.py) ; non = ne rien recharger ; ou un chemin",

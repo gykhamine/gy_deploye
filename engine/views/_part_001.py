@@ -485,24 +485,8 @@ def _entreprise_courante_brut(request):
     from django.core.exceptions import PermissionDenied
     if not request.user.is_superuser:
         raise PermissionDenied
-    from django.conf import settings as _reglages
-    if getattr(_reglages, "GYPLATFORM_MULTI_ENTREPRISE", False):
-        # Plateforme multi-entreprises : l'opérateur (super administrateur) n'est JAMAIS rattaché d'office à l'entreprise d'un client
-        # (ce serait lui donner la main sur ses données) : il a la sienne, créée une fois.
-        from ..securite import slug_entreprise_libre
-        nom = request.user.username
-        if not Entreprise.objects.filter(nom="").exists():
-            nom = ""   # première installation : nom vide = identité d'origine
-        elif Entreprise.objects.filter(nom__iexact=nom).exists():
-            nom = f"{nom} (administration)"
-        entreprise = Entreprise.objects.create(nom=nom, slug=slug_entreprise_libre(f"entreprise-{request.user.username}"))
-    else:
-        entreprise = Entreprise.objects.order_by("id").first() or Entreprise.objects.create(
-            nom="", slug=f"entreprise-{request.user.username}")
-    MembreEntreprise.objects.get_or_create(
-        utilisateur=request.user, entreprise=entreprise,
-        defaults={"role": "admin"},
-    )
+    from ..premier_compte import garantir_rattachement   # même code que la création du compte et la connexion (engine/premier_compte.py)
+    entreprise = garantir_rattachement(request.user).entreprise
     from .. import base_par_entreprise as _bpe
     _bpe.definir(entreprise.id)   # SQLite par entreprise : les tables créées ci-dessous vont dans le fichier de cette entreprise
     from .. import tables_systeme

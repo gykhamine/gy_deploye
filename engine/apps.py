@@ -118,6 +118,8 @@ class EngineConfig(AppConfig):
         """Enregistre les signaux de propagation des liens inter-tables."""
         from .base_par_entreprise import installer as _installer_bases   # SQLite par entreprise (sans effet sinon)
         _installer_bases()
+        from .premier_compte import installer as _installer_premier_compte   # super administrateur rattaché dès la création du compte
+        _installer_premier_compte()
         # Aucun signal metier pendant migrate/makemigrations (evite requetes/verrous inutiles).
         if "migrate" in sys.argv or "makemigrations" in sys.argv:
             return

@@ -10,6 +10,7 @@
   input,button{font:inherit;padding:.5rem .7rem;margin:.3rem 0;display:block;width:100%;box-sizing:border-box}
   button{cursor:pointer}
   .attention{background:#fef3c7;border-radius:8px;padding:.7rem 1rem}
+  fieldset:target{border-color:#2563eb;box-shadow:0 0 0 2px #2563eb55}
   #retour{margin-top:1rem;font-weight:600}
 </style>
 </head>
@@ -20,7 +21,7 @@
 <p class="attention">{{ textes.attention }}</p>
 
 <form id="f-sauvegarde" method="post" action="/api/plateforme/sauvegarde/creer">{% csrf_token %}
-  <fieldset>
+  <fieldset id="sauvegarder">
     <legend>{{ textes.sauvegarder }}</legend>
     <input type="password" name="mot_de_passe" placeholder="{{ textes.mot_de_passe }}" required autocomplete="current-password">
     <button type="submit">{{ textes.sauvegarder }}</button>
@@ -28,7 +29,7 @@
 </form>
 
 <form id="f-restauration" method="post" action="/api/plateforme/sauvegarde/restaurer" enctype="multipart/form-data">{% csrf_token %}
-  <fieldset>
+  <fieldset id="restaurer">
     <legend>{{ textes.restaurer }}</legend>
     <input type="file" name="fichier" accept=".zip" required aria-label="{{ textes.fichier }}">
     <input type="password" name="mot_de_passe" placeholder="{{ textes.mot_de_passe }}" required autocomplete="current-password">

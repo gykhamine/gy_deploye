@@ -10,6 +10,9 @@ Opérations (clé `operation`) :
                   `si_absent` = "garder" (cellule inchangée) | "vider"
   majuscules / minuscules / titre / rogner / espaces (réduit les espaces multiples)
   prefixe / suffixe   ajoute `texte`
+  fusionner       plusieurs termes (`termes`, liste) → UN terme final (`remplacement`) : une cellule dont TOUT le contenu est l'un des termes
+                  devient le terme final (bz, BZ, brazzavile… → Brazzaville). Sans `casse`, la comparaison ignore majuscules, accents et
+                  espaces multiples ; les autres cellules ne bougent pas.
 
 Garde-fous : motif ≤ 500 caractères, cellule ≤ 20 000 caractères (au-delà : cellule ignorée), détection des
 quantificateurs imbriqués catastrophiques `(a+)+`, délai global (le module `regex` impose un timeout par cellule s'il
@@ -18,6 +21,7 @@ est installé, sinon seul le délai global de la boucle protège).
 from engine.i18n import t, tf
 import re
 import time
+import unicodedata
 
 try:  # module tiers optionnel : timeout natif par appel
     import regex as _regex  # type: ignore
@@ -26,11 +30,12 @@ except Exception:  # pragma: no cover
 
 OPERATIONS = (
     "remplacer", "supprimer", "extraire", "majuscules", "minuscules", "titre",
-    "rogner", "espaces", "prefixe", "suffixe",
+    "rogner", "espaces", "prefixe", "suffixe", "fusionner",
 )
 OPERATIONS_AVEC_MOTIF = ("remplacer", "supprimer", "extraire")
 
 MAX_MOTIF = 500
+MAX_TERMES = 1000
 MAX_CELLULE = 20000
 DELAI_GLOBAL_S = 20.0
 TIMEOUT_CELLULE_S = 0.5
@@ -49,6 +54,14 @@ def _convertir_remplacement(texte: str) -> str:
     texte = re.sub(r"\$\{(\w+)\}", r"\\g<\1>", texte)
     texte = re.sub(r"\$(\d+)", r"\\g<\1>", texte)
     return texte.replace("\x00", "$")
+
+
+def normaliser(s, casse: bool = False) -> str:
+    """Forme de comparaison d'un terme : espaces réduits ; sans `casse`, aussi sans majuscules ni accents."""
+    s = " ".join(str(s).split())
+    if casse:
+        return s
+    return "".join(c for c in unicodedata.normalize("NFKD", s.casefold()) if not unicodedata.combining(c))
 
 
 def compiler_motif(motif: str, est_regex: bool = True, casse: bool = False):
@@ -82,6 +95,19 @@ class Transformation:
         self.remplacement = str(params.get("remplacement") or "")
         self.texte = str(params.get("texte") or "")
         self.si_absent = "vider" if params.get("si_absent") == "vider" else "garder"
+        self._termes = None
+        if self.operation == "fusionner":
+            brut = params.get("termes") or []
+            if isinstance(brut, str):
+                brut = re.split(r"[\n;,]+", brut)
+            self._termes = {normaliser(x, self.casse) for x in brut if str(x).strip()}
+            self.remplacement = self.remplacement.strip()
+            if not self._termes:
+                raise ErreurTransformation(t("engine/transformation_colonne.py:fusion_termes_vides"))
+            if len(self._termes) > MAX_TERMES:
+                raise ErreurTransformation(tf("engine/transformation_colonne.py:fusion_trop_termes", v1=MAX_TERMES))
+            if not self.remplacement:
+                raise ErreurTransformation(t("engine/transformation_colonne.py:fusion_final_vide"))
         try:
             self.groupe = int(params.get("groupe") or 0)
         except (TypeError, ValueError):
@@ -124,7 +150,7 @@ class Transformation:
         if op == "minuscules":
             return s.lower()
         if op == "titre":
-            return s.title()
+            return re.sub(r"\w[\w'’]*", lambda m: m.group(0)[0].upper() + m.group(0)[1:].lower(), s)   # s.title() donnait « D'Accord », « Bz2X »
         if op == "rogner":
             return s.strip()
         if op == "espaces":
@@ -133,6 +159,8 @@ class Transformation:
             return self.texte + s
         if op == "suffixe":
             return s + self.texte
+        if op == "fusionner":
+            return self.remplacement if normaliser(s, self.casse) in self._termes else s
         extra = {"timeout": TIMEOUT_CELLULE_S} if _regex is not None else {}
         try:
             if op == "remplacer":

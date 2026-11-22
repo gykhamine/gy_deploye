@@ -44,7 +44,15 @@ def api_sauvegarde_creer(request):
         return JsonResponse({"erreur": t("plateforme.sauvegarde.mdp_incorrect")}, status=403)
     chemin = sp.creer()
     siem._bloc_systeme(request.user, "sauvegarde_plateforme", {"evenement": "creation", "fichier": chemin.name, "ip": ip})
-    return FileResponse(open(chemin, "rb"), as_attachment=True, filename=chemin.name, content_type="application/zip")
+    # Le zip est téléchargé puis RETIRÉ du serveur (quota de disque limité : une copie par clic finirait par le saturer).
+    fichier = open(chemin, "rb")
+    fermer = fichier.close
+
+    def fermer_et_retirer():
+        fermer()
+        chemin.unlink(missing_ok=True)
+    fichier.close = fermer_et_retirer
+    return FileResponse(fichier, as_attachment=True, filename=chemin.name, content_type="application/zip")
 
 
 @_garde_sans_reauth

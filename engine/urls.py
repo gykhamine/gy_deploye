@@ -165,6 +165,7 @@ urlpatterns = [
     path("api/ontologie/noeud-couleur/", views_couleur.api_couleur_noeud, name="api_couleur_noeud"),
     path("api/blockchain/couleur/", views_couleur.api_couleur_bloc, name="api_couleur_bloc"),
     path("api/tables/<int:table_id>/champs/<int:champ_id>/transformer/", views_transformation.api_transformer_colonne, name="api_transformer_colonne"),
+    path("api/tables/<int:table_id>/champs/<int:champ_id>/termes/", views_transformation.api_termes_colonne, name="api_termes_colonne"),
     path("api/tables/<int:table_id>/champs/<int:champ_id>/geocoder/", views_transformation.api_geocoder_colonne, name="api_geocoder_colonne"),
     path("api/tables/<int:table_id>/champs/<int:champ_id>/deriver/", views_transformation.api_deriver_colonne, name="api_deriver_colonne"),
     path("api/tables/<int:table_id>/champs/<int:champ_id>/transformations/", views_transformation.api_transformations_colonne, name="api_transformations_colonne"),
